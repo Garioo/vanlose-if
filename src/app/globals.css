@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Bold condensed display font style */
+.font-display {
+  font-family: "Arial Black", "Impact", "Haettenschweiler", "Franklin Gothic Bold", sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+/* Countdown flip-clock style */
+.countdown-box {
+  background: #1a1a1a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: center;
+  min-width: 56px;
+}
+
+/* Accordion styles */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.accordion-content.open {
+  max-height: 500px;
+}

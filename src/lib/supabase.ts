@@ -1,0 +1,151 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// --- Type definitions ---
+
+export type ArticleCategory = "KAMP" | "KLUB" | "UNGDOM";
+
+export interface Article {
+  id: string;
+  slug: string;
+  category: ArticleCategory;
+  date: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  image_url: string | null;
+  latest: boolean;
+  created_at: string;
+}
+
+export type PlayerPosition = "MÅLMÆND" | "FORSVAR" | "MIDTBANE" | "ANGREB";
+
+export interface Player {
+  id: string;
+  number: string;
+  name: string;
+  position: PlayerPosition;
+  image_url: string | null;
+}
+
+export interface Match {
+  id: string;
+  date: string;
+  time: string | null;
+  kickoff_at: string | null;
+  status: MatchStatus;
+  live_phase: LivePhase;
+  live_minute: number | null;
+  live_clock_running: boolean;
+  live_clock_started_at: string | null;
+  live_clock_accumulated_seconds: number;
+  period_label: string | null;
+  matchday_notes: string | null;
+  home: string;
+  home_team_id: string | null;
+  away: string;
+  away_team_id: string | null;
+  venue: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  result: "win" | "draw" | "loss" | null;
+  is_upcoming: boolean;
+}
+
+export type MatchStatus = "scheduled" | "live" | "finished";
+export type LivePhase = "pre_match" | "first_half" | "halftime" | "second_half" | "fulltime";
+
+export type MatchEventType =
+  | "goal"
+  | "yellow_card"
+  | "red_card"
+  | "substitution"
+  | "kickoff"
+  | "halftime"
+  | "fulltime";
+
+export type MatchEventTeamSide = "home" | "away";
+
+export interface MatchEvent {
+  id: string;
+  match_id: string;
+  team_side: MatchEventTeamSide;
+  event_type: MatchEventType;
+  minute: number | null;
+  stoppage_minute: number | null;
+  player_name: string | null;
+  assist_name: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export type LineupPlayerSlot = {
+  name: string;
+  number?: string | null;
+  position?: string | null;
+  captain?: boolean;
+  goalkeeper?: boolean;
+};
+
+export interface MatchLineup {
+  id: string;
+  match_id: string;
+  team_side: MatchEventTeamSide;
+  formation: string | null;
+  starters: LineupPlayerSlot[];
+  bench: LineupPlayerSlot[];
+  confirmed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Standing {
+  id: string;
+  pos: number;
+  team: string; // Sticking to matching by team name for now for backward compatibility in the DB
+  team_id: string | null;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_scored: number;
+  goals_conceded: number;
+  pts: number;
+  highlight: boolean;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  home_turf: string | null;
+}
+
+export interface ContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "new" | "handled";
+  created_at: string;
+}
+
+export interface VolunteerSubmission {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: "new" | "handled";
+  created_at: string;
+}
+
+export interface NewsletterSubscription {
+  id: string;
+  email: string;
+  created_at: string;
+}

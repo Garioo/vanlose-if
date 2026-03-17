@@ -1,12 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ContactSubmission, VolunteerSubmission, NewsletterSubscription } from "@/lib/supabase";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
+import type {
+  ContactSubmission,
+  MembershipSubmission,
+  NewsletterSubscription,
+  VolunteerSubmission,
+} from "@/lib/supabase";
+import { PAGE_SIZE_DEFAULT } from "@/lib/constants";
 
-type InboxTab = "contact" | "volunteer" | "newsletter";
+type InboxTab = "contact" | "volunteer" | "newsletter" | "membership";
 type StatusFilter = "all" | "new" | "handled";
 type StatusType = "new" | "handled";
-type StatusCapableType = "contact" | "volunteer";
+type StatusCapableType = "contact" | "volunteer" | "membership";
+type SearchableSubmission =
+  | ContactSubmission
+  | VolunteerSubmission
+  | NewsletterSubscription
+  | MembershipSubmission;
 
 type PagedResponse<T> = {
   items: T[];
@@ -15,17 +26,105 @@ type PagedResponse<T> = {
   pageSize: number;
 };
 
+type InboxState = {
+  tab: InboxTab;
+  contact: ContactSubmission[];
+  volunteer: VolunteerSubmission[];
+  newsletter: NewsletterSubscription[];
+  membership: MembershipSubmission[];
+  counts: Record<InboxTab, number>;
+  loading: boolean;
+  bulkLoading: boolean;
+  error: string | null;
+  search: string;
+  statusFilter: StatusFilter;
+  onlyNew: boolean;
+  page: number;
+  total: number;
+  selectedIds: string[];
+};
+
+type InboxAction =
+  | { type: "SET_TAB"; tab: InboxTab }
+  | { type: "SET_ITEMS"; tab: InboxTab; items: SearchableSubmission[]; total: number }
+  | { type: "SET_COUNTS"; counts: Record<InboxTab, number> }
+  | { type: "SET_LOADING"; loading: boolean }
+  | { type: "SET_BULK_LOADING"; bulkLoading: boolean }
+  | { type: "SET_ERROR"; error: string | null }
+  | { type: "SET_SEARCH"; search: string }
+  | { type: "SET_STATUS_FILTER"; statusFilter: StatusFilter }
+  | { type: "SET_ONLY_NEW"; onlyNew: boolean }
+  | { type: "SET_PAGE"; page: number }
+  | { type: "SET_SELECTED"; selectedIds: string[] }
+  | { type: "RESET_PAGE" };
+
+const initialState: InboxState = {
+  tab: "contact",
+  contact: [],
+  volunteer: [],
+  newsletter: [],
+  membership: [],
+  counts: { contact: 0, volunteer: 0, newsletter: 0, membership: 0 },
+  loading: false,
+  bulkLoading: false,
+  error: null,
+  search: "",
+  statusFilter: "all",
+  onlyNew: false,
+  page: 1,
+  total: 0,
+  selectedIds: [],
+};
+
+function inboxReducer(state: InboxState, action: InboxAction): InboxState {
+  switch (action.type) {
+    case "SET_TAB":
+      return { ...state, tab: action.tab };
+    case "SET_ITEMS": {
+      const update: Partial<InboxState> = { total: action.total, selectedIds: [] };
+      if (action.tab === "contact") update.contact = action.items as ContactSubmission[];
+      else if (action.tab === "volunteer") update.volunteer = action.items as VolunteerSubmission[];
+      else if (action.tab === "membership") update.membership = action.items as MembershipSubmission[];
+      else update.newsletter = action.items as NewsletterSubscription[];
+      return { ...state, ...update };
+    }
+    case "SET_COUNTS":
+      return { ...state, counts: action.counts };
+    case "SET_LOADING":
+      return { ...state, loading: action.loading };
+    case "SET_BULK_LOADING":
+      return { ...state, bulkLoading: action.bulkLoading };
+    case "SET_ERROR":
+      return { ...state, error: action.error };
+    case "SET_SEARCH":
+      return { ...state, search: action.search };
+    case "SET_STATUS_FILTER":
+      return { ...state, statusFilter: action.statusFilter };
+    case "SET_ONLY_NEW":
+      return { ...state, onlyNew: action.onlyNew };
+    case "SET_PAGE":
+      return { ...state, page: action.page };
+    case "SET_SELECTED":
+      return { ...state, selectedIds: action.selectedIds };
+    case "RESET_PAGE":
+      return { ...state, page: 1 };
+    default:
+      return state;
+  }
+}
+
 const tabLabels: Record<InboxTab, string> = {
   contact: "Kontakt",
   volunteer: "Frivillig",
   newsletter: "Nyhedsbrev",
+  membership: "Medlemskab",
 };
 
 const EMPTY_PAGED: PagedResponse<never> = {
   items: [],
   total: 0,
   page: 1,
-  pageSize: 25,
+  pageSize: PAGE_SIZE_DEFAULT,
 };
 
 function getErrorMessage(payload: unknown, fallback: string): string {
@@ -39,30 +138,31 @@ function getErrorMessage(payload: unknown, fallback: string): string {
 }
 
 export default function AdminHenvendelserPage() {
-  const [tab, setTab] = useState<InboxTab>("contact");
-  const [contact, setContact] = useState<ContactSubmission[]>([]);
-  const [volunteer, setVolunteer] = useState<VolunteerSubmission[]>([]);
-  const [newsletter, setNewsletter] = useState<NewsletterSubscription[]>([]);
-  const [counts, setCounts] = useState<Record<InboxTab, number>>({
-    contact: 0,
-    volunteer: 0,
-    newsletter: 0,
-  });
-  const [loading, setLoading] = useState(false);
-  const [bulkLoading, setBulkLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [onlyNew, setOnlyNew] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(25);
-  const [total, setTotal] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [state, dispatch] = useReducer(inboxReducer, initialState);
 
-  const statusTab = tab === "contact" || tab === "volunteer" ? tab : null;
+  const {
+    tab,
+    contact,
+    volunteer,
+    newsletter,
+    membership,
+    counts,
+    loading,
+    bulkLoading,
+    error,
+    search,
+    statusFilter,
+    onlyNew,
+    page,
+    total,
+    selectedIds,
+  } = state;
+
+  const pageSize = PAGE_SIZE_DEFAULT;
+  const statusTab = tab === "contact" || tab === "volunteer" || tab === "membership" ? tab : null;
 
   const loadCounts = useCallback(async () => {
-    const tabs: InboxTab[] = ["contact", "volunteer", "newsletter"];
+    const tabs: InboxTab[] = ["contact", "volunteer", "newsletter", "membership"];
 
     const results = await Promise.all(
       tabs.map(async (type) => {
@@ -75,16 +175,20 @@ export default function AdminHenvendelserPage() {
       }),
     );
 
-    setCounts({
-      contact: results.find(([type]) => type === "contact")?.[1] ?? 0,
-      volunteer: results.find(([type]) => type === "volunteer")?.[1] ?? 0,
-      newsletter: results.find(([type]) => type === "newsletter")?.[1] ?? 0,
+    dispatch({
+      type: "SET_COUNTS",
+      counts: {
+        contact: results.find(([type]) => type === "contact")?.[1] ?? 0,
+        volunteer: results.find(([type]) => type === "volunteer")?.[1] ?? 0,
+        newsletter: results.find(([type]) => type === "newsletter")?.[1] ?? 0,
+        membership: results.find(([type]) => type === "membership")?.[1] ?? 0,
+      },
     });
   }, []);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    dispatch({ type: "SET_LOADING", loading: true });
+    dispatch({ type: "SET_ERROR", error: null });
 
     try {
       const params = new URLSearchParams({
@@ -102,27 +206,16 @@ export default function AdminHenvendelserPage() {
       }
 
       const res = await fetch(`/api/admin/inbox?${params.toString()}`);
-      const payload = (await res.json().catch(() => EMPTY_PAGED)) as PagedResponse<
-        ContactSubmission | VolunteerSubmission | NewsletterSubscription
-      >;
+      const payload = (await res.json().catch(() => EMPTY_PAGED)) as PagedResponse<SearchableSubmission>;
 
       if (!res.ok) {
-        setError(getErrorMessage(payload, "Kunne ikke indlæse henvendelser."));
+        dispatch({ type: "SET_ERROR", error: getErrorMessage(payload, "Kunne ikke indlæse henvendelser.") });
         return;
       }
 
-      setTotal(payload.total ?? 0);
-      setSelectedIds([]);
-
-      if (tab === "contact") {
-        setContact((payload.items as ContactSubmission[]) ?? []);
-      } else if (tab === "volunteer") {
-        setVolunteer((payload.items as VolunteerSubmission[]) ?? []);
-      } else {
-        setNewsletter((payload.items as NewsletterSubscription[]) ?? []);
-      }
+      dispatch({ type: "SET_ITEMS", tab, items: payload.items ?? [], total: payload.total ?? 0 });
     } finally {
-      setLoading(false);
+      dispatch({ type: "SET_LOADING", loading: false });
     }
   }, [onlyNew, page, pageSize, search, statusFilter, statusTab, tab]);
 
@@ -135,20 +228,20 @@ export default function AdminHenvendelserPage() {
   }, [loadCounts]);
 
   useEffect(() => {
-    setPage(1);
+    dispatch({ type: "RESET_PAGE" });
   }, [tab, search, statusFilter, onlyNew]);
 
   async function setStatus(id: string, type: StatusCapableType, status: StatusType) {
     const res = await fetch(`/api/admin/inbox/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
       body: JSON.stringify({ type, status }),
     });
 
     const payload = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(getErrorMessage(payload, "Kunne ikke opdatere status."));
+      dispatch({ type: "SET_ERROR", error: getErrorMessage(payload, "Kunne ikke opdatere status.") });
       return;
     }
 
@@ -158,33 +251,34 @@ export default function AdminHenvendelserPage() {
   async function markSelectedHandled() {
     if (!statusTab || selectedIds.length === 0) return;
 
-    setBulkLoading(true);
-    setError(null);
+    dispatch({ type: "SET_BULK_LOADING", bulkLoading: true });
+    dispatch({ type: "SET_ERROR", error: null });
 
     try {
       const res = await fetch("/api/admin/inbox/bulk", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
         body: JSON.stringify({ type: statusTab, ids: selectedIds, status: "handled" }),
       });
 
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(getErrorMessage(payload, "Kunne ikke opdatere valgte henvendelser."));
+        dispatch({ type: "SET_ERROR", error: getErrorMessage(payload, "Kunne ikke opdatere valgte henvendelser.") });
         return;
       }
 
       await Promise.all([load(), loadCounts()]);
     } finally {
-      setBulkLoading(false);
+      dispatch({ type: "SET_BULK_LOADING", bulkLoading: false });
     }
   }
 
   const visibleRows = useMemo(() => {
     if (tab === "contact") return contact;
     if (tab === "volunteer") return volunteer;
+    if (tab === "membership") return membership;
     return newsletter;
-  }, [contact, newsletter, tab, volunteer]);
+  }, [contact, membership, newsletter, tab, volunteer]);
 
   const allSelectableChecked =
     statusTab !== null &&
@@ -209,8 +303,8 @@ export default function AdminHenvendelserPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 mb-5">
-        {(["contact", "volunteer", "newsletter"] as InboxTab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={tabCls(tab === t)}>
+        {(["contact", "volunteer", "newsletter", "membership"] as InboxTab[]).map((t) => (
+          <button key={t} onClick={() => dispatch({ type: "SET_TAB", tab: t })} className={tabCls(tab === t)}>
             {tabLabels[t]} ({counts[t]})
           </button>
         ))}
@@ -221,8 +315,16 @@ export default function AdminHenvendelserPage() {
           <label className="block text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-1">Søg</label>
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Navn, e-mail, emne, besked..."
+            onChange={(e) => dispatch({ type: "SET_SEARCH", search: e.target.value })}
+            placeholder={
+              tab === "contact"
+                ? "Navn, e-mail, emne, besked..."
+                : tab === "volunteer"
+                  ? "Navn, e-mail, rolle..."
+                  : tab === "membership"
+                    ? "Navn, e-mail, telefon, medlemskab..."
+                    : "E-mail..."
+            }
             className={`w-full ${controlInputCls}`}
           />
         </div>
@@ -232,7 +334,7 @@ export default function AdminHenvendelserPage() {
             <label className="block text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-1">Status</label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              onChange={(e) => dispatch({ type: "SET_STATUS_FILTER", statusFilter: e.target.value as StatusFilter })}
               className={`w-full ${controlInputCls} bg-white`}
               disabled={onlyNew}
             >
@@ -248,7 +350,7 @@ export default function AdminHenvendelserPage() {
             <input
               type="checkbox"
               checked={onlyNew}
-              onChange={(e) => setOnlyNew(e.target.checked)}
+              onChange={(e) => dispatch({ type: "SET_ONLY_NEW", onlyNew: e.target.checked })}
               className="size-4 border-gray-300"
             />
             Kun nye
@@ -281,11 +383,10 @@ export default function AdminHenvendelserPage() {
                   type="checkbox"
                   checked={allSelectableChecked}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedIds(contact.map((row) => row.id));
-                    } else {
-                      setSelectedIds([]);
-                    }
+                    dispatch({
+                      type: "SET_SELECTED",
+                      selectedIds: e.target.checked ? contact.map((row) => row.id) : [],
+                    });
                   }}
                 />
                 Vælg alle på siden
@@ -302,9 +403,12 @@ export default function AdminHenvendelserPage() {
                       type="checkbox"
                       checked={checked}
                       onChange={(e) => {
-                        setSelectedIds((prev) =>
-                          e.target.checked ? [...prev, row.id] : prev.filter((id) => id !== row.id),
-                        );
+                        dispatch({
+                          type: "SET_SELECTED",
+                          selectedIds: e.target.checked
+                            ? [...selectedIds, row.id]
+                            : selectedIds.filter((id) => id !== row.id),
+                        });
                       }}
                       className="mt-1"
                     />
@@ -343,11 +447,10 @@ export default function AdminHenvendelserPage() {
                   type="checkbox"
                   checked={allSelectableChecked}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedIds(volunteer.map((row) => row.id));
-                    } else {
-                      setSelectedIds([]);
-                    }
+                    dispatch({
+                      type: "SET_SELECTED",
+                      selectedIds: e.target.checked ? volunteer.map((row) => row.id) : [],
+                    });
                   }}
                 />
                 Vælg alle på siden
@@ -363,9 +466,12 @@ export default function AdminHenvendelserPage() {
                     type="checkbox"
                     checked={checked}
                     onChange={(e) => {
-                      setSelectedIds((prev) =>
-                        e.target.checked ? [...prev, row.id] : prev.filter((id) => id !== row.id),
-                      );
+                      dispatch({
+                        type: "SET_SELECTED",
+                        selectedIds: e.target.checked
+                          ? [...selectedIds, row.id]
+                          : selectedIds.filter((id) => id !== row.id),
+                      });
                     }}
                     className="mt-1"
                   />
@@ -405,6 +511,70 @@ export default function AdminHenvendelserPage() {
         </div>
       )}
 
+      {!loading && tab === "membership" && (
+        <div className="bg-white border border-gray-200 divide-y divide-gray-100">
+          {membership.length > 0 && (
+            <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
+              <label className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                <input
+                  type="checkbox"
+                  checked={allSelectableChecked}
+                  onChange={(e) => {
+                    dispatch({
+                      type: "SET_SELECTED",
+                      selectedIds: e.target.checked ? membership.map((row) => row.id) : [],
+                    });
+                  }}
+                />
+                Vælg alle på siden
+              </label>
+            </div>
+          )}
+          {membership.map((row) => {
+            const checked = selectedIds.includes(row.id);
+            return (
+              <div key={row.id} className="px-4 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        dispatch({
+                          type: "SET_SELECTED",
+                          selectedIds: e.target.checked
+                            ? [...selectedIds, row.id]
+                            : selectedIds.filter((id) => id !== row.id),
+                        });
+                      }}
+                      className="mt-1"
+                    />
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide">{row.name}</p>
+                      <p className="text-xs text-gray-500">{row.email}</p>
+                      {row.phone && <p className="text-xs text-gray-500">{row.phone}</p>}
+                      <p className="text-[10px] text-gray-400 mt-1">{row.membership_tier}</p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[10px] text-gray-400 mb-2">{new Date(row.created_at).toLocaleString("da-DK")}</p>
+                    <select
+                      value={row.status}
+                      onChange={(e) => void setStatus(row.id, "membership", e.target.value as StatusType)}
+                      className="border border-gray-300 px-2 py-1 text-[10px] font-bold uppercase tracking-widest"
+                    >
+                      <option value="new">Ny</option>
+                      <option value="handled">Håndteret</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {membership.length === 0 && <div className="px-4 py-8 text-center text-xs text-gray-400">Ingen medlemsanmodninger.</div>}
+        </div>
+      )}
+
       <div className="mt-5 flex items-center justify-between">
         <p className="text-[10px] text-gray-400 uppercase tracking-wider">
           Side {page} af {totalPages} · {total} resultater
@@ -413,7 +583,7 @@ export default function AdminHenvendelserPage() {
           <button
             type="button"
             disabled={page <= 1 || loading}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            onClick={() => dispatch({ type: "SET_PAGE", page: Math.max(1, page - 1) })}
             className="border border-gray-300 px-3 py-1 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
           >
             Forrige
@@ -421,7 +591,7 @@ export default function AdminHenvendelserPage() {
           <button
             type="button"
             disabled={page >= totalPages || loading}
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() => dispatch({ type: "SET_PAGE", page: Math.min(totalPages, page + 1) })}
             className="border border-gray-300 px-3 py-1 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50"
           >
             Næste

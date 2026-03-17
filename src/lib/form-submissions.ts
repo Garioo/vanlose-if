@@ -18,12 +18,22 @@ export type NewsletterSubscriptionPayload = {
   website?: string;
 };
 
+export type MembershipSubmissionPayload = {
+  name: string;
+  email: string;
+  phone: string;
+  membershipTier: string;
+  website?: string;
+};
+
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
 function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  return EMAIL_REGEX.test(email);
 }
 
 function isSpamTrapFilled(website?: string): boolean {
@@ -104,6 +114,39 @@ export function parseNewsletterSubscription(body: unknown) {
 
   if (!isValidEmail(payload.email)) {
     return { ok: false as const, error: "E-mail er ugyldig." };
+  }
+
+  return { ok: true as const, payload };
+}
+
+export function parseMembershipSubmission(body: unknown) {
+  const input = (body ?? {}) as Record<string, unknown>;
+  const payload: MembershipSubmissionPayload = {
+    name: normalizeText(input.name),
+    email: normalizeText(input.email).toLowerCase(),
+    phone: normalizeText(input.phone),
+    membershipTier: normalizeText(input.membershipTier || input.membership_tier),
+    website: normalizeText(input.website),
+  };
+
+  if (isSpamTrapFilled(payload.website)) {
+    return { ok: false as const, error: "Spam detected" };
+  }
+
+  if (!payload.name || payload.name.length < 2) {
+    return { ok: false as const, error: "Navn er ugyldigt." };
+  }
+
+  if (!isValidEmail(payload.email)) {
+    return { ok: false as const, error: "E-mail er ugyldig." };
+  }
+
+  if (payload.phone && payload.phone.length < 6) {
+    return { ok: false as const, error: "Telefonnummer er ugyldigt." };
+  }
+
+  if (!payload.membershipTier) {
+    return { ok: false as const, error: "Vælg et medlemskab." };
   }
 
   return { ok: true as const, payload };

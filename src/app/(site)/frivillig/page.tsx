@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import FrivilligForm from "@/components/FrivilligForm";
 import { buildPageMetadata } from "@/lib/metadata";
+import { supabase } from "@/lib/supabase";
+import type { VolunteerRole } from "@/lib/supabase";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Frivillig — Vanløse IF",
@@ -8,30 +10,46 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/frivillig",
 });
 
-const roles = [
+const fallbackRoles: VolunteerRole[] = [
   {
+    id: "1",
     title: "Træner & Holdleder",
     description:
       "Del din passion for fodbold med de næste generationer. Som træner eller holdleder er du den vigtigste person i et barns sportslige liv. Vi tilbyder DBU-uddannelse og et stærkt netværk af erfarne trænere.",
     tasks: ["Ledelse af træninger", "Kampledelse og tilmelding", "Kontakt til forældre"],
+    display_order: 0,
+    created_at: "",
   },
   {
+    id: "2",
     title: "Event & Kiosk",
     description:
       "Bag enhver god kampdag står frivillige kræfter. Vi har brug for hjælp i kiosken, ved opstilling og nedtagning af udstyr, og til at skabe den stemning, der gør Vanløse Idrætspark til noget særligt.",
     tasks: ["Kioskdrift på kampdage", "Arrangementssupport", "Dekorering og opsætning"],
+    display_order: 1,
+    created_at: "",
   },
   {
+    id: "3",
     title: "Bestyrelse & Administration",
     description:
       "Har du kompetencer inden for økonomi, kommunikation, jura eller ledelse? Klubbens daglige drift kræver engagerede mennesker, der vil gøre en forskel bag kulisserne.",
     tasks: ["Strategisk klubudvikling", "Kommunikation og sociale medier", "Økonomi og sponsorater"],
+    display_order: 2,
+    created_at: "",
   },
 ];
 
-export default function FrivilligPage() {
+export default async function FrivilligPage() {
+  const { data } = await supabase
+    .from("volunteer_roles")
+    .select("*")
+    .order("display_order", { ascending: true });
+
+  const roles: VolunteerRole[] = data && data.length > 0 ? data : fallbackRoles;
+
   return (
-    <div className="bg-white text-black min-h-screen">
+    <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
       {/* Hero */}
       <section className="pt-14 min-h-screen flex items-end bg-black text-white overflow-hidden relative">
         <div className="absolute inset-0 top-14 bg-linear-to-b from-gray-800 to-black" />
@@ -64,16 +82,16 @@ export default function FrivilligPage() {
       </section>
 
       {/* Stats bar */}
-      <section className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+      <section className="border-b border-[#e0dbd3]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-[#e0dbd3]">
           {[
-            { value: "80+", label: "Aktive frivillige" },
-            { value: "20+", label: "Års tradition" },
-            { value: "1.000+", label: "Timer doneret om året" },
+            { value: "FLEKSIBELT", label: "Tid efter mulighed" },
+            { value: "LOKALT", label: "Tæt på klubmiljøet" },
+            { value: "SAMMEN", label: "Holdånd hele året" },
           ].map((stat) => (
             <div key={stat.label} className="text-center py-4 md:py-0">
               <div className="font-display text-4xl md:text-5xl mb-1">{stat.value}</div>
-              <div className="text-[10px] font-bold tracking-widest uppercase text-gray-500">
+              <div className="text-[10px] font-bold tracking-widest uppercase text-[#6b6560]">
                 {stat.label}
               </div>
             </div>
@@ -88,7 +106,7 @@ export default function FrivilligPage() {
             <h2 className="font-display text-4xl md:text-6xl leading-[0.9] mb-3">
               FIND DIN ROLLE
             </h2>
-            <p className="text-sm text-gray-600 max-w-md">
+            <p className="text-sm text-[#4a4540] max-w-md">
               Uanset dine kompetencer og din tilgængelighed har vi en plads til dig i VIF.
             </p>
           </div>
@@ -96,15 +114,15 @@ export default function FrivilligPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {roles.map((role) => (
               <div
-                key={role.title}
-                className="border border-gray-200 p-6 hover:border-black transition-colors group"
+                key={role.id}
+                className="border border-[#e0dbd3] p-6 hover:border-black transition-colors group"
               >
                 <div className="w-10 h-10 bg-black mb-6" />
                 <h3 className="font-bold text-sm uppercase tracking-wide mb-3">{role.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed mb-5">{role.description}</p>
+                <p className="text-xs text-[#6b6560] leading-relaxed mb-5">{role.description}</p>
                 <ul className="space-y-1 mb-6">
                   {role.tasks.map((task) => (
-                    <li key={task} className="flex items-center gap-2 text-xs text-gray-600">
+                    <li key={task} className="flex items-center gap-2 text-xs text-[#4a4540]">
                       <div className="w-1 h-1 bg-black rounded-full shrink-0" />
                       {task}
                     </li>
@@ -126,15 +144,13 @@ export default function FrivilligPage() {
       </section>
 
       {/* Testimonial */}
-      <section className="py-16 md:py-20 px-4 md:px-8 bg-black text-white">
+      <section className="py-16 md:py-20 px-4 md:px-8 bg-[#141412] text-white">
         <div className="max-w-3xl mx-auto text-center">
           <p className="font-display text-2xl md:text-4xl leading-snug mb-8">
             &ldquo;At være frivillig i VIF er ikke bare at hjælpe til — det er at være en del af noget
             meget større end sig selv.&rdquo;
           </p>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500">
-            Henrik · Frivillig i 10 år
-          </p>
+          <p className="text-[10px] font-bold tracking-widest uppercase text-[#5a5550]">Frivillige i Vanløse IF</p>
         </div>
       </section>
 
@@ -145,7 +161,7 @@ export default function FrivilligPage() {
             <h2 className="font-display text-4xl md:text-5xl leading-[0.9] mb-4">
               TILMELD DIG
             </h2>
-            <p className="text-sm text-gray-600 leading-relaxed max-w-sm">
+            <p className="text-sm text-[#4a4540] leading-relaxed max-w-sm">
               Udfyld formularen, og vi kontakter dig inden for et par dage for at finde den bedste
               rolle til dig.
             </p>

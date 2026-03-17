@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import BlivMedlemContent from "@/components/BlivMedlemContent";
 import { buildPageMetadata } from "@/lib/metadata";
+import { supabase } from "@/lib/supabase";
+import type { MembershipTier } from "@/lib/supabase";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Bliv Medlem — Vanløse IF",
@@ -8,11 +10,18 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/bliv-medlem",
 });
 
-export default function BlivMedlemPage() {
+export default async function BlivMedlemPage() {
+  const { data } = await supabase
+    .from("membership_tiers")
+    .select("*")
+    .order("display_order", { ascending: true });
+
+  const tiers: MembershipTier[] = data ?? [];
+
   return (
-    <div className="bg-white text-black min-h-screen pt-14">
+    <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">
       {/* Hero */}
-      <section className="border-b border-gray-200 px-4 md:px-8 py-16 md:py-24 bg-black text-white">
+      <section className="px-4 md:px-8 py-16 md:py-24 bg-black text-white">
         <div className="max-w-7xl mx-auto">
           <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-4">
             Siden 1921
@@ -26,7 +35,7 @@ export default function BlivMedlemPage() {
           </p>
         </div>
       </section>
-      <BlivMedlemContent />
+      <BlivMedlemContent tiers={tiers} />
     </div>
   );
 }

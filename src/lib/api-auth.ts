@@ -16,3 +16,10 @@ export async function requireAdminApi(request: NextRequest): Promise<NextRespons
 
   return null;
 }
+
+export function requireXhrHeader(req: Request): NextResponse | null {
+  if (req.headers.get("X-Requested-With") !== "XMLHttpRequest") {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+  return null;
+}

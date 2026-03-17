@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Bebas_Neue, Outfit } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/metadata";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const bebasNeue = Bebas_Neue({
+  variable: "--font-bebas",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
 });
 
@@ -45,7 +51,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="da">
-      <body className={`${geistSans.variable} antialiased`}>
+      <body className={`${bebasNeue.variable} ${outfit.variable} antialiased`}>
         {plausibleDomain && (
           <Script
             defer

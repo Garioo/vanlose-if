@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { signToken, COOKIE_NAME } from "@/lib/auth";
 import { getClientIp, isRateLimited } from "@/lib/rate-limit";
 
+export const maxRequestBodySize = 4096; // 4 KB
+
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rate = isRateLimited(`admin-login:${ip}`, 10, 15 * 60 * 1000);
+  const rate = await isRateLimited(`admin-login:${ip}`, 10, 15 * 60 * 1000);
   if (rate.limited) {
     return NextResponse.json({ error: "For mange forsøg. Prøv igen senere." }, { status: 429 });
   }

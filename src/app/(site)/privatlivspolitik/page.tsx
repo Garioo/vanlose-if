@@ -10,8 +10,8 @@ export const metadata: Metadata = buildPageMetadata({
 
 export default function PrivatlivspolitikPage() {
   return (
-    <div className="bg-white text-black min-h-screen pt-14">
-      <section className="border-b border-gray-200 px-4 md:px-8 py-12 md:py-16 max-w-4xl mx-auto">
+    <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">
+      <section className="border-b border-[#e0dbd3] px-4 md:px-8 py-12 md:py-16 max-w-4xl mx-auto">
         <h1 className="font-display text-5xl md:text-7xl leading-[0.9] mb-4">PRIVATLIVSPOLITIK</h1>
         <p className="text-sm text-gray-600">
           Sidst opdateret: 12. marts 2026.

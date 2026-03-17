@@ -1,9 +1,4 @@
-type Entry = {
-  count: number;
-  resetAt: number;
-};
-
-const buckets = new Map<string, Entry>();
+import { supabaseAdmin } from "./supabase-admin";
 
 export function getClientIp(request: Request): string {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -13,33 +8,23 @@ export function getClientIp(request: Request): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
-export function isRateLimited(
+export async function isRateLimited(
   key: string,
   maxAttempts: number,
   windowMs: number,
-): { limited: boolean; remaining: number; retryAfterMs: number } {
-  const now = Date.now();
-  const current = buckets.get(key);
-
-  if (!current || current.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return { limited: false, remaining: maxAttempts - 1, retryAfterMs: windowMs };
+): Promise<{ limited: boolean; remaining: number; retryAfterMs: number }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabaseAdmin as any).rpc("rate_limit_increment", {
+    p_key: key,
+    p_window_ms: windowMs,
+  }) as { data: Array<{ count: number; window_start: string }> | null; error: unknown };
+  if (error || !data?.[0]) {
+    // Fail open: if rate limit table is unavailable, allow request
+    return { limited: false, remaining: maxAttempts, retryAfterMs: 0 };
   }
-
-  current.count += 1;
-  buckets.set(key, current);
-
-  if (current.count > maxAttempts) {
-    return {
-      limited: true,
-      remaining: 0,
-      retryAfterMs: Math.max(0, current.resetAt - now),
-    };
-  }
-
-  return {
-    limited: false,
-    remaining: maxAttempts - current.count,
-    retryAfterMs: Math.max(0, current.resetAt - now),
-  };
+  const { count, window_start } = data[0];
+  const windowEnd = new Date(window_start).getTime() + windowMs;
+  const retryAfterMs = Math.max(0, windowEnd - Date.now());
+  const remaining = Math.max(0, maxAttempts - count);
+  return { limited: count > maxAttempts, remaining, retryAfterMs };
 }

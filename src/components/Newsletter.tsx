@@ -11,9 +11,9 @@ export default function Newsletter() {
   const [error, setError] = useState("");
 
   return (
-    <section className="py-16 md:py-24 bg-gray-50">
+    <section className="py-16 md:py-24 bg-[#1a1816]">
       <div className="max-w-2xl mx-auto px-4 md:px-8 text-center">
-        <h2 className="font-display text-3xl md:text-5xl lg:text-6xl leading-[0.9] mb-8">
+        <h2 className="font-display text-3xl md:text-5xl lg:text-6xl leading-[0.9] mb-8 text-white">
           Gå aldrig glip af en kamp
         </h2>
 
@@ -54,10 +54,9 @@ export default function Newsletter() {
             type="text"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
+            style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
             tabIndex={-1}
             autoComplete="off"
-            className="hidden"
-            aria-hidden="true"
           />
           <input
             type="email"
@@ -65,26 +64,26 @@ export default function Newsletter() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Din e-mail adresse"
             required
-            className="flex-1 px-4 py-3 bg-white border border-gray-300 text-sm placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors"
+            className="flex-1 px-4 py-3 bg-[#f7f4ef] border border-[#3a3733] text-sm placeholder:text-[#8a847c] focus:outline-none focus:border-[#f7f4ef] transition-colors"
           />
           <button
             type="submit"
             disabled={loading}
-            className="bg-black text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-gray-900 transition-colors"
+            className="bg-[#dc2626] text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-red-700 transition-colors"
           >
             {loading ? "..." : "Tilmeld"}
           </button>
         </form>
         {success && (
-          <p className="text-[11px] text-green-700 mb-3">Tak. Du er nu tilmeldt nyhedsbrevet.</p>
+          <p className="text-[11px] text-green-400 mb-3">Tak. Du er nu tilmeldt nyhedsbrevet.</p>
         )}
         {error && (
           <p className="text-[11px] text-red-500 mb-3">{error}</p>
         )}
 
-        <p className="text-[10px] text-gray-400">
+        <p className="text-[10px] text-[#5a5550]">
           Ved tilmelding accepterer du vores{" "}
-          <a href="/privatlivspolitik" className="underline hover:text-gray-600">
+          <a href="/privatlivspolitik" className="underline hover:text-[#a09890]">
             privatlivspolitik
           </a>
           .

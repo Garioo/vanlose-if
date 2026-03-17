@@ -1,27 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --background:    #f7f4ef;
+  --foreground:    #0d0d0b;
+  --color-accent:  #dc2626;
+  --surface:       #edeae3;
+  --border:        #e0dbd3;
+  --muted:         #8a847c;
+  --footer-bg:     #141412;
+  --newsletter-bg: #1a1816;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface:    var(--surface);
+  --color-border:     var(--border);
+  --color-muted:      var(--muted);
+  --font-sans:        var(--font-outfit);
+  --font-display:     var(--font-bebas);
 }
+
+html { scroll-behavior: smooth; }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Bold condensed display font style */
+::selection { background: var(--color-accent); color: #fff; }
+
+:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+
+/* Bebas Neue is a single-weight condensed face — font-weight MUST be 400 */
 .font-display {
-  font-family: "Arial Black", "Impact", "Haettenschweiler", "Franklin Gothic Bold", sans-serif;
-  font-weight: 900;
+  font-family: var(--font-bebas), "Arial Black", sans-serif;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: -0.02em;
 }
@@ -29,8 +47,9 @@ body {
 /* Countdown flip-clock style */
 .countdown-box {
   background: #1a1a1a;
+  border: 1px solid #2b2b2b;
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 9px 11px;
   text-align: center;
   min-width: 56px;
 }
@@ -45,3 +64,106 @@ body {
 .accordion-content.open {
   max-height: 500px;
 }
+
+/* ─── Animation keyframes ─────────────────────────────────────────────── */
+
+@keyframes vif-fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vif-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes vif-slide-right {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes vif-score-flash {
+  0%, 100% { background: transparent; color: inherit; }
+  20%       { background: #dc2626; color: #fff; }
+  60%       { background: #dc2626; color: #fff; }
+}
+@keyframes vif-digit-flip {
+  0%   { transform: translateY(0);     opacity: 1; }
+  45%  { transform: translateY(-100%); opacity: 0; }
+  46%  { transform: translateY(100%);  opacity: 0; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+
+/* ─── Scroll-driven reveal (pure CSS, works in RSC) ──────────────────── */
+
+.reveal {
+  animation: vif-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-timeline: view();
+  animation-range: entry 0% entry 35%;
+}
+.reveal-delay-1 { animation-delay: 0.08s; }
+.reveal-delay-2 { animation-delay: 0.16s; }
+.reveal-delay-3 { animation-delay: 0.24s; }
+.reveal-delay-4 { animation-delay: 0.32s; }
+
+/* ─── Hero entrance (toggled by "hero-enter" class on mount) ─────────── */
+
+.hero-enter .hero-badge  { animation: vif-fade-in    0.4s 0.10s both; }
+.hero-enter .hero-title  { animation: vif-fade-up    0.7s 0.20s cubic-bezier(0.22,1,0.36,1) both; }
+.hero-enter .hero-body   { animation: vif-fade-up    0.6s 0.40s cubic-bezier(0.22,1,0.36,1) both; }
+.hero-enter .hero-cta    { animation: vif-fade-up    0.5s 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+.hero-enter .hero-card   { animation: vif-slide-right 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ─── Navbar scroll shadow ───────────────────────────────────────────── */
+
+.nav-scrolled {
+  box-shadow: 0 1px 16px rgba(13,13,11,0.08);
+  border-bottom-color: #d4cfc7 !important;
+}
+
+/* ─── Countdown digit flip ───────────────────────────────────────────── */
+
+.digit-flip { display: inline-block; overflow: hidden; line-height: 1; }
+.digit-flip.flipping { animation: vif-digit-flip 0.25s cubic-bezier(0.4,0,0.2,1) both; }
+
+/* ─── Score flash (MatchCenter) ──────────────────────────────────────── */
+
+.score-flash { animation: vif-score-flash 1.4s ease both; border-radius: 2px; padding: 0 4px; }
+
+/* ─── Card accent — red border sweep on hover ────────────────────────── */
+
+.card-accent { position: relative; }
+.card-accent::after {
+  content: "";
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: #dc2626;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.card-accent:hover::after { transform: scaleX(1); }
+
+/* ─── Button press feedback ──────────────────────────────────────────── */
+
+.btn-press { transition: transform 0.1s ease; }
+.btn-press:active { transform: scale(0.97); }
+
+/* ─── Article prose typography ───────────────────────────────────────── */
+
+.prose-vif { font-size: 1rem; line-height: 1.75; color: #2e2b27; }
+.prose-vif p  { margin-bottom: 1.25em; }
+.prose-vif h2 {
+  font-family: var(--font-bebas), sans-serif; font-weight: 400;
+  font-size: 2rem; letter-spacing: -0.01em; margin: 2em 0 0.6em;
+}
+.prose-vif h3 {
+  font-weight: 700; font-size: 1.05rem; letter-spacing: 0.04em;
+  text-transform: uppercase; margin: 1.75em 0 0.5em;
+}
+.prose-vif a {
+  color: #0d0d0b; text-decoration: underline;
+  text-decoration-color: #dc2626; text-underline-offset: 3px;
+}
+.prose-vif blockquote {
+  border-left: 3px solid #dc2626; padding-left: 1.25rem;
+  font-style: italic; color: #4a4540; margin: 1.75em 0;
+}
+.prose-vif img { width: 100%; height: auto; margin: 2em 0; }
+.prose-vif ul  { list-style: disc;    padding-left: 1.5em; margin-bottom: 1.25em; }
+.prose-vif ol  { list-style: decimal; padding-left: 1.5em; margin-bottom: 1.25em; }

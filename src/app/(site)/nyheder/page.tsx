@@ -19,10 +19,10 @@ export default async function NyhederPage() {
   const articles: Article[] = data ?? [];
 
   return (
-    <div className="bg-white text-black min-h-screen pt-14">
-      <section className="border-b border-gray-200 px-4 md:px-8 py-12 md:py-16 max-w-7xl mx-auto">
+    <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">
+      <section className="border-b border-[#e0dbd3] px-4 md:px-8 py-12 md:py-16 max-w-7xl mx-auto">
         <h1 className="font-display text-5xl md:text-7xl leading-[0.9] mb-3">NYHEDER</h1>
-        <p className="text-sm text-gray-600 max-w-md">
+        <p className="text-sm text-[#4a4540] max-w-md">
           Seneste nyt fra Vanløse IF — kampe, klub og ungdomsfodbold.
         </p>
       </section>

@@ -1,42 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import { trackEvent } from "@/lib/analytics";
+import type { MembershipTier } from "@/lib/supabase";
 
-const tiers = [
-  {
-    name: "Passiv",
-    price: "300",
-    unit: "kr/år",
-    description: "Støt klubben uden at spille aktivt.",
-    perks: ["Nyhedsbrev og invitationer", "Stemmeret på generalforsamling", "Rabat i klubkiosken"],
-  },
-  {
-    name: "Aktiv",
-    price: "650",
-    unit: "kr/år",
-    description: "For spillende medlemmer i seniorafdelingen.",
-    perks: ["Alt i Passiv", "Træningsadgang hele sæsonen", "Licens og kampret", "Adgang til holdets events"],
-    featured: true,
-  },
-  {
-    name: "Familie",
-    price: "1.200",
-    unit: "kr/år",
-    description: "2 voksne + hjemmeboende børn under 18.",
-    perks: ["Alt i Aktiv for hele familien", "10% rabat i kiosken", "Prioritet ved tilmelding til camps", "Familiebillet til hjemmekampe"],
-  },
-];
-
-export default function BlivMedlemContent() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
-  const [selected, setSelected] = useState("Aktiv");
+export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }) {
+  const defaultSelected = tiers.find((t) => t.featured)?.name ?? tiers[0]?.name ?? "";
+  const [form, setForm] = useState({ name: "", email: "", phone: "", website: "" });
+  const [selected, setSelected] = useState(defaultSelected);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   return (
     <section className="py-16 md:py-24 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
           <h2 className="font-display text-4xl md:text-5xl leading-[0.9] mb-3">VÆLG MEDLEMSKAB</h2>
-          <p className="text-sm text-gray-600">Alle priser er pr. sæson og gælder for 2026.</p>
+          <p className="text-sm text-[#4a4540]">Alle priser er pr. sæson og gælder for 2026.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
@@ -44,7 +25,7 @@ export default function BlivMedlemContent() {
             <div
               key={tier.name}
               className={`border p-8 flex flex-col ${
-                tier.featured ? "border-black bg-black text-white" : "border-gray-200"
+                tier.featured ? "border-black bg-black text-white" : "border-[#e0dbd3]"
               }`}
             >
               {tier.featured && (
@@ -87,15 +68,57 @@ export default function BlivMedlemContent() {
         </div>
 
         {/* Signup form */}
-        <div id="tilmeld" className="max-w-2xl mx-auto border-t border-gray-200 pt-12">
+        <div id="tilmeld" className="max-w-2xl mx-auto border-t border-[#e0dbd3] pt-12">
           <h2 className="font-display text-3xl mb-6">TILMELD DIG</h2>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              setForm({ name: "", email: "", phone: "" });
+              setLoading(true);
+              setSuccess(false);
+              setError("");
+              trackEvent("membership_submit_started", { tier: selected });
+
+              try {
+                const res = await fetch("/api/membership", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: form.name,
+                    email: form.email,
+                    phone: form.phone,
+                    website: form.website,
+                    membershipTier: selected,
+                  }),
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  setError(data.error ?? "Kunne ikke sende medlemsanmodning.");
+                  trackEvent("membership_submit_failed", { status: res.status });
+                  return;
+                }
+
+                setForm({ name: "", email: "", phone: "", website: "" });
+                setSuccess(true);
+                trackEvent("membership_submit_success", { tier: selected });
+              } catch {
+                setError("Kunne ikke sende medlemsanmodning.");
+                trackEvent("membership_submit_failed", { status: 0 });
+              } finally {
+                setLoading(false);
+              }
             }}
             className="space-y-4"
           >
+            <input
+              type="text"
+              value={form.website}
+              onChange={(e) => setForm({ ...form, website: e.target.value })}
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"
+              aria-hidden="true"
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold tracking-widest uppercase mb-1">Navn</label>
@@ -103,7 +126,7 @@ export default function BlivMedlemContent() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+                  className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                   placeholder="Dit fulde navn"
                   required
                 />
@@ -114,7 +137,7 @@ export default function BlivMedlemContent() {
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+                  className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
                   placeholder="+45 00 00 00 00"
                 />
               </div>
@@ -135,7 +158,7 @@ export default function BlivMedlemContent() {
               <select
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors bg-white appearance-none"
+                className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
                 required
               >
                 {tiers.map((t) => (
@@ -145,12 +168,21 @@ export default function BlivMedlemContent() {
             </div>
             <button
               type="submit"
+              disabled={loading}
               className="w-full bg-black text-white text-xs font-bold tracking-widest uppercase py-4 hover:bg-gray-900 transition-colors"
             >
-              TILMELD MIG SOM MEDLEM
+              {loading ? "SENDER..." : "TILMELD MIG SOM MEDLEM"}
             </button>
-            <p className="text-[10px] text-gray-400 text-center">
-              Du modtager en bekræftelse på din e-mail inden for 24 timer.
+            {success && (
+              <p className="text-xs text-green-700 text-center">
+                Tak. Din medlemsanmodning er modtaget, og vi vender tilbage hurtigst muligt.
+              </p>
+            )}
+            {error && (
+              <p className="text-xs text-red-500 text-center">{error}</p>
+            )}
+            <p className="text-[10px] text-[#8a847c] text-center">
+              Vi bruger dine oplysninger til at følge op på medlemsanmodningen.
             </p>
           </form>
         </div>

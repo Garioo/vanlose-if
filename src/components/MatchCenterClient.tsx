@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Match, MatchEvent, MatchLineup } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
 import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/lib/live-clock";
+import LineupPitch, { type PlayerEventSummary } from "@/components/LineupPitch";
 
 type Props = {
   initialMatch: Match;
@@ -27,9 +28,87 @@ function minuteLabel(event: MatchEvent): string {
   return `${event.minute}'`;
 }
 
-function formatPlayer(player: { name: string; number?: string | null; position?: string | null }) {
-  const pieces = [player.number ? `#${player.number}` : null, player.name, player.position ?? null].filter(Boolean);
-  return pieces.join(" · ");
+function EventIcon({ type }: { type: string }) {
+  const t = type.toLowerCase();
+  const isGoal = t === "goal" || t === "mål" || t === "penalty" || t === "straffe";
+  const isOwnGoal = t === "own_goal" || t === "selvmål";
+  const isYellow = t === "yellow_card" || t === "gult_kort";
+  const isRed = t === "red_card" || t === "rødt_kort";
+  const isSub = t === "substitution" || t === "udskiftning";
+
+  if (isGoal || isOwnGoal) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M8 3.5 L9.5 6.5 L13 7 L10.5 9.5 L11 13 L8 11.5 L5 13 L5.5 9.5 L3 7 L6.5 6.5 Z" stroke="currentColor" strokeWidth="1" fill="currentColor" fillOpacity="0.15" />
+      </svg>
+    );
+  }
+  if (isYellow) {
+    return (
+      <svg width="12" height="16" viewBox="0 0 12 16" fill="none" aria-hidden>
+        <rect x="1" y="1" width="10" height="14" rx="1.5" fill="#d97706" stroke="#d97706" strokeWidth="1" />
+      </svg>
+    );
+  }
+  if (isRed) {
+    return (
+      <svg width="12" height="16" viewBox="0 0 12 16" fill="none" aria-hidden>
+        <rect x="1" y="1" width="10" height="14" rx="1.5" fill="#dc2626" stroke="#dc2626" strokeWidth="1" />
+      </svg>
+    );
+  }
+  if (isSub) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <path d="M5 3 L5 13 M5 3 L2 6 M5 3 L8 6" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M11 13 L11 3 M11 13 L8 10 M11 13 L14 10" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return <span style={{ width: 16, display: "inline-block", textAlign: "center", color: "currentColor" }}>·</span>;
+}
+
+function eventColor(type: string): string {
+  switch (type.toLowerCase()) {
+    case "goal":
+    case "mål":
+    case "penalty":
+    case "straffe":
+      return "#e63329";
+    case "own_goal":
+    case "selvmål":
+      return "#6b7280";
+    case "yellow_card":
+    case "gult_kort":
+      return "#d97706";
+    case "red_card":
+    case "rødt_kort":
+      return "#dc2626";
+    case "substitution":
+    case "udskiftning":
+      return "#2563eb";
+    default:
+      return "#6b7280";
+  }
+}
+
+function eventLabel(type: string): string {
+  switch (type.toLowerCase()) {
+    case "goal": return "MÅL";
+    case "mål": return "MÅL";
+    case "own_goal": return "SELVMÅL";
+    case "selvmål": return "SELVMÅL";
+    case "yellow_card": return "GULT KORT";
+    case "gult_kort": return "GULT KORT";
+    case "red_card": return "RØDT KORT";
+    case "rødt_kort": return "RØDT KORT";
+    case "substitution": return "UDSKIFTNING";
+    case "udskiftning": return "UDSKIFTNING";
+    case "penalty": return "STRAFFESPARK";
+    case "straffe": return "STRAFFESPARK";
+    default: return type.replace(/_/g, " ").toUpperCase();
+  }
 }
 
 export default function MatchCenterClient({ initialMatch, initialEvents, initialLineup, lineupSide }: Props) {
@@ -79,129 +158,295 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
     return () => clearInterval(timer);
   }, []);
 
+  const prevScore = useRef({ home: match.home_score, away: match.away_score });
+  const scoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const homeChanged = match.home_score !== prevScore.current.home;
+    const awayChanged = match.away_score !== prevScore.current.away;
+    if ((homeChanged || awayChanged) && scoreRef.current) {
+      scoreRef.current.classList.add("score-flash");
+      prevScore.current = { home: match.home_score, away: match.away_score };
+      const t = setTimeout(() => scoreRef.current?.classList.remove("score-flash"), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [match.home_score, match.away_score]);
+
   const isHome = useMemo(() => isVanlose(match.home), [match.home]);
   const liveSeconds = useMemo(() => getLiveClockSeconds(match, nowMs), [match, nowMs]);
   const liveMinute = useMemo(() => getLiveClockMinute(match, nowMs), [match, nowMs]);
   const liveClock = useMemo(() => formatClockSeconds(liveSeconds), [liveSeconds]);
 
+  const playerEvents = useMemo(() => {
+    const map: Record<string, PlayerEventSummary> = {};
+    const key = (name: string) => name.trim().toLowerCase();
+    const get = (name: string): PlayerEventSummary => {
+      const k = key(name);
+      if (!map[k]) map[k] = { goals: 0, assists: 0, yellowCard: false, redCard: false, subOut: false, subIn: false };
+      return map[k]!;
+    };
+    for (const e of events) {
+      if (e.player_name) {
+        const s = get(e.player_name);
+        if (e.event_type === "goal") s.goals++;
+        if (e.event_type === "yellow_card") s.yellowCard = true;
+        if (e.event_type === "red_card") s.redCard = true;
+        if (e.event_type === "substitution") s.subOut = true;
+      }
+      if (e.assist_name && e.event_type === "goal") {
+        get(e.assist_name).assists++;
+      }
+      if (e.assist_name && e.event_type === "substitution") {
+        get(e.assist_name).subIn = true;
+      }
+    }
+    return map;
+  }, [events]);
+  const isLive = match.status === "live";
+  const isFinished = match.status === "finished";
+
   return (
-    <div className="bg-white text-black min-h-screen pt-14">
-      <section className="border-b border-gray-200 px-4 md:px-8 py-10 md:py-14 max-w-7xl mx-auto">
-        <Link href="/kampe" className="text-[10px] font-bold tracking-widest uppercase text-gray-400 hover:text-black">
-          ← Tilbage til kampe
+    <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">
+
+      {/* Back link */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-4">
+        <Link
+          href="/kampe"
+          className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-[#8a847c] hover:text-[#0d0d0b] transition-colors"
+        >
+          <span>←</span> Tilbage til kampe
         </Link>
+      </div>
 
-        <div className="mt-6 border border-gray-200 bg-black text-white p-6 md:p-8">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-[10px] tracking-widest uppercase font-bold bg-white text-black px-2 py-1">
-              {statusLabel(match)}
-            </span>
-            {liveMinute != null && (
-              <span className="text-[10px] tracking-widest uppercase font-bold text-gray-300">
-                {liveMinute}&apos;
-              </span>
-            )}
-            {match.period_label && (
-              <span className="text-[10px] tracking-widest uppercase font-bold text-gray-300">
-                {match.period_label}
-              </span>
-            )}
-            {match.status === "live" && (
-              <span className="text-[10px] tracking-widest uppercase font-bold text-gray-300">
-                {liveClock}
-              </span>
-            )}
-          </div>
+      {/* Scoreboard hero */}
+      <section className="max-w-7xl mx-auto px-4 md:px-8 pb-8">
+        <div
+          className="relative overflow-hidden"
+          style={{
+            background: "linear-gradient(160deg, #0d0d0b 0%, #1a1a17 60%, #0d0d0b 100%)",
+          }}
+        >
+          {/* Subtle grid texture */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+              pointerEvents: "none",
+            }}
+          />
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <p className="text-lg md:text-2xl font-bold uppercase truncate">{match.home}</p>
-            <p className="font-display text-3xl md:text-5xl tabular-nums">
-              {match.home_score ?? 0} - {match.away_score ?? 0}
-            </p>
-            <p className="text-lg md:text-2xl font-bold uppercase truncate text-right">{match.away}</p>
-          </div>
-        </div>
+          {/* Red top accent bar */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#e63329]" />
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-600">
-          <p>{match.date}{match.time ? ` · Kl. ${match.time}` : ""}</p>
-          <p className="md:text-right">{match.venue || "Bane annonceres snart"}</p>
-          <p>{isHome ? "Vanløse spiller hjemme" : "Vanløse spiller ude"}</p>
-          <Link href="/kontakt" className="md:text-right text-black font-bold tracking-wide uppercase text-[10px] hover:underline">
-            Køb billet
-          </Link>
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-10 md:py-14 grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div>
-          <h2 className="font-display text-2xl mb-4">LIVE TIDSLINJE</h2>
-          <div className="border border-gray-200 divide-y divide-gray-100 bg-white">
-            {events.map((event) => (
-              <div key={event.id} className="px-4 py-3 flex items-start gap-3">
-                <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 min-w-12">
-                  {minuteLabel(event)}
+          <div className="relative px-6 md:px-10 py-8 md:py-10">
+            {/* Status row */}
+            <div className="flex items-center gap-3 mb-4">
+              {isLive ? (
+                <span className="inline-flex items-center gap-2 bg-[#e63329] text-white px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
+                  <span className="inline-block w-[7px] h-[7px] rounded-full bg-white animate-pulse" />
+                  LIVE
                 </span>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-wide">
-                    {event.event_type.replace("_", " ")}
-                  </p>
-                  <p className="text-xs text-gray-700">
-                    {[event.player_name, event.assist_name ? `Assist: ${event.assist_name}` : null, event.note]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-                <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">
-                  {event.team_side === "home" ? "HJEMME" : "UDE"}
+              ) : (
+                <span className="inline-flex items-center bg-white/10 text-white/70 px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
+                  {statusLabel(match)}
                 </span>
-              </div>
-            ))}
-            {events.length === 0 && (
-              <p className="px-4 py-8 text-center text-xs text-gray-400">Ingen events endnu.</p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <h2 className="font-display text-2xl mb-4">VANLØSE LINEUP</h2>
-          <div className="border border-gray-200 bg-white p-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400">
-                Formation: {lineup?.formation || "Ikke sat"}
-              </p>
-              <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400">
-                {lineup?.confirmed ? "Bekræftet" : "Foreløbig"}
-              </p>
+              )}
+              {isLive && (
+                <span className="font-display text-3xl md:text-4xl tracking-widest" style={{ color: "#e63329" }}>
+                  {liveClock}
+                </span>
+              )}
+              <span className="ml-auto text-white/30 text-[10px] tracking-widest uppercase hidden md:block">
+                3. Division
+              </span>
             </div>
 
-            <p className="text-xs font-bold tracking-wide uppercase mb-2">Startopstilling</p>
-            <ul className="space-y-1 mb-5">
-              {(lineup?.starters ?? []).map((player, index) => (
-                <li key={`${player.name}-${index}`} className="text-xs text-gray-700">
-                  {formatPlayer(player)}
-                </li>
-              ))}
-              {(lineup?.starters ?? []).length === 0 && <li className="text-xs text-gray-400">Ikke tilgængelig endnu.</li>}
-            </ul>
+            {/* Teams and score */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 md:gap-8">
+              {/* Home team */}
+              <div>
+                <p className="font-display text-2xl md:text-4xl lg:text-5xl text-white leading-none tracking-tight">
+                  {match.home}
+                </p>
+                {isHome && (
+                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase mt-2">
+                    Hjemmehold
+                  </p>
+                )}
+              </div>
 
-            <p className="text-xs font-bold tracking-wide uppercase mb-2">Bænk</p>
-            <ul className="space-y-1">
-              {(lineup?.bench ?? []).map((player, index) => (
-                <li key={`${player.name}-${index}`} className="text-xs text-gray-700">
-                  {formatPlayer(player)}
-                </li>
-              ))}
-              {(lineup?.bench ?? []).length === 0 && <li className="text-xs text-gray-400">Ikke tilgængelig endnu.</li>}
-            </ul>
+              {/* Score */}
+              <div ref={scoreRef} className="text-center px-4 md:px-8">
+                <div className="font-display text-5xl md:text-7xl lg:text-8xl text-white leading-none tabular-nums">
+                  {match.home_score ?? 0}
+                  <span className="text-white/30 mx-1 md:mx-2">-</span>
+                  {match.away_score ?? 0}
+                </div>
+                {isFinished && (
+                  <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">
+                    Slutresultat
+                  </p>
+                )}
+              </div>
+
+              {/* Away team */}
+              <div className="text-right">
+                <p className="font-display text-2xl md:text-4xl lg:text-5xl text-white leading-none tracking-tight">
+                  {match.away}
+                </p>
+                {!isHome && (
+                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase mt-2">
+                    Hjemmehold
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom meta strip */}
+          <div className="border-t border-white/10 px-6 md:px-10 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-6 text-[11px] text-white/50">
+              <span>
+                {match.date}{match.time ? ` · Kl. ${match.time}` : ""}
+              </span>
+              {match.venue && (
+                <>
+                  <span className="text-white/20">|</span>
+                  <span>{match.venue}</span>
+                </>
+              )}
+              <span className="text-white/20">|</span>
+              <span>{isHome ? "Vanløse spiller hjemme" : "Vanløse spiller ude"}</span>
+            </div>
+            <a
+              href="#tidslinje"
+              className="text-[10px] font-bold tracking-widest uppercase text-[#e63329] hover:text-white transition-colors"
+            >
+              Følg kampen ↓
+            </a>
           </div>
         </div>
       </section>
 
+      {/* Timeline + Lineup */}
+      <section
+        id="tidslinje"
+        className="max-w-7xl mx-auto px-4 md:px-8 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12"
+      >
+        {/* Timeline */}
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-display text-3xl tracking-tight">LIVE TIDSLINJE</h2>
+            {isLive && (
+              <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase text-[#e63329]">
+                <span className="inline-block w-[6px] h-[6px] rounded-full bg-[#e63329] animate-pulse" />
+                Opdateres live
+              </span>
+            )}
+          </div>
+
+          {events.length === 0 ? (
+            <div className="border border-[#e0dbd3] bg-white/60 px-6 py-12 text-center">
+              <p className="text-xs text-[#8a847c] tracking-wide">
+                {isFinished ? "Ingen registrerede hændelser." : "Ingen events endnu — hold øje her."}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#e0dbd3] border border-[#e0dbd3] bg-white/60">
+              {[...events].reverse().map((event) => {
+                const color = eventColor(event.event_type);
+                return (
+                  <div key={event.id} className="flex items-stretch gap-0">
+                    {/* Colored left border */}
+                    <div style={{ width: 3, backgroundColor: color, flexShrink: 0 }} />
+
+                    <div className="flex items-center gap-4 px-4 py-4 flex-1 min-w-0">
+                      {/* Minute */}
+                      <span
+                        className="text-[11px] font-bold tabular-nums min-w-[36px] text-right"
+                        style={{ color }}
+                      >
+                        {minuteLabel(event)}
+                      </span>
+
+                      {/* Icon */}
+                      <span className="flex-shrink-0 text-[#8a847c]">
+                        <EventIcon type={event.event_type} />
+                      </span>
+
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color }}>
+                          {eventLabel(event.event_type)}
+                        </p>
+                        <p className="text-sm font-semibold text-[#0d0d0b] truncate">
+                          {event.player_name ?? "—"}
+                        </p>
+                        {(event.assist_name || event.note) && (
+                          <p className="text-[11px] text-[#8a847c] truncate">
+                            {[
+                              event.assist_name ? `${event.event_type === "substitution" ? "Ind" : "Assist"}: ${event.assist_name}` : null,
+                              event.note,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Side */}
+                      <span className="text-[9px] font-bold tracking-widest uppercase text-[#c0bab3] ml-auto flex-shrink-0">
+                        {event.team_side === "home" ? "HJEMME" : "UDE"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Lineup */}
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-display text-3xl tracking-tight">VANLØSE LINEUP</h2>
+            <span
+              className="text-[10px] font-bold tracking-widest uppercase px-2 py-1"
+              style={{
+                color: lineup?.confirmed ? "#166534" : "#8a847c",
+                backgroundColor: lineup?.confirmed ? "#dcfce7" : "#f0ede8",
+              }}
+            >
+              {lineup?.confirmed ? "✓ Bekræftet" : "Foreløbig"}
+            </span>
+          </div>
+
+          {lineup && lineup.starters.length > 0 ? (
+            <LineupPitch
+              starters={lineup.starters}
+              bench={lineup.bench}
+              formation={lineup.formation}
+              confirmed={lineup.confirmed}
+              playerEvents={playerEvents}
+            />
+          ) : (
+            <div className="border border-[#e0dbd3] bg-white/60 px-6 py-12 text-center">
+              <p className="text-xs text-[#8a847c] tracking-wide">
+                {isFinished ? "Ingen lineup registreret." : "Lineup annonceres snart."}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Matchday note */}
       {match.matchday_notes && (
-        <section className="max-w-7xl mx-auto px-4 md:px-8 pb-12">
-          <div className="border border-gray-200 bg-gray-50 p-4">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-2">Kampnote</p>
-            <p className="text-sm text-gray-700">{match.matchday_notes}</p>
+        <section className="max-w-7xl mx-auto px-4 md:px-8 pb-16">
+          <div className="border-l-[3px] border-[#e63329] bg-white/60 border border-[#e0dbd3] px-6 py-5">
+            <p className="text-[9px] font-bold tracking-widest uppercase text-[#8a847c] mb-2">Kampnote</p>
+            <p className="text-sm text-[#0d0d0b] leading-relaxed">{match.matchday_notes}</p>
           </div>
         </section>
       )}

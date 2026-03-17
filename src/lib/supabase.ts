@@ -149,3 +149,75 @@ export interface NewsletterSubscription {
   email: string;
   created_at: string;
 }
+
+export interface MembershipSubmission {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  membership_tier: string;
+  status: "new" | "handled";
+  created_at: string;
+}
+
+export type SponsorTier = "guld" | "sølv" | "bronze";
+
+export interface Sponsor {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  website_url: string | null;
+  tier: SponsorTier;
+  display_order: number;
+  created_at: string;
+}
+
+export interface YouthTeam {
+  id: string;
+  age_group: string;
+  coach: string | null;
+  training_schedule: string | null;
+  description: string | null;
+  display_order: number;
+  created_at: string;
+}
+
+export interface PlayerStats {
+  id: string;
+  player_id: string;
+  season: string;
+  goals: number;
+  assists: number;
+  appearances: number;
+  yellow_cards: number;
+  red_cards: number;
+  created_at: string;
+}
+
+export interface MembershipTier {
+  id: string;
+  name: string;
+  price: string;
+  unit: string;
+  description: string;
+  perks: string[];
+  featured: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+export interface VolunteerRole {
+  id: string;
+  title: string;
+  description: string;
+  tasks: string[];
+  display_order: number;
+  created_at: string;
+}
+
+export interface SiteSetting {
+  key: string;
+  value: string;
+  label: string | null;
+  updated_at: string;
+}

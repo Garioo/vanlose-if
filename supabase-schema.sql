@@ -134,6 +134,16 @@ CREATE TABLE IF NOT EXISTS public.newsletter_subscriptions (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.membership_submissions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  email text NOT NULL,
+  phone text,
+  membership_tier text NOT NULL,
+  status text NOT NULL DEFAULT 'new',
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.match_events (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   match_id uuid NOT NULL REFERENCES public.matches(id) ON DELETE CASCADE,
@@ -202,6 +212,14 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$
+BEGIN
+  ALTER TABLE public.membership_submissions
+    ADD CONSTRAINT membership_submissions_status_check
+    CHECK (status IN ('new', 'handled'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS contact_submissions_created_at_idx
   ON public.contact_submissions (created_at DESC);
 CREATE INDEX IF NOT EXISTS contact_submissions_status_idx
@@ -214,6 +232,11 @@ CREATE INDEX IF NOT EXISTS volunteer_submissions_status_idx
 
 CREATE INDEX IF NOT EXISTS newsletter_subscriptions_created_at_idx
   ON public.newsletter_subscriptions (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS membership_submissions_created_at_idx
+  ON public.membership_submissions (created_at DESC);
+CREATE INDEX IF NOT EXISTS membership_submissions_status_idx
+  ON public.membership_submissions (status);
 
 CREATE INDEX IF NOT EXISTS match_events_match_minute_created_idx
   ON public.match_events (match_id, minute, created_at);
@@ -274,6 +297,44 @@ SET kickoff_at = to_timestamp(
 WHERE kickoff_at IS NULL
   AND date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$';
 
+-- Membership tiers
+CREATE TABLE IF NOT EXISTS public.membership_tiers (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  price text NOT NULL,
+  unit text NOT NULL DEFAULT 'kr/år',
+  description text NOT NULL,
+  perks text[] NOT NULL DEFAULT '{}',
+  featured boolean NOT NULL DEFAULT false,
+  display_order int DEFAULT 0,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Volunteer roles
+CREATE TABLE IF NOT EXISTS public.volunteer_roles (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  title text NOT NULL,
+  description text NOT NULL,
+  tasks text[] NOT NULL DEFAULT '{}',
+  display_order int DEFAULT 0,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Site settings
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key text PRIMARY KEY,
+  value text NOT NULL,
+  label text,
+  updated_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+INSERT INTO public.site_settings (key, value, label) VALUES
+  ('current_season', '2024/25', 'Aktuel sæson (f.eks. 2024/25)'),
+  ('contact_phone', '+45 38 74 12 12', 'Telefon'),
+  ('contact_email', 'kontakt@vanlosif.dk', 'E-mail'),
+  ('contact_address', 'Klampegårdsvej 4-6, 2720 Vanløse', 'Adresse')
+ON CONFLICT (key) DO NOTHING;
+
 UPDATE public.matches
 SET kickoff_at = to_timestamp(
   date || ' ' || COALESCE(NULLIF(time, ''), '12:00'),
@@ -302,6 +363,46 @@ SET live_clock_running = false
 WHERE live_clock_running IS NULL;
 
 -- ==========================================
+-- NEW FEATURE TABLES
+-- ==========================================
+
+-- Sponsors
+CREATE TABLE IF NOT EXISTS public.sponsors (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  logo_url text,
+  website_url text,
+  tier text NOT NULL CHECK (tier IN ('guld', 'sølv', 'bronze')),
+  display_order int DEFAULT 0,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Youth teams
+CREATE TABLE IF NOT EXISTS public.youth_teams (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  age_group text NOT NULL,
+  coach text,
+  training_schedule text,
+  description text,
+  display_order int DEFAULT 0,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Player stats
+CREATE TABLE IF NOT EXISTS public.player_stats (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  player_id uuid NOT NULL REFERENCES public.players(id) ON DELETE CASCADE,
+  season text NOT NULL,
+  goals int NOT NULL DEFAULT 0,
+  assists int NOT NULL DEFAULT 0,
+  appearances int NOT NULL DEFAULT 0,
+  yellow_cards int NOT NULL DEFAULT 0,
+  red_cards int NOT NULL DEFAULT 0,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(player_id, season)
+);
+
+-- ==========================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
 
@@ -313,8 +414,12 @@ ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.volunteer_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.newsletter_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.membership_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_lineups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.youth_teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.player_stats ENABLE ROW LEVEL SECURITY;
 
 -- Public read access to site-facing tables
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.articles;
@@ -331,6 +436,12 @@ DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.matc
 CREATE POLICY "Public profiles are viewable by everyone." ON public.match_events FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.match_lineups;
 CREATE POLICY "Public profiles are viewable by everyone." ON public.match_lineups FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.sponsors;
+CREATE POLICY "Public profiles are viewable by everyone." ON public.sponsors FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.youth_teams;
+CREATE POLICY "Public profiles are viewable by everyone." ON public.youth_teams FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.player_stats;
+CREATE POLICY "Public profiles are viewable by everyone." ON public.player_stats FOR SELECT USING (true);
 
 -- Remove permissive write policies on core tables (writes are now API + service role only)
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.articles;
@@ -356,3 +467,34 @@ DROP POLICY IF EXISTS "Enable delete for all users" ON public.teams;
 -- Submission tables are private; no anon read/write policies.
 
 NOTIFY pgrst, 'reload schema';
+
+-- Distributed rate limiting
+CREATE TABLE IF NOT EXISTS public.rate_limit_buckets (
+  id text PRIMARY KEY,
+  count integer NOT NULL DEFAULT 1,
+  window_start timestamptz NOT NULL DEFAULT timezone('utc', now())
+);
+CREATE INDEX IF NOT EXISTS rate_limit_buckets_window_start_idx
+  ON public.rate_limit_buckets (window_start);
+
+CREATE OR REPLACE FUNCTION public.rate_limit_increment(
+  p_key text,
+  p_window_ms bigint
+) RETURNS TABLE(count integer, window_start timestamptz)
+LANGUAGE plpgsql AS $$
+BEGIN
+  DELETE FROM public.rate_limit_buckets rlb
+  WHERE rlb.id = p_key
+    AND rlb.window_start + (p_window_ms || ' milliseconds')::interval < now();
+
+  INSERT INTO public.rate_limit_buckets (id, count, window_start)
+  VALUES (p_key, 1, now())
+  ON CONFLICT (id) DO UPDATE
+    SET count = rate_limit_buckets.count + 1;
+
+  RETURN QUERY
+    SELECT b.count, b.window_start
+    FROM public.rate_limit_buckets b
+    WHERE b.id = p_key;
+END;
+$$;

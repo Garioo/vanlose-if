@@ -50,10 +50,9 @@ export default function KontaktForm() {
           type="text"
           value={form.website}
           onChange={(e) => setForm({ ...form, website: e.target.value })}
+          style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none' }}
           tabIndex={-1}
           autoComplete="off"
-          className="hidden"
-          aria-hidden="true"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -62,7 +61,7 @@ export default function KontaktForm() {
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+              className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
               placeholder="Dit navn"
               required
             />
@@ -73,7 +72,7 @@ export default function KontaktForm() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+              className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
               placeholder="din@email.dk"
               required
             />
@@ -84,7 +83,7 @@ export default function KontaktForm() {
           <select
             value={form.subject}
             onChange={(e) => setForm({ ...form, subject: e.target.value })}
-            className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors bg-white appearance-none"
+            className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
             required
           >
             <option value="" disabled>Vælg et emne</option>
@@ -102,7 +101,7 @@ export default function KontaktForm() {
             value={form.message}
             onChange={(e) => setForm({ ...form, message: e.target.value })}
             rows={6}
-            className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors resize-none"
+            className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors resize-none"
             placeholder="Skriv din besked her..."
             required
           />

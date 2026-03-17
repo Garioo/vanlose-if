@@ -9,6 +9,7 @@ import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/l
 import type { LiveAction } from "@/lib/matchday-payload";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
+import LineupPitch from "@/components/LineupPitch";
 
 function createEmptyEventForm() {
   return {
@@ -401,6 +402,16 @@ export default function AdminLivePage() {
     });
   }
 
+  function moveStarter(index: number, direction: -1 | 1) {
+    const newIndex = index + direction;
+    setLineupForm((prev) => {
+      if (newIndex < 0 || newIndex >= prev.starters.length) return prev;
+      const next = [...prev.starters];
+      [next[index], next[newIndex]] = [next[newIndex], next[index]];
+      return { ...prev, starters: next };
+    });
+  }
+
   function buildLineupSlots(playerIds: string[]): LineupPlayerSlot[] {
     return playerIds
       .map((id) => players.find((p) => p.id === id))
@@ -581,15 +592,44 @@ export default function AdminLivePage() {
             <div className="bg-white border border-gray-200 p-6">
               <h2 className="text-xs font-bold tracking-widest uppercase mb-4">Events (hurtig)</h2>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <select value={quickTeamSide} onChange={(e) => setQuickTeamSide(e.target.value as "home" | "away")} className={`${inputCls} bg-white`}>
-                  <option value="home">Hjemme</option>
-                  <option value="away">Ude</option>
-                </select>
-                <input value={quickPlayerName} onChange={(e) => setQuickPlayerName(e.target.value)} className={inputCls} placeholder="Spiller" />
-                <input value={quickAssistName} onChange={(e) => setQuickAssistName(e.target.value)} className={inputCls} placeholder="Assist (valgfri)" />
-                <input value={quickNote} onChange={(e) => setQuickNote(e.target.value)} className={inputCls} placeholder="Note (valgfri)" />
-              </div>
+              {(() => {
+                const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
+                const isVanloseSide = quickTeamSide === getVanloseSide(selectedMatch);
+                const showSelect = isVanloseSide && lineupPlayers.length > 0;
+
+                return (
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <select value={quickTeamSide} onChange={(e) => setQuickTeamSide(e.target.value as "home" | "away")} className={`${inputCls} bg-white`}>
+                      <option value="home">Hjemme</option>
+                      <option value="away">Ude</option>
+                    </select>
+
+                    {showSelect ? (
+                      <select value={quickPlayerName} onChange={(e) => setQuickPlayerName(e.target.value)} className={`${inputCls} bg-white`}>
+                        <option value="">— Vælg spiller —</option>
+                        {lineupPlayers.map((p) => (
+                          <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input value={quickPlayerName} onChange={(e) => setQuickPlayerName(e.target.value)} className={inputCls} placeholder="Spiller" />
+                    )}
+
+                    {showSelect ? (
+                      <select value={quickAssistName} onChange={(e) => setQuickAssistName(e.target.value)} className={`${inputCls} bg-white`}>
+                        <option value="">— Assist (valgfri) —</option>
+                        {lineupPlayers.map((p) => (
+                          <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input value={quickAssistName} onChange={(e) => setQuickAssistName(e.target.value)} className={inputCls} placeholder="Assist (valgfri)" />
+                    )}
+
+                    <input value={quickNote} onChange={(e) => setQuickNote(e.target.value)} className={inputCls} placeholder="Note (valgfri)" />
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                 <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("goal")} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-3 py-2.5 disabled:opacity-50">Mål ({liveMinute}&apos;)</button>
@@ -615,8 +655,34 @@ export default function AdminLivePage() {
                 </select>
                 <input type="number" min="0" placeholder={`Minut (default ${liveMinute})`} value={eventForm.minute} onChange={(e) => setEventForm({ ...eventForm, minute: e.target.value })} className={inputCls} />
                 <input type="number" min="0" placeholder="Tillæg" value={eventForm.stoppage_minute} onChange={(e) => setEventForm({ ...eventForm, stoppage_minute: e.target.value })} className={inputCls} />
-                <input type="text" placeholder="Spiller" value={eventForm.player_name} onChange={(e) => setEventForm({ ...eventForm, player_name: e.target.value })} className={inputCls} />
-                <input type="text" placeholder="Assist" value={eventForm.assist_name} onChange={(e) => setEventForm({ ...eventForm, assist_name: e.target.value })} className={inputCls} />
+                {(() => {
+                  const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
+                  const showSelect = eventForm.team_side === getVanloseSide(selectedMatch) && lineupPlayers.length > 0;
+                  return (
+                    <>
+                      {showSelect ? (
+                        <select value={eventForm.player_name} onChange={(e) => setEventForm({ ...eventForm, player_name: e.target.value })} className={`${inputCls} bg-white`}>
+                          <option value="">— Vælg spiller —</option>
+                          {lineupPlayers.map((p) => (
+                            <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input type="text" placeholder="Spiller" value={eventForm.player_name} onChange={(e) => setEventForm({ ...eventForm, player_name: e.target.value })} className={inputCls} />
+                      )}
+                      {showSelect ? (
+                        <select value={eventForm.assist_name} onChange={(e) => setEventForm({ ...eventForm, assist_name: e.target.value })} className={`${inputCls} bg-white`}>
+                          <option value="">— Assist (valgfri) —</option>
+                          {lineupPlayers.map((p) => (
+                            <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input type="text" placeholder="Assist" value={eventForm.assist_name} onChange={(e) => setEventForm({ ...eventForm, assist_name: e.target.value })} className={inputCls} />
+                      )}
+                    </>
+                  );
+                })()}
                 <input type="text" placeholder="Note" value={eventForm.note} onChange={(e) => setEventForm({ ...eventForm, note: e.target.value })} className={`${inputCls} col-span-2`} />
                 <div className="col-span-2 flex gap-2">
                   <button type="submit" disabled={savingEvent} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
@@ -654,64 +720,176 @@ export default function AdminLivePage() {
           <div className="bg-white border border-gray-200 p-6 h-fit">
             <h2 className="text-xs font-bold tracking-widest uppercase mb-4">Vanløse lineup</h2>
 
-            <form onSubmit={submitLineup}>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <input type="text" value={lineupForm.formation} onChange={(e) => setLineupForm({ ...lineupForm, formation: e.target.value })} className={inputCls} placeholder="4-3-3" />
-                <label className="inline-flex items-center gap-2 text-xs text-gray-600 border border-gray-300 px-3 py-2">
-                  <input type="checkbox" checked={lineupForm.confirmed} onChange={(e) => setLineupForm({ ...lineupForm, confirmed: e.target.checked })} />
-                  Bekræftet
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">Startopstilling</p>
-                  <div className="border border-gray-200 max-h-60 overflow-auto divide-y divide-gray-100">
-                    {players.map((p) => (
-                      <label key={`s-${p.id}`} className="flex items-center gap-2 px-3 py-2 text-xs">
-                        <input type="checkbox" checked={lineupForm.starters.includes(p.id)} onChange={() => togglePlayer(p.id, "starters")} />
-                        <span>#{p.number} {p.name}</span>
-                      </label>
-                    ))}
-                  </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Form */}
+              <form onSubmit={submitLineup}>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <input type="text" value={lineupForm.formation} onChange={(e) => setLineupForm({ ...lineupForm, formation: e.target.value })} className={inputCls} placeholder="4-3-3" />
+                  <label className="inline-flex items-center gap-2 text-xs text-gray-600 border border-gray-300 px-3 py-2">
+                    <input type="checkbox" checked={lineupForm.confirmed} onChange={(e) => setLineupForm({ ...lineupForm, confirmed: e.target.checked })} />
+                    Bekræftet
+                  </label>
                 </div>
 
-                <div>
+                {/* Ordered starters */}
+                <div className="mb-4">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">
+                    Startopstilling ({lineupForm.starters.length}/11) — rækkefølge bestemmer position
+                  </p>
+                  {(() => {
+                    const rowCounts = lineupForm.formation
+                      .split("-").map((n) => parseInt(n, 10)).filter((n) => !isNaN(n) && n > 0);
+                    const rowLabels = rowCounts.map((count, i) => {
+                      if (i === 0) return `FORSVAR (${count})`;
+                      if (i === rowCounts.length - 1) return `ANGREB (${count})`;
+                      return `MIDTBANE (${count})`;
+                    });
+                    // Boundary indices in the non-GK starters list
+                    const boundaries: number[] = [];
+                    let cursor = 0;
+                    for (const count of rowCounts) { boundaries.push(cursor); cursor += count; }
+
+                    // Map overall starter index → non-GK index
+                    let nonGkIdx = 0;
+
+                    return (
+                      <div>
+                        <div className="border border-gray-200 divide-y divide-gray-100 mb-2">
+                          {lineupForm.starters.length === 0 && (
+                            <p className="px-3 py-4 text-xs text-gray-400 text-center">Ingen spillere valgt endnu.</p>
+                          )}
+                          {lineupForm.starters.map((id, i) => {
+                            const player = players.find((p) => p.id === id);
+                            if (!player) return null;
+                            const isGK = id === lineupForm.goalkeeper;
+                            const isCaptain = id === lineupForm.captain;
+
+                            // Compute row divider for non-GK players
+                            let rowDivider: string | null = null;
+                            if (!isGK) {
+                              const boundaryIdx = boundaries.indexOf(nonGkIdx);
+                              if (boundaryIdx !== -1) rowDivider = rowLabels[boundaryIdx] ?? null;
+                              nonGkIdx++;
+                            }
+
+                            return (
+                              <div key={id}>
+                                {rowDivider && (
+                                  <div className="px-3 py-1 bg-gray-50 text-[9px] font-bold tracking-widest uppercase text-gray-400 border-t border-gray-200">
+                                    {rowDivider}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 px-3 py-2">
+                                  <div className="flex flex-col gap-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => moveStarter(i, -1)}
+                                      disabled={i === 0}
+                                      className="text-gray-400 hover:text-black disabled:opacity-20 leading-none text-[10px]"
+                                      title="Flyt op"
+                                    >▲</button>
+                                    <button
+                                      type="button"
+                                      onClick={() => moveStarter(i, 1)}
+                                      disabled={i === lineupForm.starters.length - 1}
+                                      className="text-gray-400 hover:text-black disabled:opacity-20 leading-none text-[10px]"
+                                      title="Flyt ned"
+                                    >▼</button>
+                                  </div>
+                                  <span className="text-xs flex-1">
+                                    <span className="font-bold">#{player.number}</span> {player.name}
+                                    {isGK && <span className="ml-1 text-[9px] font-bold text-amber-600 uppercase">MV</span>}
+                                    {isCaptain && <span className="ml-1 text-[9px] font-bold text-gray-500 uppercase">K</span>}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePlayer(id, "starters")}
+                                    className="text-gray-300 hover:text-red-500 text-xs leading-none"
+                                    title="Fjern"
+                                  >✕</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Add players */}
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1">Tilføj til startopstilling</p>
+                        <div className="flex flex-wrap gap-1">
+                          {players
+                            .filter((p) => !lineupForm.starters.includes(p.id) && !lineupForm.bench.includes(p.id))
+                            .map((p) => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => togglePlayer(p.id, "starters")}
+                                className="text-[10px] border border-gray-200 px-2 py-1 hover:border-black hover:bg-gray-50"
+                              >
+                                #{p.number} {p.name}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Bench */}
+                <div className="mb-4">
                   <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">Bænk</p>
-                  <div className="border border-gray-200 max-h-60 overflow-auto divide-y divide-gray-100">
-                    {players.map((p) => (
-                      <label key={`b-${p.id}`} className="flex items-center gap-2 px-3 py-2 text-xs">
-                        <input type="checkbox" checked={lineupForm.bench.includes(p.id)} onChange={() => togglePlayer(p.id, "bench")} />
-                        <span>#{p.number} {p.name}</span>
-                      </label>
-                    ))}
+                  <div className="border border-gray-200 max-h-40 overflow-auto divide-y divide-gray-100">
+                    {players
+                      .filter((p) => !lineupForm.starters.includes(p.id))
+                      .map((p) => (
+                        <label key={`b-${p.id}`} className="flex items-center gap-2 px-3 py-2 text-xs">
+                          <input type="checkbox" checked={lineupForm.bench.includes(p.id)} onChange={() => togglePlayer(p.id, "bench")} />
+                          <span>#{p.number} {p.name}</span>
+                        </label>
+                      ))}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <select value={lineupForm.captain} onChange={(e) => setLineupForm({ ...lineupForm, captain: e.target.value })} className={`${inputCls} bg-white`}>
+                    <option value="">Vælg kaptajn</option>
+                    {[...lineupForm.starters, ...lineupForm.bench].map((id) => {
+                      const player = players.find((p) => p.id === id);
+                      return player ? <option key={`c-${id}`} value={id}>#{player.number} {player.name}</option> : null;
+                    })}
+                  </select>
+
+                  <select value={lineupForm.goalkeeper} onChange={(e) => setLineupForm({ ...lineupForm, goalkeeper: e.target.value })} className={`${inputCls} bg-white`}>
+                    <option value="">Vælg målmand</option>
+                    {[...lineupForm.starters, ...lineupForm.bench].map((id) => {
+                      const player = players.find((p) => p.id === id);
+                      return player ? <option key={`g-${id}`} value={id}>#{player.number} {player.name}</option> : null;
+                    })}
+                  </select>
+                </div>
+
+                <button type="submit" disabled={savingLineup} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
+                  {savingLineup ? "Gemmer..." : "Gem lineup"}
+                </button>
+                {lineup && <p className="text-[10px] text-gray-400 mt-2">Sidst opdateret: {new Date(lineup.updated_at).toLocaleString("da-DK")}</p>}
+              </form>
+
+              {/* Live pitch preview */}
+              <div>
+                <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">Forhåndsvisning</p>
+                {lineupForm.starters.length > 0 ? (
+                  <LineupPitch
+                    starters={buildLineupSlots(lineupForm.starters)}
+                    bench={buildLineupSlots(lineupForm.bench)}
+                    formation={lineupForm.formation || null}
+                    confirmed={lineupForm.confirmed}
+                  />
+                ) : (
+                  <div className="border border-gray-200 p-6 text-xs text-gray-400 text-center">
+                    Tilføj spillere for at se opstillingen
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <select value={lineupForm.captain} onChange={(e) => setLineupForm({ ...lineupForm, captain: e.target.value })} className={`${inputCls} bg-white`}>
-                  <option value="">Vælg kaptajn</option>
-                  {[...lineupForm.starters, ...lineupForm.bench].map((id) => {
-                    const player = players.find((p) => p.id === id);
-                    return player ? <option key={`c-${id}`} value={id}>#{player.number} {player.name}</option> : null;
-                  })}
-                </select>
-
-                <select value={lineupForm.goalkeeper} onChange={(e) => setLineupForm({ ...lineupForm, goalkeeper: e.target.value })} className={`${inputCls} bg-white`}>
-                  <option value="">Vælg målmand</option>
-                  {[...lineupForm.starters, ...lineupForm.bench].map((id) => {
-                    const player = players.find((p) => p.id === id);
-                    return player ? <option key={`g-${id}`} value={id}>#{player.number} {player.name}</option> : null;
-                  })}
-                </select>
-              </div>
-
-              <button type="submit" disabled={savingLineup} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
-                {savingLineup ? "Gemmer..." : "Gem lineup"}
-              </button>
-              {lineup && <p className="text-[10px] text-gray-400 mt-2">Sidst opdateret: {new Date(lineup.updated_at).toLocaleString("da-DK")}</p>}
-            </form>
+            </div>
           </div>
         </div>
       )}

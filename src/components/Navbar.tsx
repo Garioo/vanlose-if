@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Search, User } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import SearchOverlay from "@/components/SearchOverlay";
+import type { Match } from "@/lib/supabase";
 
 const navLinks = [
   { href: "/forsteholdet", label: "Førsteholdet" },
@@ -15,17 +16,32 @@ const navLinks = [
   { href: "/frivillig", label: "Frivillig" },
 ];
 
-export default function Navbar() {
+interface NavbarProps {
+  nextMatch?: Match | null;
+}
+
+export default function Navbar({ nextMatch }: NavbarProps = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const onScroll = () =>
+      navRef.current?.classList.toggle("nav-scrolled", window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white text-black border-b border-gray-200">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-8">
+      <nav ref={navRef} className="border-b border-[#e0dbd3]/90 bg-[#f7f4ef]/95 text-black backdrop-blur transition-shadow duration-200">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-lg font-bold tracking-tight transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded bg-black text-white text-xs font-black">
               V
             </div>
@@ -33,15 +49,17 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden items-center gap-5 md:flex">
             {navLinks.map(({ href, label }) => {
               const active = pathname === href || pathname.startsWith(href + "/");
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`text-xs font-bold tracking-widest uppercase transition-colors ${
-                    active ? "text-black underline underline-offset-4" : "text-gray-400 hover:text-black"
+                  className={`rounded-sm px-2 py-1 text-xs font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 ${
+                    active
+                      ? "bg-red-600 text-white"
+                      : "text-[#4a4540] hover:bg-[#e0dbd3] hover:text-black"
                   }`}
                 >
                   {label}
@@ -50,23 +68,32 @@ export default function Navbar() {
             })}
           </div>
 
+          {/* Næste kamp pill (desktop only) */}
+          {nextMatch && (
+            <Link
+              href={`/kampe/${nextMatch.id}`}
+              className="hidden lg:flex items-center gap-2 border border-red-600 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+              {nextMatch.date}{nextMatch.time ? ` · ${nextMatch.time}` : ""}
+            </Link>
+          )}
+
           {/* Right side icons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded transition-colors"
+              className="rounded p-2 transition-colors hover:bg-[#e0dbd3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2"
               aria-label="Søg"
             >
               <Search size={18} />
             </button>
-            <button className="p-2 hover:bg-gray-100 rounded transition-colors" aria-label="Log ind">
-              <User size={18} />
-            </button>
             {/* Mobile hamburger */}
             <button
-              className="md:hidden p-2 hover:bg-gray-100 rounded transition-colors"
+              className="rounded p-2 transition-colors hover:bg-[#e0dbd3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Menu"
+              aria-expanded={mobileOpen}
             >
               <div className="space-y-1">
                 <div className="w-5 h-0.5 bg-black" />
@@ -79,14 +106,16 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200 px-4 py-4 space-y-4">
+          <div className="space-y-2 border-t border-[#e0dbd3] bg-[#f7f4ef] px-4 py-3 md:hidden">
             {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setMobileOpen(false)}
-                className={`block text-sm font-bold tracking-widest uppercase ${
-                  pathname === href ? "text-black" : "text-gray-400"
+                className={`block rounded px-3 py-2.5 text-sm font-bold uppercase leading-relaxed tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 ${
+                  pathname === href || pathname.startsWith(href + "/")
+                    ? "bg-red-600 text-white"
+                    : "text-[#4a4540] hover:bg-[#e0dbd3] hover:text-black"
                 }`}
               >
                 {label}

@@ -29,21 +29,21 @@ export default function Volunteer() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
         {/* Left side */}
         <div>
-          <h2 className="font-display text-4xl md:text-5xl lg:text-6xl leading-[0.9] mb-4">
+          <h2 className="reveal font-display text-4xl md:text-5xl lg:text-6xl leading-[0.9] mb-4">
             Bliv en del af
             <br />
             hjertet i
             <br />
             Vanløse
           </h2>
-          <p className="text-sm text-gray-600 mb-8 max-w-sm">
+          <p className="text-sm text-[#4a4540] mb-8 max-w-sm">
             Vanløse IF drives af passionerede frivillige. Uden jer, intet os.
           </p>
 
           {/* Accordion */}
-          <div className="divide-y divide-gray-200 border-t border-gray-200">
+          <div className="divide-y divide-[#e0dbd3] border-t border-[#e0dbd3]">
             {accordionItems.map((item, idx) => (
-              <div key={item.title}>
+              <div key={item.title} className={`reveal reveal-delay-${idx + 1}`}>
                 <button
                   className="w-full flex items-center justify-between py-4 text-left"
                   onClick={() => setOpenIndex(openIndex === idx ? -1 : idx)}
@@ -59,7 +59,7 @@ export default function Volunteer() {
                     openIndex === idx ? "max-h-40 pb-4" : "max-h-0"
                   }`}
                 >
-                  <p className="text-sm text-gray-600">{item.content}</p>
+                  <p className="text-sm text-[#4a4540]">{item.content}</p>
                 </div>
               </div>
             ))}
@@ -69,7 +69,7 @@ export default function Volunteer() {
         {/* Right side - CTA card */}
         <div className="flex flex-col gap-4">
           {/* Placeholder image area */}
-          <div className="aspect-square bg-gray-100 relative overflow-hidden">
+          <div className="aspect-square bg-[#edeae3] relative overflow-hidden">
             <div
               className="absolute inset-0"
               style={{
@@ -81,7 +81,7 @@ export default function Volunteer() {
           </div>
 
           {/* Dark CTA card */}
-          <div className="bg-black text-white p-8 md:p-10">
+          <div className="reveal bg-[#141412] text-white p-8 md:p-10">
             <h3 className="font-display text-2xl md:text-3xl leading-[0.9] mb-4">
               Mød dem bag
               <br />

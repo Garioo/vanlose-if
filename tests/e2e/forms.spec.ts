@@ -32,4 +32,16 @@ test.describe("Public forms", () => {
 
     await expect(page.getByText("Tak. Du er nu tilmeldt nyhedsbrevet.")).toBeVisible();
   });
+
+  test("membership form can be submitted", async ({ page }) => {
+    await page.goto("/bliv-medlem");
+
+    await page.getByPlaceholder("Dit fulde navn").fill("Medlem Test");
+    await page.getByPlaceholder("+45 00 00 00 00").fill("+45 33 33 33 33");
+    await page.getByPlaceholder("din@email.dk").fill(`medlem-${Date.now()}@example.com`);
+    await page.locator("#tilmeld select").selectOption("Familie");
+
+    await page.getByRole("button", { name: "TILMELD MIG SOM MEDLEM" }).click();
+    await expect(page.getByText("Tak. Din medlemsanmodning er modtaget, og vi vender tilbage hurtigst muligt.")).toBeVisible();
+  });
 });

@@ -40,23 +40,23 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col"
+      className="fixed inset-0 z-[100] bg-[#f7f4ef]/97 backdrop-blur-sm flex flex-col"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Search input bar */}
-      <div className="border-b border-gray-200 px-4 md:px-8 py-4 flex items-center gap-4 max-w-7xl mx-auto w-full">
-        <Search size={18} className="text-gray-400 shrink-0" />
+      <div className="border-b border-[#e0dbd3] px-4 md:px-8 py-4 flex items-center gap-4 max-w-7xl mx-auto w-full">
+        <Search size={18} className="text-[#8a847c] shrink-0" />
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Søg i nyheder..."
-          className="flex-1 text-sm md:text-base font-bold uppercase tracking-wide bg-transparent focus:outline-none placeholder:text-gray-300 placeholder:normal-case placeholder:font-normal"
+          className="flex-1 text-sm md:text-base font-bold uppercase tracking-wide bg-transparent focus:outline-none placeholder:text-[#8a847c] placeholder:normal-case placeholder:font-normal"
         />
         <button
           onClick={onClose}
-          className="p-2 hover:bg-gray-100 rounded transition-colors"
+          className="p-2 hover:bg-[#edeae3] rounded transition-colors"
           aria-label="Luk søgning"
         >
           <X size={18} />
@@ -66,38 +66,38 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
       {/* Results */}
       <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 max-w-7xl mx-auto w-full">
         {query.trim().length === 0 && (
-          <p className="text-xs text-gray-400 uppercase tracking-widest">
+          <p className="text-xs text-[#8a847c] uppercase tracking-widest">
             Skriv for at søge i alle nyheder
           </p>
         )}
 
         {query.trim().length > 0 && results.length === 0 && (
-          <p className="text-xs text-gray-400 uppercase tracking-widest">
+          <p className="text-xs text-[#8a847c] uppercase tracking-widest">
             Ingen resultater for &ldquo;{query}&rdquo;
           </p>
         )}
 
         {results.length > 0 && (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[#e0dbd3]">
             {results.map((article) => (
               <Link
                 key={article.id}
                 href={`/nyheder/${article.slug}`}
                 onClick={onClose}
-                className="flex items-start justify-between py-5 gap-6 group hover:bg-gray-50 -mx-2 px-2 transition-colors"
+                className="flex items-start justify-between py-5 gap-6 group hover:bg-[#edeae3] -mx-2 px-2 transition-colors"
               >
                 <div>
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[#8a847c] mb-1">
                     {article.category} · {article.date}
                   </p>
                   <h3 className="text-sm font-bold uppercase tracking-wide group-hover:underline">
                     {article.title}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-1">
+                  <p className="text-xs text-[#6b6560] mt-1 leading-relaxed line-clamp-1">
                     {article.excerpt}
                   </p>
                 </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400 shrink-0 mt-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#8a847c] shrink-0 mt-1">
                   <path d="M5 12h14m-7-7 7 7-7 7" />
                 </svg>
               </Link>

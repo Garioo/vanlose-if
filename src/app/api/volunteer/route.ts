@@ -3,11 +3,14 @@ import { parseVolunteerSubmission } from "@/lib/form-submissions";
 import { getClientIp, isRateLimited } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { captureApiError, captureApiMessage } from "@/lib/observability";
+import { RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+
+export const maxRequestBodySize = 4096; // 4 KB
 
 export async function POST(req: NextRequest) {
   try {
     const ip = getClientIp(req);
-    const rate = isRateLimited(`volunteer:${ip}`, 8, 15 * 60 * 1000);
+    const rate = await isRateLimited(`volunteer:${ip}`, RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS);
     if (rate.limited) {
       return NextResponse.json({ error: "For mange forsøg. Prøv igen senere." }, { status: 429 });
     }

@@ -23,7 +23,7 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`text-[10px] font-bold tracking-widest uppercase px-4 py-2 transition-colors ${
-              activeTab === tab ? "bg-black text-white" : "text-gray-400 hover:text-black"
+              activeTab === tab ? "bg-black text-white" : "text-[#8a847c] hover:text-black"
             }`}
           >
             {tab}
@@ -34,7 +34,7 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {filteredPlayers.map((player) => (
           <div key={player.id} className="group cursor-pointer">
-            <div className="aspect-3/4 bg-gray-100 mb-3 overflow-hidden relative">
+            <div className="aspect-3/4 bg-[#edeae3] mb-3 overflow-hidden relative">
               {player.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={player.image_url} alt={player.name} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300" />
@@ -44,10 +44,10 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
               )}
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="font-display text-2xl text-gray-300">{player.number}</span>
+              <span className="font-display text-2xl text-[#c5bfb6]">{player.number}</span>
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wide">{player.name}</h3>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                <p className="text-[10px] text-[#6b6560] uppercase tracking-wider">
                   {player.position}
                 </p>
               </div>

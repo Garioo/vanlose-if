@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabase, type Article } from "@/lib/supabase";
+import { readingTime } from "@/lib/readingTime";
 
 export default async function News() {
   const { data } = await supabase
@@ -14,10 +15,10 @@ export default async function News() {
     <section className="py-16 md:py-24 px-4 md:px-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10">
         <div>
-          <h2 className="font-display text-4xl md:text-6xl lg:text-7xl leading-[0.9] mb-3">
+          <h2 className="reveal font-display text-4xl md:text-6xl lg:text-7xl leading-[0.9] mb-3">
             Nyheder
           </h2>
-          <p className="text-sm text-gray-600 max-w-md">
+          <p className="text-sm text-[#4a4540] max-w-md">
             Seneste nyt fra Vanløse IF – kampe, klub og ungdomsfodbold.
           </p>
         </div>
@@ -33,18 +34,18 @@ export default async function News() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {featured.map((article) => (
+        {featured.map((article, i) => (
           <Link
             key={article.id}
             href={`/nyheder/${article.slug}`}
-            className="group block border border-gray-200 hover:border-black transition-colors duration-200"
+            className={`card-accent group block border border-[#e0dbd3] hover:border-black transition-colors duration-200 reveal reveal-delay-${i + 1}`}
           >
-            <div className="aspect-video bg-gray-100 relative overflow-hidden">
+            <div className="aspect-video bg-[#edeae3] relative overflow-hidden">
               {article.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
               ) : (
-                <div className="absolute inset-0 bg-linear-to-br from-gray-200 to-gray-300 group-hover:from-gray-300 group-hover:to-gray-400 transition-colors duration-300" />
+                <div className="absolute inset-0 bg-linear-to-br from-[#ddd8d0] to-[#ccc6bc] group-hover:from-[#ccc6bc] group-hover:to-[#bbb5ab] transition-colors duration-300" />
               )}
               {article.latest && (
                 <span className="absolute top-3 left-3 bg-black text-white text-[10px] font-bold tracking-widest uppercase px-2 py-1">
@@ -54,15 +55,16 @@ export default async function News() {
             </div>
             <div className="p-5">
               <div className="flex items-center gap-3 mb-3">
-                <span className="text-[10px] font-bold tracking-widest uppercase text-gray-500">
+                <span className="text-[10px] font-bold tracking-widest uppercase text-[#6b6560]">
                   {article.category}
                 </span>
-                <span className="text-[10px] text-gray-400">{article.date}</span>
+                <span className="text-[10px] text-[#8a847c]">{article.date}</span>
+                <span className="text-[10px] text-[#8a847c]">{readingTime(article.content)} min</span>
               </div>
               <h3 className="font-bold text-sm uppercase tracking-wide leading-snug mb-2 group-hover:underline">
                 {article.title}
               </h3>
-              <p className="text-xs text-gray-500 leading-relaxed">{article.excerpt}</p>
+              <p className="text-xs text-[#6b6560] leading-relaxed">{article.excerpt}</p>
             </div>
           </Link>
         ))}

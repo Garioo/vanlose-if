@@ -90,8 +90,8 @@ export default async function DashboardPage() {
     <div>
       {/* Header */}
       <div className="mb-10">
-        <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-[#3a3733] mb-1">Vanløse IF</p>
-        <h1 className="font-display text-5xl tracking-tight text-white">DASHBOARD</h1>
+        <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-gray-400 mb-1">Vanløse IF</p>
+        <h1 className="font-display text-5xl tracking-tight text-gray-900">DASHBOARD</h1>
       </div>
 
       {/* Stats */}
@@ -100,12 +100,12 @@ export default async function DashboardPage() {
           <Link
             key={s.label}
             href={s.href}
-            className="group bg-[#141412] border border-[#2a2825] px-6 py-6 hover:border-[#3a3733] transition-colors"
+            className="group bg-gray-50 border border-gray-200 px-6 py-6 hover:border-gray-300 transition-colors"
           >
-            <div className="font-display text-6xl lg:text-7xl leading-none mb-2 tabular-nums text-white">
+            <div className="font-display text-6xl lg:text-7xl leading-none mb-2 tabular-nums text-gray-900">
               {s.count}
             </div>
-            <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#a09890] mb-0.5 flex items-center">
+            <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-gray-500 mb-0.5 flex items-center">
               {s.label}
               {"badge" in s && s.badge != null && s.badge > 0 && (
                 <span className="inline-block bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 ml-2 leading-none">
@@ -113,26 +113,26 @@ export default async function DashboardPage() {
                 </span>
               )}
             </div>
-            <div className="text-[10px] text-[#5a5550]">{s.sub}</div>
+            <div className="text-[10px] text-gray-400">{s.sub}</div>
           </Link>
         ))}
       </div>
 
       {/* Quick actions */}
       <div className="mb-3">
-        <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-[#3a3733] mb-3">
+        <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-gray-400 mb-3">
           Hurtige handlinger
         </p>
-        <div className="bg-[#141412] border border-[#2a2825] divide-y divide-[#1e1c1a]">
+        <div className="bg-gray-50 border border-gray-200 divide-y divide-gray-100">
           {actions.map((action) => (
             <Link
               key={action.href}
               href={action.href}
-              className="flex items-center justify-between px-6 py-4 hover:bg-[#1a1816] transition-colors group"
+              className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors group"
             >
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#f0ede8]">{action.label}</p>
-                <p className="text-[10px] text-[#5a5550] mt-0.5">{action.desc}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-900">{action.label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{action.desc}</p>
               </div>
               <svg
                 width="12"
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2.5"
-                className="text-[#3a3733] group-hover:text-red-600 transition-colors shrink-0"
+                className="text-gray-400 group-hover:text-red-600 transition-colors shrink-0"
               >
                 <path d="M5 12h14m-7-7 7 7-7 7" />
               </svg>

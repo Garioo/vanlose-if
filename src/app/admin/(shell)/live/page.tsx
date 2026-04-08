@@ -9,7 +9,6 @@ import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/l
 import type { LiveAction } from "@/lib/matchday-payload";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
-import LineupPitch from "@/components/LineupPitch";
 
 function createEmptyEventForm() {
   return {
@@ -82,8 +81,111 @@ function toNumber(value: string): number | null {
   return parsed;
 }
 
-function formatEventType(eventType: MatchEvent["event_type"]): string {
-  return eventType.replace(/_/g, " ");
+const EVENT_LABELS: Record<MatchEvent["event_type"], string> = {
+  goal:         "Mål",
+  yellow_card:  "Gult kort",
+  red_card:     "Rødt kort",
+  substitution: "Udskiftning",
+  kickoff:      "Kickoff",
+  halftime:     "Pause",
+  fulltime:     "Slutfløjt",
+};
+
+function formatEventType(t: MatchEvent["event_type"]): string {
+  return EVENT_LABELS[t] ?? t.replace(/_/g, " ");
+}
+
+function nextExpectedAction(match: Match): string | null {
+  if (match.status === "finished") return null;
+  if (match.status === "scheduled" || match.live_phase === "pre_match" || !match.live_phase) return "start";
+  if (match.live_phase === "first_half" && match.live_clock_running) return "pause";
+  if (match.live_phase === "first_half" && !match.live_clock_running) return "resume_second_half";
+  if (match.live_phase === "second_half") return "finish";
+  return null;
+}
+
+function eventDotColor(type: MatchEvent["event_type"]): string {
+  if (type === "goal") return "bg-red-600";
+  if (type === "yellow_card") return "bg-yellow-400";
+  if (type === "red_card") return "bg-red-600";
+  if (type === "substitution") return "bg-blue-500";
+  return "bg-gray-300";
+}
+
+function TeamToggle({
+  value,
+  onChange,
+  homeLabel,
+  awayLabel,
+}: {
+  value: "home" | "away";
+  onChange: (v: "home" | "away") => void;
+  homeLabel: string;
+  awayLabel: string;
+}) {
+  const cls = (active: boolean) =>
+    `flex-1 px-3 py-2 text-[10px] font-bold tracking-widest uppercase border transition-colors ${
+      active ? "bg-black text-white border-black" : "bg-white text-gray-600 border-gray-300 hover:border-black"
+    }`;
+  return (
+    <div className="flex">
+      <button type="button" onClick={() => onChange("home")} className={cls(value === "home")}>
+        {homeLabel}
+      </button>
+      <button type="button" onClick={() => onChange("away")} className={`${cls(value === "away")} -ml-px`}>
+        {awayLabel}
+      </button>
+    </div>
+  );
+}
+
+function PlayerField({
+  label,
+  value,
+  onChange,
+  isVanloseSide,
+  lineupPlayers,
+  allPlayers,
+  placeholder,
+  inputCls,
+  labelCls,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  isVanloseSide: boolean;
+  lineupPlayers: LineupPlayerSlot[];
+  allPlayers: Player[];
+  placeholder: string;
+  inputCls: string;
+  labelCls: string;
+}) {
+  const options =
+    isVanloseSide && lineupPlayers.length > 0
+      ? lineupPlayers.map((p) => ({ key: p.name, value: p.name, label: `${p.number ? `#${p.number} ` : ""}${p.name}` }))
+      : isVanloseSide && allPlayers.length > 0
+      ? allPlayers.map((p) => ({ key: p.id, value: p.name, label: `${p.number ? `#${p.number} ` : ""}${p.name}` }))
+      : null;
+
+  if (options) {
+    return (
+      <div>
+        <label className={labelCls}>{label}</label>
+        <select value={value} onChange={(e) => onChange(e.target.value)} className={`${inputCls} bg-white`}>
+          <option value="">— {placeholder} —</option>
+          {options.map((o) => (
+            <option key={o.key} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <label className={labelCls}>{label} (fritekst)</label>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={inputCls} />
+    </div>
+  );
 }
 
 export default function AdminLivePage() {
@@ -298,6 +400,9 @@ export default function AdminLivePage() {
       assist_name: event.assist_name ?? "",
       note: event.note ?? "",
     });
+    setTimeout(() => {
+      document.getElementById("event-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   async function submitEvent(e: React.FormEvent) {
@@ -372,6 +477,8 @@ export default function AdminLivePage() {
     }
 
     setQuickNote("");
+    setQuickPlayerName("");
+    setQuickAssistName("");
     await loadMatchday(selectedMatch.id, getVanloseSide(selectedMatch));
   }
 
@@ -402,13 +509,15 @@ export default function AdminLivePage() {
     });
   }
 
-  function moveStarter(index: number, direction: -1 | 1) {
-    const newIndex = index + direction;
-    setLineupForm((prev) => {
-      if (newIndex < 0 || newIndex >= prev.starters.length) return prev;
-      const next = [...prev.starters];
-      [next[index], next[newIndex]] = [next[newIndex], next[index]];
-      return { ...prev, starters: next };
+  function setSlotPlayer(slotIdx: number, playerId: string, totalSlots: number) {
+    setLineupForm((f) => {
+      const slots = Array.from({ length: totalSlots }, (_, i) => f.starters[i] ?? "");
+      if (playerId) {
+        const oldIdx = slots.indexOf(playerId);
+        if (oldIdx !== -1 && oldIdx !== slotIdx) slots[oldIdx] = "";
+      }
+      slots[slotIdx] = playerId;
+      return { ...f, starters: slots };
     });
   }
 
@@ -442,7 +551,7 @@ export default function AdminLivePage() {
       team_side: getVanloseSide(selectedMatch),
       formation: lineupForm.formation,
       confirmed: lineupForm.confirmed,
-      starters: buildLineupSlots(lineupForm.starters),
+      starters: buildLineupSlots(lineupForm.starters.filter(Boolean)),
       bench: buildLineupSlots(lineupForm.bench),
     };
 
@@ -550,7 +659,7 @@ export default function AdminLivePage() {
       </div>
 
       {selectedMatch && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_240px] gap-8">
           <div className="space-y-8">
             <div className="bg-white border border-gray-200 p-6">
               <h2 className="text-xs font-bold tracking-widest uppercase mb-2">Live kontrol</h2>
@@ -562,6 +671,14 @@ export default function AdminLivePage() {
                 <p className="text-xs text-gray-300 mt-2">{liveMinute}&apos; · {parseStatusLabel(selectedMatch.status)}</p>
               </div>
 
+              <div className="flex items-center gap-3 py-3 px-2 border border-gray-200 mb-3">
+                <span className="flex-1 font-bold truncate text-[10px] uppercase tracking-widest">{selectedMatch.home}</span>
+                <span className="font-display text-3xl tabular-nums leading-none shrink-0">
+                  {selectedMatch.home_score ?? 0}–{selectedMatch.away_score ?? 0}
+                </span>
+                <span className="flex-1 text-right font-bold truncate text-[10px] uppercase tracking-widest">{selectedMatch.away}</span>
+              </div>
+
               <button
                 type="button"
                 disabled={savingLive || selectedMatch.status === "finished"}
@@ -571,12 +688,23 @@ export default function AdminLivePage() {
                 {savingLive ? "Arbejder..." : primaryLiveLabel}
               </button>
 
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("start")} className="border border-gray-300 px-3 py-2 text-[10px] font-bold tracking-widest uppercase hover:border-black disabled:opacity-50">Start kamp</button>
-                <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("pause")} className="border border-gray-300 px-3 py-2 text-[10px] font-bold tracking-widest uppercase hover:border-black disabled:opacity-50">Pause (halvleg)</button>
-                <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("resume_second_half")} className="border border-gray-300 px-3 py-2 text-[10px] font-bold tracking-widest uppercase hover:border-black disabled:opacity-50">Start 2. halvleg</button>
-                <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("finish")} className="border border-gray-300 px-3 py-2 text-[10px] font-bold tracking-widest uppercase hover:border-black disabled:opacity-50">Afslut kamp</button>
-              </div>
+              {(() => {
+                const nextAction = nextExpectedAction(selectedMatch);
+                const phaseBtnCls = (action: string) =>
+                  `border px-3 py-2 text-[10px] font-bold tracking-widest uppercase disabled:opacity-50 transition-colors ${
+                    nextAction === action
+                      ? "bg-black text-white border-black"
+                      : "border-gray-300 hover:border-black"
+                  }`;
+                return (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("start")} className={phaseBtnCls("start")}>Start kamp</button>
+                    <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("pause")} className={phaseBtnCls("pause")}>Pause (halvleg)</button>
+                    <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("resume_second_half")} className={phaseBtnCls("resume_second_half")}>Start 2. halvleg</button>
+                    <button type="button" disabled={savingLive} onClick={() => void sendLiveAction("finish")} className={phaseBtnCls("finish")}>Afslut kamp</button>
+                  </div>
+                );
+              })()}
 
               <div className="mt-4">
                 <label className={labelCls}>Matchday note</label>
@@ -590,123 +718,173 @@ export default function AdminLivePage() {
             </div>
 
             <div className="bg-white border border-gray-200 p-6">
-              <h2 className="text-xs font-bold tracking-widest uppercase mb-4">Events (hurtig)</h2>
+              <h2 className="text-xs font-bold tracking-widest uppercase mb-4">Hændelse</h2>
 
+              {/* Quick-add area */}
               {(() => {
                 const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
-                const isVanloseSide = quickTeamSide === getVanloseSide(selectedMatch);
-                const showSelect = isVanloseSide && lineupPlayers.length > 0;
-
+                const vanloseSide = getVanloseSide(selectedMatch);
+                const isVanloseSide = quickTeamSide === vanloseSide;
+                const homeLabel = isVanlose(selectedMatch.home) ? "Hjemme (Vanløse)" : "Hjemme";
+                const awayLabel = isVanlose(selectedMatch.home) ? "Ude" : "Ude (Vanløse)";
                 return (
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <select value={quickTeamSide} onChange={(e) => setQuickTeamSide(e.target.value as "home" | "away")} className={`${inputCls} bg-white`}>
-                      <option value="home">Hjemme</option>
-                      <option value="away">Ude</option>
-                    </select>
-
-                    {showSelect ? (
-                      <select value={quickPlayerName} onChange={(e) => setQuickPlayerName(e.target.value)} className={`${inputCls} bg-white`}>
-                        <option value="">— Vælg spiller —</option>
-                        {lineupPlayers.map((p) => (
-                          <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input value={quickPlayerName} onChange={(e) => setQuickPlayerName(e.target.value)} className={inputCls} placeholder="Spiller" />
-                    )}
-
-                    {showSelect ? (
-                      <select value={quickAssistName} onChange={(e) => setQuickAssistName(e.target.value)} className={`${inputCls} bg-white`}>
-                        <option value="">— Assist (valgfri) —</option>
-                        {lineupPlayers.map((p) => (
-                          <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input value={quickAssistName} onChange={(e) => setQuickAssistName(e.target.value)} className={inputCls} placeholder="Assist (valgfri)" />
-                    )}
-
-                    <input value={quickNote} onChange={(e) => setQuickNote(e.target.value)} className={inputCls} placeholder="Note (valgfri)" />
+                  <div className="mb-5">
+                    <div className="mb-3">
+                      <TeamToggle value={quickTeamSide} onChange={setQuickTeamSide} homeLabel={homeLabel} awayLabel={awayLabel} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <PlayerField
+                        label="Spiller"
+                        value={quickPlayerName}
+                        onChange={setQuickPlayerName}
+                        isVanloseSide={isVanloseSide}
+                        lineupPlayers={lineupPlayers}
+                        allPlayers={players}
+                        placeholder="Spiller"
+                        inputCls={inputCls}
+                        labelCls={labelCls}
+                      />
+                      <PlayerField
+                        label="Assist / Ud"
+                        value={quickAssistName}
+                        onChange={setQuickAssistName}
+                        isVanloseSide={isVanloseSide}
+                        lineupPlayers={lineupPlayers}
+                        allPlayers={players}
+                        placeholder="Assist"
+                        inputCls={inputCls}
+                        labelCls={labelCls}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("goal")}
+                        className="col-span-2 bg-black text-white text-sm font-bold tracking-widest uppercase px-3 py-4 disabled:opacity-50 hover:bg-gray-900 transition-colors">
+                        {savingEvent ? "..." : `Mål — ${liveMinute}\u2019`}
+                      </button>
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("yellow_card")}
+                        className="bg-yellow-400 text-black text-[11px] font-bold tracking-widest uppercase px-3 py-3 disabled:opacity-50">
+                        Gult kort
+                      </button>
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("red_card")}
+                        className="bg-red-600 text-white text-[11px] font-bold tracking-widest uppercase px-3 py-3 disabled:opacity-50">
+                        Rødt kort
+                      </button>
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("substitution")}
+                        className="col-span-2 bg-slate-700 text-white text-[11px] font-bold tracking-widest uppercase px-3 py-3 disabled:opacity-50">
+                        Udskiftning
+                      </button>
+                    </div>
+                    <input
+                      value={quickNote}
+                      onChange={(e) => setQuickNote(e.target.value)}
+                      className={`${inputCls} mt-2`}
+                      placeholder="Note (valgfri)..."
+                    />
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("kickoff")} className="flex-1 border border-gray-200 text-[10px] font-bold tracking-widest uppercase py-1.5 hover:border-black disabled:opacity-50">Kickoff</button>
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("halftime")} className="flex-1 border border-gray-200 text-[10px] font-bold tracking-widest uppercase py-1.5 hover:border-black disabled:opacity-50">Pause</button>
+                      <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("fulltime")} className="flex-1 border border-gray-200 text-[10px] font-bold tracking-widest uppercase py-1.5 hover:border-black disabled:opacity-50">Slutfløjt</button>
+                    </div>
                   </div>
                 );
               })()}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("goal")} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-3 py-2.5 disabled:opacity-50">Mål ({liveMinute}&apos;)</button>
-                <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("yellow_card")} className="border border-gray-300 text-[10px] font-bold tracking-widest uppercase px-3 py-2.5 hover:border-black disabled:opacity-50">Gult ({liveMinute}&apos;)</button>
-                <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("red_card")} className="border border-gray-300 text-[10px] font-bold tracking-widest uppercase px-3 py-2.5 hover:border-black disabled:opacity-50">Rødt ({liveMinute}&apos;)</button>
-                <button type="button" disabled={savingEvent} onClick={() => void createQuickEvent("substitution")} className="border border-gray-300 text-[10px] font-bold tracking-widest uppercase px-3 py-2.5 hover:border-black disabled:opacity-50">Udskiftning ({liveMinute}&apos;)</button>
-              </div>
-
-              <h3 className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-3">Manuel override</h3>
-              <form onSubmit={submitEvent} className="grid grid-cols-2 gap-3 mb-5">
-                <select value={eventForm.team_side} onChange={(e) => setEventForm({ ...eventForm, team_side: e.target.value as "home" | "away" })} className={`${inputCls} bg-white`}>
-                  <option value="home">Hjemme</option>
-                  <option value="away">Ude</option>
-                </select>
-                <select value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value as MatchEvent["event_type"] })} className={`${inputCls} bg-white`}>
-                  <option value="goal">Mål</option>
-                  <option value="yellow_card">Gult kort</option>
-                  <option value="red_card">Rødt kort</option>
-                  <option value="substitution">Udskiftning</option>
-                  <option value="kickoff">Kickoff</option>
-                  <option value="halftime">Pause</option>
-                  <option value="fulltime">Slut</option>
-                </select>
-                <input type="number" min="0" placeholder={`Minut (default ${liveMinute})`} value={eventForm.minute} onChange={(e) => setEventForm({ ...eventForm, minute: e.target.value })} className={inputCls} />
-                <input type="number" min="0" placeholder="Tillæg" value={eventForm.stoppage_minute} onChange={(e) => setEventForm({ ...eventForm, stoppage_minute: e.target.value })} className={inputCls} />
-                {(() => {
-                  const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
-                  const showSelect = eventForm.team_side === getVanloseSide(selectedMatch) && lineupPlayers.length > 0;
-                  return (
-                    <>
-                      {showSelect ? (
-                        <select value={eventForm.player_name} onChange={(e) => setEventForm({ ...eventForm, player_name: e.target.value })} className={`${inputCls} bg-white`}>
-                          <option value="">— Vælg spiller —</option>
-                          {lineupPlayers.map((p) => (
-                            <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input type="text" placeholder="Spiller" value={eventForm.player_name} onChange={(e) => setEventForm({ ...eventForm, player_name: e.target.value })} className={inputCls} />
-                      )}
-                      {showSelect ? (
-                        <select value={eventForm.assist_name} onChange={(e) => setEventForm({ ...eventForm, assist_name: e.target.value })} className={`${inputCls} bg-white`}>
-                          <option value="">— Assist (valgfri) —</option>
-                          {lineupPlayers.map((p) => (
-                            <option key={p.name} value={p.name}>{p.number ? `#${p.number} ` : ""}{p.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input type="text" placeholder="Assist" value={eventForm.assist_name} onChange={(e) => setEventForm({ ...eventForm, assist_name: e.target.value })} className={inputCls} />
-                      )}
-                    </>
-                  );
-                })()}
-                <input type="text" placeholder="Note" value={eventForm.note} onChange={(e) => setEventForm({ ...eventForm, note: e.target.value })} className={`${inputCls} col-span-2`} />
-                <div className="col-span-2 flex gap-2">
-                  <button type="submit" disabled={savingEvent} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
-                    {savingEvent ? "Gemmer..." : editingEventId ? "Opdatér event" : "Tilføj event"}
-                  </button>
-                  {editingEventId && (
-                    <button type="button" onClick={() => { setEditingEventId(null); setEventForm(createEmptyEventForm()); }} className="border border-gray-300 text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 hover:border-black">
-                      Annullér
+              {/* Edit form — only shown when editing an existing event */}
+              {editingEventId && (() => {
+                const editingEvent = events.find((e) => e.id === editingEventId);
+                const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
+                const isVanloseSide = eventForm.team_side === getVanloseSide(selectedMatch);
+                const type = eventForm.event_type;
+                const noPlayers = type === "kickoff" || type === "halftime" || type === "fulltime";
+                const isSub = type === "substitution";
+                const isCard = type === "yellow_card" || type === "red_card";
+                return (
+                  <form id="event-form" onSubmit={submitEvent} className="border border-yellow-300 bg-yellow-50 p-4 mb-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold tracking-widest uppercase text-yellow-700">
+                        Redigerer: {editingEvent ? `${formatEventType(editingEvent.event_type)}, ${editingEvent.minute ?? "?"}′` : "event"}
+                      </span>
+                      <button type="button" onClick={() => { setEditingEventId(null); setEventForm(createEmptyEventForm()); }}
+                        className="text-[10px] font-bold uppercase text-yellow-700 hover:text-black">× Annullér</button>
+                    </div>
+                    <TeamToggle
+                      value={eventForm.team_side}
+                      onChange={(v) => setEventForm({ ...eventForm, team_side: v })}
+                      homeLabel={isVanlose(selectedMatch.home) ? "Hjemme (Vanløse)" : "Hjemme"}
+                      awayLabel={isVanlose(selectedMatch.home) ? "Ude" : "Ude (Vanløse)"}
+                    />
+                    <div>
+                      <label className={labelCls}>Hændelse</label>
+                      <select value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value as MatchEvent["event_type"] })} className={`${inputCls} bg-white`}>
+                        <option value="goal">Mål</option>
+                        <option value="yellow_card">Gult kort</option>
+                        <option value="red_card">Rødt kort</option>
+                        <option value="substitution">Udskiftning</option>
+                        <option value="kickoff">Kickoff</option>
+                        <option value="halftime">Pause</option>
+                        <option value="fulltime">Slut</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={labelCls}>Minut</label>
+                        <input type="number" min="0" placeholder={String(liveMinute)} value={eventForm.minute} onChange={(e) => setEventForm({ ...eventForm, minute: e.target.value })} className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Tillæg</label>
+                        <input type="number" min="0" placeholder="0" value={eventForm.stoppage_minute} onChange={(e) => setEventForm({ ...eventForm, stoppage_minute: e.target.value })} className={inputCls} />
+                      </div>
+                    </div>
+                    {!noPlayers && (
+                      <PlayerField
+                        label={isSub ? "Spiller ind" : type === "goal" ? "Målscorer" : "Spiller"}
+                        value={eventForm.player_name}
+                        onChange={(v) => setEventForm({ ...eventForm, player_name: v })}
+                        isVanloseSide={isVanloseSide}
+                        lineupPlayers={lineupPlayers}
+                        allPlayers={players}
+                        placeholder="Vælg spiller"
+                        inputCls={inputCls}
+                        labelCls={labelCls}
+                      />
+                    )}
+                    {!noPlayers && !isCard && (
+                      <PlayerField
+                        label={isSub ? "Spiller ud" : "Assist (valgfri)"}
+                        value={eventForm.assist_name}
+                        onChange={(v) => setEventForm({ ...eventForm, assist_name: v })}
+                        isVanloseSide={isVanloseSide}
+                        lineupPlayers={lineupPlayers}
+                        allPlayers={players}
+                        placeholder={isSub ? "Vælg spiller" : "Vælg assist"}
+                        inputCls={inputCls}
+                        labelCls={labelCls}
+                      />
+                    )}
+                    <input type="text" placeholder="Note..." value={eventForm.note} onChange={(e) => setEventForm({ ...eventForm, note: e.target.value })} className={inputCls} />
+                    <button type="submit" disabled={savingEvent} className="w-full bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
+                      {savingEvent ? "Gemmer..." : "Opdatér event"}
                     </button>
-                  )}
-                </div>
-              </form>
+                  </form>
+                );
+              })()}
 
+              {/* Events log */}
+              <h3 className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">Log</h3>
               <div className="border border-gray-200 divide-y divide-gray-100">
                 {events.map((event) => (
-                  <div key={event.id} className="px-4 py-3 flex items-start gap-3">
-                    <div className="min-w-[52px] text-[10px] font-bold tracking-widest uppercase text-gray-400">
+                  <div key={event.id} className="px-3 py-2.5 flex items-start gap-3">
+                    <div className="min-w-10 text-[10px] font-bold tracking-widest uppercase text-gray-400 pt-0.5">
                       {event.minute != null ? `${event.minute}${event.stoppage_minute ? `+${event.stoppage_minute}` : ""}'` : "—"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold uppercase tracking-wide">{formatEventType(event.event_type)}</p>
-                      <p className="text-xs text-gray-600">{[event.player_name, event.assist_name ? `Assist: ${event.assist_name}` : null, event.note].filter(Boolean).join(" · ")}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${eventDotColor(event.event_type)}`} />
+                        <p className="text-xs font-bold uppercase tracking-wide">{formatEventType(event.event_type)}</p>
+                      </div>
+                      <p className="text-xs text-gray-600">{[event.player_name, event.assist_name ? (event.event_type === "substitution" ? `Ud: ${event.assist_name}` : `Assist: ${event.assist_name}`) : null, event.note].filter(Boolean).join(" · ")}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                       <button type="button" onClick={() => startEditEvent(event)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Redigér</button>
                       <button type="button" onClick={() => void deleteEvent(event.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
                     </div>
@@ -720,176 +898,155 @@ export default function AdminLivePage() {
           <div className="bg-white border border-gray-200 p-6 h-fit">
             <h2 className="text-xs font-bold tracking-widest uppercase mb-4">Vanløse lineup</h2>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* Form */}
-              <form onSubmit={submitLineup}>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <input type="text" value={lineupForm.formation} onChange={(e) => setLineupForm({ ...lineupForm, formation: e.target.value })} className={inputCls} placeholder="4-3-3" />
-                  <label className="inline-flex items-center gap-2 text-xs text-gray-600 border border-gray-300 px-3 py-2">
-                    <input type="checkbox" checked={lineupForm.confirmed} onChange={(e) => setLineupForm({ ...lineupForm, confirmed: e.target.checked })} />
-                    Bekræftet
-                  </label>
-                </div>
-
-                {/* Ordered starters */}
-                <div className="mb-4">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">
-                    Startopstilling ({lineupForm.starters.length}/11) — rækkefølge bestemmer position
-                  </p>
-                  {(() => {
-                    const rowCounts = lineupForm.formation
-                      .split("-").map((n) => parseInt(n, 10)).filter((n) => !isNaN(n) && n > 0);
-                    const rowLabels = rowCounts.map((count, i) => {
-                      if (i === 0) return `FORSVAR (${count})`;
-                      if (i === rowCounts.length - 1) return `ANGREB (${count})`;
-                      return `MIDTBANE (${count})`;
-                    });
-                    // Boundary indices in the non-GK starters list
-                    const boundaries: number[] = [];
-                    let cursor = 0;
-                    for (const count of rowCounts) { boundaries.push(cursor); cursor += count; }
-
-                    // Map overall starter index → non-GK index
-                    let nonGkIdx = 0;
-
-                    return (
-                      <div>
-                        <div className="border border-gray-200 divide-y divide-gray-100 mb-2">
-                          {lineupForm.starters.length === 0 && (
-                            <p className="px-3 py-4 text-xs text-gray-400 text-center">Ingen spillere valgt endnu.</p>
-                          )}
-                          {lineupForm.starters.map((id, i) => {
-                            const player = players.find((p) => p.id === id);
-                            if (!player) return null;
-                            const isGK = id === lineupForm.goalkeeper;
-                            const isCaptain = id === lineupForm.captain;
-
-                            // Compute row divider for non-GK players
-                            let rowDivider: string | null = null;
-                            if (!isGK) {
-                              const boundaryIdx = boundaries.indexOf(nonGkIdx);
-                              if (boundaryIdx !== -1) rowDivider = rowLabels[boundaryIdx] ?? null;
-                              nonGkIdx++;
-                            }
-
-                            return (
-                              <div key={id}>
-                                {rowDivider && (
-                                  <div className="px-3 py-1 bg-gray-50 text-[9px] font-bold tracking-widest uppercase text-gray-400 border-t border-gray-200">
-                                    {rowDivider}
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2 px-3 py-2">
-                                  <div className="flex flex-col gap-0.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => moveStarter(i, -1)}
-                                      disabled={i === 0}
-                                      className="text-gray-400 hover:text-black disabled:opacity-20 leading-none text-[10px]"
-                                      title="Flyt op"
-                                    >▲</button>
-                                    <button
-                                      type="button"
-                                      onClick={() => moveStarter(i, 1)}
-                                      disabled={i === lineupForm.starters.length - 1}
-                                      className="text-gray-400 hover:text-black disabled:opacity-20 leading-none text-[10px]"
-                                      title="Flyt ned"
-                                    >▼</button>
-                                  </div>
-                                  <span className="text-xs flex-1">
-                                    <span className="font-bold">#{player.number}</span> {player.name}
-                                    {isGK && <span className="ml-1 text-[9px] font-bold text-amber-600 uppercase">MV</span>}
-                                    {isCaptain && <span className="ml-1 text-[9px] font-bold text-gray-500 uppercase">K</span>}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => togglePlayer(id, "starters")}
-                                    className="text-gray-300 hover:text-red-500 text-xs leading-none"
-                                    title="Fjern"
-                                  >✕</button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Add players */}
-                        <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1">Tilføj til startopstilling</p>
-                        <div className="flex flex-wrap gap-1">
-                          {players
-                            .filter((p) => !lineupForm.starters.includes(p.id) && !lineupForm.bench.includes(p.id))
-                            .map((p) => (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => togglePlayer(p.id, "starters")}
-                                className="text-[10px] border border-gray-200 px-2 py-1 hover:border-black hover:bg-gray-50"
-                              >
-                                #{p.number} {p.name}
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Bench */}
-                <div className="mb-4">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">Bænk</p>
-                  <div className="border border-gray-200 max-h-40 overflow-auto divide-y divide-gray-100">
-                    {players
-                      .filter((p) => !lineupForm.starters.includes(p.id))
-                      .map((p) => (
-                        <label key={`b-${p.id}`} className="flex items-center gap-2 px-3 py-2 text-xs">
-                          <input type="checkbox" checked={lineupForm.bench.includes(p.id)} onChange={() => togglePlayer(p.id, "bench")} />
-                          <span>#{p.number} {p.name}</span>
-                        </label>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <select value={lineupForm.captain} onChange={(e) => setLineupForm({ ...lineupForm, captain: e.target.value })} className={`${inputCls} bg-white`}>
-                    <option value="">Vælg kaptajn</option>
-                    {[...lineupForm.starters, ...lineupForm.bench].map((id) => {
-                      const player = players.find((p) => p.id === id);
-                      return player ? <option key={`c-${id}`} value={id}>#{player.number} {player.name}</option> : null;
-                    })}
-                  </select>
-
-                  <select value={lineupForm.goalkeeper} onChange={(e) => setLineupForm({ ...lineupForm, goalkeeper: e.target.value })} className={`${inputCls} bg-white`}>
-                    <option value="">Vælg målmand</option>
-                    {[...lineupForm.starters, ...lineupForm.bench].map((id) => {
-                      const player = players.find((p) => p.id === id);
-                      return player ? <option key={`g-${id}`} value={id}>#{player.number} {player.name}</option> : null;
-                    })}
-                  </select>
-                </div>
-
-                <button type="submit" disabled={savingLineup} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
-                  {savingLineup ? "Gemmer..." : "Gem lineup"}
-                </button>
-                {lineup && <p className="text-[10px] text-gray-400 mt-2">Sidst opdateret: {new Date(lineup.updated_at).toLocaleString("da-DK")}</p>}
-              </form>
-
-              {/* Live pitch preview */}
-              <div>
-                <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">Forhåndsvisning</p>
-                {lineupForm.starters.length > 0 ? (
-                  <LineupPitch
-                    starters={buildLineupSlots(lineupForm.starters)}
-                    bench={buildLineupSlots(lineupForm.bench)}
-                    formation={lineupForm.formation || null}
-                    confirmed={lineupForm.confirmed}
-                  />
-                ) : (
-                  <div className="border border-gray-200 p-6 text-xs text-gray-400 text-center">
-                    Tilføj spillere for at se opstillingen
-                  </div>
-                )}
+            <form onSubmit={submitLineup}>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <input type="text" value={lineupForm.formation} onChange={(e) => setLineupForm({ ...lineupForm, formation: e.target.value })} className={inputCls} placeholder="4-3-3" />
+                <label className="inline-flex items-center gap-2 text-xs text-gray-600 border border-gray-300 px-3 py-2">
+                  <input type="checkbox" checked={lineupForm.confirmed} onChange={(e) => setLineupForm({ ...lineupForm, confirmed: e.target.checked })} />
+                  Bekræftet
+                </label>
               </div>
-            </div>
+
+              {/* Interactive pitch picker */}
+              {(() => {
+                const formRows = lineupForm.formation
+                  .split("-").map((n) => parseInt(n, 10)).filter((n) => !isNaN(n) && n > 0);
+                const totalSlots = 1 + formRows.reduce((s, n) => s + n, 0);
+                const slots = Array.from({ length: totalSlots }, (_, i) => lineupForm.starters[i] ?? "");
+                const assignedIds = new Set(slots.filter(Boolean));
+                const filledCount = assignedIds.size;
+
+                // Build slot rows: slot 0 = GK at bottom, outfield rows above
+                const outfieldSlotRows: number[][] = [];
+                let cursor = 1;
+                for (const count of formRows) {
+                  outfieldSlotRows.push(Array.from({ length: count }, (_, i) => cursor + i));
+                  cursor += count;
+                }
+                const allSlotRows: number[][] = [...outfieldSlotRows.reverse(), [0]];
+
+                const topY = 10, botY = 88;
+                const positioned: Array<{ slotIdx: number; x: number; y: number }> = [];
+                allSlotRows.forEach((row, rowIdx) => {
+                  const y = allSlotRows.length === 1
+                    ? (topY + botY) / 2
+                    : topY + (rowIdx * (botY - topY)) / (allSlotRows.length - 1);
+                  row.forEach((slotIdx, playerIdx) => {
+                    const x = ((playerIdx + 1) * 100) / (row.length + 1);
+                    positioned.push({ slotIdx, x, y });
+                  });
+                });
+
+                const dotSize = 36;
+
+                return (
+                  <div className="mb-4">
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-2">
+                      Startopstilling: {filledCount}/{totalSlots} · Bænk: {lineupForm.bench.length}
+                    </p>
+
+                    {/* Pitch */}
+                    <div style={{ position: "relative", width: "100%", aspectRatio: "3/4", maxHeight: 320, overflow: "hidden", backgroundColor: "#3a7d44" }}>
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} style={{ position: "absolute", left: 0, right: 0, top: `${i * 12.5}%`, height: "12.5%", backgroundColor: i % 2 === 0 ? "rgba(0,0,0,0.07)" : "transparent", pointerEvents: "none" }} />
+                      ))}
+                      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} viewBox="0 0 300 400" preserveAspectRatio="none" fill="none">
+                        <rect x="10" y="10" width="280" height="380" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <line x1="10" y1="200" x2="290" y2="200" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <ellipse cx="150" cy="200" rx="38" ry="30" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <circle cx="150" cy="200" r="3" fill="rgba(255,255,255,0.6)" />
+                        <rect x="80" y="10" width="140" height="66" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <rect x="115" y="10" width="70" height="24" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <rect x="80" y="324" width="140" height="66" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <rect x="115" y="366" width="70" height="24" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                        <circle cx="150" cy="55" r="2.5" fill="rgba(255,255,255,0.6)" />
+                        <circle cx="150" cy="345" r="2.5" fill="rgba(255,255,255,0.6)" />
+                      </svg>
+
+                      {positioned.map(({ slotIdx, x, y }) => {
+                        const currentId = slots[slotIdx] ?? "";
+                        const player = currentId ? players.find((p) => p.id === currentId) : null;
+                        const isGKSlot = slotIdx === 0;
+                        const isCaptain = Boolean(currentId) && lineupForm.captain === currentId;
+                        const isGKBadge = Boolean(currentId) && lineupForm.goalkeeper === currentId;
+
+                        return (
+                          <div key={slotIdx} style={{ position: "absolute", left: `${x}%`, top: `${y}%`, transform: "translate(-50%, -50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                            <div style={{ position: "relative", width: dotSize, height: dotSize }}>
+                              <div style={{
+                                width: dotSize, height: dotSize, borderRadius: "50%",
+                                backgroundColor: player ? (isGKSlot || isGKBadge ? "#f59e0b" : "#fff") : "transparent",
+                                border: player ? "none" : "2px dashed rgba(255,255,255,0.45)",
+                                boxShadow: player ? "0 2px 6px rgba(0,0,0,0.45)" : "none",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                color: player ? "#111" : "rgba(255,255,255,0.5)",
+                                fontWeight: 700, fontSize: 11,
+                                userSelect: "none", pointerEvents: "none",
+                              }}>
+                                {player ? `#${player.number}` : "+"}
+                              </div>
+                              {player && isCaptain && (
+                                <div style={{ position: "absolute", top: -3, right: -3, width: 13, height: 13, borderRadius: "50%", backgroundColor: "#111", color: "#fff", fontSize: 7, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>C</div>
+                              )}
+                              <select
+                                value={currentId}
+                                onChange={(e) => setSlotPlayer(slotIdx, e.target.value, totalSlots)}
+                                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
+                                title={player ? `${player.name} — klik for at ændre` : "Vælg spiller"}
+                              >
+                                <option value="">— vælg —</option>
+                                {player && <option value={currentId}>#{player.number} {player.name} ✓</option>}
+                                {players.filter((p) => !assignedIds.has(p.id)).map((p) => (
+                                  <option key={p.id} value={p.id}>#{p.number} {p.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            {player && (
+                              <div style={{ color: "#fff", fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap", textShadow: "0 1px 3px rgba(0,0,0,0.7)", lineHeight: 1.1 }}>
+                                {player.name.trim().split(" ").pop()}
+                              </div>
+                            )}
+                            {player && (
+                              <div style={{ display: "flex", gap: 2, marginTop: 1 }}>
+                                <button type="button"
+                                  onClick={() => setLineupForm((f) => ({ ...f, captain: isCaptain ? "" : currentId }))}
+                                  style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", border: `1px solid ${isCaptain ? "#111" : "rgba(255,255,255,0.4)"}`, backgroundColor: isCaptain ? "#111" : "transparent", color: isCaptain ? "#fff" : "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 2, lineHeight: 1.4 }}
+                                >K</button>
+                                <button type="button"
+                                  onClick={() => setLineupForm((f) => ({ ...f, goalkeeper: isGKBadge ? "" : currentId }))}
+                                  style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", border: `1px solid ${isGKBadge ? "#f59e0b" : "rgba(255,255,255,0.4)"}`, backgroundColor: isGKBadge ? "#f59e0b" : "transparent", color: isGKBadge ? "#111" : "rgba(255,255,255,0.7)", cursor: "pointer", borderRadius: 2, lineHeight: 1.4 }}
+                                >MV</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Bench */}
+                    <div className="mt-3 mb-4">
+                      <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-1">Bænk</p>
+                      <div className="flex flex-wrap gap-1">
+                        {players.filter((p) => !assignedIds.has(p.id)).map((p) => {
+                          const onBench = lineupForm.bench.includes(p.id);
+                          return (
+                            <button key={p.id} type="button" onClick={() => togglePlayer(p.id, "bench")}
+                              className={`text-[10px] font-bold uppercase px-2 py-1 border transition-colors ${onBench ? "bg-black text-white border-black" : "border-gray-200 text-gray-500 hover:border-black"}`}>
+                              #{p.number} {p.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <button type="submit" disabled={savingLineup} className="bg-black text-white text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 disabled:opacity-50">
+                {savingLineup ? "Gemmer..." : "Gem lineup"}
+              </button>
+              {lineup && <p className="text-[10px] text-gray-400 mt-2">Sidst opdateret: {new Date(lineup.updated_at).toLocaleString("da-DK")}</p>}
+            </form>
           </div>
         </div>
       )}

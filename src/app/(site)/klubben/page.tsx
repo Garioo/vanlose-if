@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/metadata";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Klubben — Vanløse IF",
@@ -14,22 +17,35 @@ const eras = [
     title: "DE FØRSTE ÅR",
     description:
       "Grundlæggelsen af en institution. Fra beskedne forhold på Vanløse Idrætspark til en klub med ambitioner.",
+    imageKey: "klubben_era_1_image",
   },
   {
     period: "1951 — 1990",
     title: "GULDALDEREN",
     description:
       "De store årtier. Oprykning, guldmedaljer og et fællesskab, der bandt generationer af vanløsitter sammen.",
+    imageKey: "klubben_era_2_image",
   },
   {
     period: "1991 — NU",
     title: "MODERNE TID",
     description:
       "Ny infrastruktur, professionalisering og en ungdomsafdeling i verdensklasse. Fremtiden tilhører VIF.",
+    imageKey: "klubben_era_3_image",
   },
 ];
 
-export default function KlubbenPage() {
+export default async function KlubbenPage() {
+  const { data: settingsData } = await supabase.from("site_settings").select("key, value");
+  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
+
+  const heroImages = [
+    settingsMap["klubben_hero_image_1"],
+    settingsMap["klubben_hero_image_2"],
+    settingsMap["klubben_hero_image_3"],
+  ];
+  const heroBgs = ["bg-gray-700", "bg-gray-600", "bg-gray-500"];
+
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
       {/* Hero */}
@@ -49,10 +65,12 @@ export default function KlubbenPage() {
             </p>
           </div>
 
-          {/* Stacked image placeholders */}
+          {/* Stacked images */}
           <div className="flex flex-col gap-2 w-full md:w-64 flex-shrink-0">
-            {["bg-gray-700", "bg-gray-600", "bg-gray-500"].map((bg, i) => (
-              <div key={i} className={`${bg} h-24 w-full`} />
+            {heroImages.map((url, i) => (
+              <div key={i} className={`h-24 w-full overflow-hidden ${!url ? heroBgs[i] : ""}`}>
+                {url && <img src={url} alt="" className="w-full h-full object-cover" />}
+              </div>
             ))}
           </div>
         </div>
@@ -61,7 +79,7 @@ export default function KlubbenPage() {
       {/* Arkiv & Historie */}
       <section id="arkiv" className="py-16 md:py-24 px-4 md:px-8 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-10 gap-6">
-          <h2 className="font-display text-4xl md:text-6xl leading-[0.9]">
+          <h2 className="font-display text-4xl md:text-6xl leading-[0.9] reveal">
             ARKIV & HISTORIE
           </h2>
           <div className="md:max-w-xs">
@@ -81,18 +99,26 @@ export default function KlubbenPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {eras.map((era) => (
-            <div key={era.title} className="group cursor-pointer">
-              <div className="aspect-[4/3] bg-[#edeae3] mb-4 overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-[#ddd8d0] to-[#ccc6bc] group-hover:from-[#ccc6bc] group-hover:to-[#bbb5ab] transition-colors duration-300" />
+          {eras.map((era, i) => {
+            const imageUrl = settingsMap[era.imageKey];
+            const delayClass = i === 0 ? "reveal reveal-delay-1" : i === 1 ? "reveal reveal-delay-2" : "reveal reveal-delay-3";
+            return (
+              <div key={era.title} className={`group cursor-pointer ${delayClass}`}>
+                <div className="aspect-[4/3] bg-[#edeae3] mb-4 overflow-hidden">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt={era.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#ddd8d0] to-[#ccc6bc] group-hover:from-[#ccc6bc] group-hover:to-[#bbb5ab] transition-colors duration-300" />
+                  )}
+                </div>
+                <p className="text-[10px] font-bold tracking-widest uppercase text-[#8a847c] mb-1">
+                  {era.period}
+                </p>
+                <h3 className="font-display text-xl font-bold mb-2">{era.title}</h3>
+                <p className="text-xs text-[#6b6560] leading-relaxed">{era.description}</p>
               </div>
-              <p className="text-[10px] font-bold tracking-widest uppercase text-[#8a847c] mb-1">
-                {era.period}
-              </p>
-              <h3 className="font-display text-xl font-bold mb-2">{era.title}</h3>
-              <p className="text-xs text-[#6b6560] leading-relaxed">{era.description}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -104,7 +130,7 @@ export default function KlubbenPage() {
           </p>
           <div className="space-y-0 divide-y divide-white/10">
             <div className="py-10 md:py-14 flex flex-col md:flex-row md:items-start gap-6">
-              <h2 className="font-display text-4xl md:text-6xl lg:text-7xl leading-[0.9] md:w-2/3">
+              <h2 className="font-display text-4xl md:text-6xl lg:text-7xl leading-[0.9] md:w-2/3 reveal">
                 FÆLLESSKAB FREM FOR ALT
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed md:w-1/3 md:pt-2">
@@ -113,7 +139,7 @@ export default function KlubbenPage() {
               </p>
             </div>
             <div className="py-10 md:py-14 flex flex-col md:flex-row md:items-start gap-6">
-              <h2 className="font-display text-4xl md:text-6xl lg:text-7xl leading-[0.9] md:w-2/3">
+              <h2 className="font-display text-4xl md:text-6xl lg:text-7xl leading-[0.9] md:w-2/3 reveal">
                 UDVIKLING & RESPEKT
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed md:w-1/3 md:pt-2">

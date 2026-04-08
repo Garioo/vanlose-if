@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/metadata";
+import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { supabase } from "@/lib/supabase";
 import type { YouthTeam } from "@/lib/supabase";
 
@@ -10,35 +11,42 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function UngdomPage() {
-  const { data } = await supabase
-    .from("youth_teams")
-    .select("*")
-    .order("display_order", { ascending: true });
+  const [{ data }, { data: settingsData }] = await Promise.all([
+    supabase.from("youth_teams").select("*").order("display_order", { ascending: true }),
+    supabase.from("site_settings").select("key, value").in("key", ["ungdom_hero_image", "ungdom_bornefodbold_image", "ungdom_elite_image"]),
+  ]);
 
+  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
   const youthTeams: YouthTeam[] = data ?? [];
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
       {/* Hero */}
       <section className="pt-14 min-h-screen flex items-end relative overflow-hidden bg-black text-white">
+        {settingsMap["ungdom_hero_image"] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={settingsMap["ungdom_hero_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
+        )}
         <div className="absolute inset-0 top-14 bg-gradient-to-b from-gray-900 to-black" />
         <div className="absolute top-1/3 right-0 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-16 md:pb-24">
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl leading-[0.85] mb-6 max-w-3xl">
-            FREMTIDENS STJERNER
-          </h1>
-          <p className="text-sm text-gray-300 mb-8 max-w-md leading-relaxed">
-            Vi bygger bro mellem fællesskab og sportslig udvikling i hjertet af Vanløse.
-          </p>
-          <a
-            href="#tilmelding"
-            className="inline-flex items-center gap-2 border border-white text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-white hover:text-black transition-colors"
-          >
-            BLIV MEDLEM
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14m-7-7 7 7-7 7" />
-            </svg>
-          </a>
+          <HeroEnterWrapper>
+            <h1 className="hero-title font-display text-6xl md:text-8xl lg:text-9xl leading-[0.85] mb-6 max-w-3xl">
+              FREMTIDENS STJERNER
+            </h1>
+            <p className="hero-body text-sm text-gray-300 mb-8 max-w-md leading-relaxed">
+              Vi bygger bro mellem fællesskab og sportslig udvikling i hjertet af Vanløse.
+            </p>
+            <a
+              href="#tilmelding"
+              className="hero-cta inline-flex items-center gap-2 border border-white text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-white hover:text-black transition-colors"
+            >
+              BLIV MEDLEM
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14m-7-7 7 7-7 7" />
+              </svg>
+            </a>
+          </HeroEnterWrapper>
         </div>
       </section>
 
@@ -65,6 +73,10 @@ export default async function UngdomPage() {
       <section id="bornefodbold" className="py-16 md:py-24 px-4 md:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
           <div className="aspect-[4/3] bg-[#edeae3] overflow-hidden relative">
+            {settingsMap["ungdom_bornefodbold_image"] && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settingsMap["ungdom_bornefodbold_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            )}
             <div className="absolute bottom-4 left-4 bg-black text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1">
               Aldersgruppe U5-U12
             </div>
@@ -134,7 +146,12 @@ export default async function UngdomPage() {
               </svg>
             </a>
           </div>
-          <div className="aspect-[4/3] bg-[#ddd8d0] overflow-hidden relative order-first md:order-last" />
+          <div className="aspect-[4/3] bg-[#ddd8d0] overflow-hidden relative order-first md:order-last">
+            {settingsMap["ungdom_elite_image"] && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={settingsMap["ungdom_elite_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            )}
+          </div>
         </div>
       </section>
 

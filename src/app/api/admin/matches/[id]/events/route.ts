@@ -3,6 +3,7 @@ import { requireAdminApi } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { parseEventPayload } from "@/lib/matchday-payload";
 import { captureApiError } from "@/lib/observability";
+import { syncPlayerStatsForCurrentSeason } from "@/lib/stats-sync";
 
 async function recalculateScore(matchId: string) {
   const { data: goals } = await supabaseAdmin
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     await recalculateScore(id);
+    syncPlayerStatsForCurrentSeason().catch(() => {});
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

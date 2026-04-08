@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Sponsor, SponsorTier } from "@/lib/supabase";
+import MediaPicker from "@/components/admin/MediaPicker";
 
 const TIERS: SponsorTier[] = ["guld", "sølv", "bronze"];
 const TIER_LABELS: Record<SponsorTier, string> = { guld: "Guld", sølv: "Sølv", bronze: "Bronze" };
@@ -12,8 +13,6 @@ export default function AdminSponsorerPage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-
   const load = useCallback(async () => {
     const res = await fetch("/api/sponsors");
     const data = await res.json().catch(() => []);
@@ -21,18 +20,6 @@ export default function AdminSponsorerPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    const { url } = await res.json();
-    setForm((f) => ({ ...f, logo_url: url }));
-    setUploading(false);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,11 +90,8 @@ export default function AdminSponsorerPage() {
           <div className="md:col-span-2">
             <label className={labelCls}>Logo</label>
             <div className="flex gap-2">
-              <input type="text" value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} className={`${inputCls} flex-1 min-w-0`} placeholder="/uploads/..." />
-              <label className="shrink-0 text-[10px] font-bold border border-gray-300 px-2 py-2 cursor-pointer hover:border-black transition-colors">
-                {uploading ? "..." : "↑"}
-                <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-              </label>
+              <input type="text" value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} className={`${inputCls} flex-1 min-w-0`} placeholder="URL..." />
+              <MediaPicker onSelect={(url) => setForm((f) => ({ ...f, logo_url: url }))} label="↑" />
             </div>
           </div>
           <div className="col-span-2 md:col-span-3 flex gap-2">

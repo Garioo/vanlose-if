@@ -90,6 +90,10 @@ body {
   46%  { transform: translateY(100%);  opacity: 0; }
   100% { transform: translateY(0);     opacity: 1; }
 }
+@keyframes vif-slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 
 /* ─── Scroll-driven reveal (pure CSS, works in RSC) ──────────────────── */
 
@@ -127,6 +131,12 @@ body {
 
 .score-flash { animation: vif-score-flash 1.4s ease both; border-radius: 2px; padding: 0 4px; }
 
+/* ─── Match event slide-in (Realtime new events) ─────────────────────── */
+
+.event-enter {
+  animation: vif-slide-in-left 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ─── Card accent — red border sweep on hover ────────────────────────── */
 
 .card-accent { position: relative; }
@@ -143,6 +153,45 @@ body {
 
 .btn-press { transition: transform 0.1s ease; }
 .btn-press:active { transform: scale(0.97); }
+
+/* ─── Marquee ticker ─────────────────────────────────────────────────── */
+
+@keyframes vif-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  animation: vif-marquee 28s linear infinite;
+}
+
+/* ─── Live pulse dot ─────────────────────────────────────────────────── */
+
+@keyframes vif-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.6); opacity: 0.3; }
+}
+.live-pulse { animation: vif-pulse 1.2s ease-in-out infinite; }
+
+/* ─── Noise texture overlay on dark sections ─────────────────────────── */
+
+.noise-overlay { position: relative; }
+.noise-overlay::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Card lift effect ───────────────────────────────────────────────── */
+
+.card-lift { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease; }
+.card-lift:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(13,13,11,0.10); }
 
 /* ─── Article prose typography ───────────────────────────────────────── */
 
@@ -167,3 +216,26 @@ body {
 .prose-vif img { width: 100%; height: auto; margin: 2em 0; }
 .prose-vif ul  { list-style: disc;    padding-left: 1.5em; margin-bottom: 1.25em; }
 .prose-vif ol  { list-style: decimal; padding-left: 1.5em; margin-bottom: 1.25em; }
+.prose-vif li { margin-bottom: 0.35em; }
+.prose-vif li:last-child { margin-bottom: 0; }
+.prose-vif ul ul, .prose-vif ol ol,
+.prose-vif ul ol, .prose-vif ol ul { margin-top: 0.35em; margin-bottom: 0; }
+.prose-vif strong { font-weight: 700; }
+.prose-vif em     { font-style: italic; }
+.prose-vif code {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.875em; background: #edeae3;
+  padding: 0.15em 0.4em; border-radius: 3px;
+}
+.prose-vif pre {
+  background: #1a1816; color: #f0ece4;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.875rem; line-height: 1.6;
+  padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1.75em 0;
+}
+.prose-vif pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; color: inherit; }
+.prose-vif hr { border: none; border-top: 1px solid #e0dbd3; margin: 2.5em 0; }
+.prose-vif h1 {
+  font-family: var(--font-bebas), sans-serif; font-weight: 400;
+  font-size: 2.5rem; letter-spacing: -0.02em; margin: 2em 0 0.6em; text-transform: uppercase;
+}

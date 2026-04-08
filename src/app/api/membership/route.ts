@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendNewMembershipNotification } from "@/lib/email";
 import { parseMembershipSubmission } from "@/lib/form-submissions";
 import {
   buildMembershipFallbackMessage,
@@ -59,6 +60,13 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ ok: true });
     }
+
+    await sendNewMembershipNotification({
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      membershipTier: payload.membershipTier,
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

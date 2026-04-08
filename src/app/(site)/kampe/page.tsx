@@ -11,13 +11,16 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function KampePage() {
-  const [{ data: matchData }, { data: standingsData }] = await Promise.all([
+  const [{ data: matchData }, { data: standingsData }, { data: settingsData }] = await Promise.all([
     supabase.from("matches").select("*").order("kickoff_at", { ascending: true, nullsFirst: false }),
     supabase.from("standings").select("*").order("pos", { ascending: true }),
+    supabase.from("site_settings").select("key, value"),
   ]);
 
   const matches: Match[] = matchData ?? [];
   const standings: Standing[] = standingsData ?? [];
+  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
+  const currentSeason = settingsMap["current_season"] ?? "2025/26";
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">
@@ -26,7 +29,7 @@ export default async function KampePage() {
         <h1 className="mb-3 font-display text-5xl leading-[0.9] tracking-tight md:text-7xl">
           KAMPPROGRAM
         </h1>
-        <p className="text-sm text-[#4a4540]">3. Division — Sæson 2025/26</p>
+        <p className="text-sm text-[#4a4540]">3. Division — Sæson {currentSeason}</p>
       </section>
       <KampeContent matches={matches} standings={standings} />
     </div>

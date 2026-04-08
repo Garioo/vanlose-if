@@ -17,7 +17,7 @@ const klubbenLinks: { label: string; href: string }[] = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[#141412] text-white pt-16 pb-8 px-4 md:px-8 border-t border-[#2a2825]">
+    <footer className="noise-overlay bg-[#141412] text-white pt-16 pb-8 px-4 md:px-8 border-t border-[#2a2825]">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Logo & Address */}

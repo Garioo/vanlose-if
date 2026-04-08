@@ -38,7 +38,7 @@ export default async function News() {
           <Link
             key={article.id}
             href={`/nyheder/${article.slug}`}
-            className={`card-accent group block border border-[#e0dbd3] hover:border-black transition-colors duration-200 reveal reveal-delay-${i + 1}`}
+            className={`card-accent card-lift group block border border-[#e0dbd3] hover:border-black transition-colors duration-200 reveal reveal-delay-${i + 1}`}
           >
             <div className="aspect-video bg-[#edeae3] relative overflow-hidden">
               {article.image_url ? (
@@ -58,13 +58,21 @@ export default async function News() {
                 <span className="text-[10px] font-bold tracking-widest uppercase text-[#6b6560]">
                   {article.category}
                 </span>
+                <span className="text-[#e0dbd3]">·</span>
                 <span className="text-[10px] text-[#8a847c]">{article.date}</span>
+                <span className="text-[#e0dbd3]">·</span>
                 <span className="text-[10px] text-[#8a847c]">{readingTime(article.content)} min</span>
               </div>
-              <h3 className="font-bold text-sm uppercase tracking-wide leading-snug mb-2 group-hover:underline">
+              <h3 className="font-display text-2xl md:text-3xl leading-[0.92] mb-3 group-hover:opacity-80 transition-opacity">
                 {article.title}
               </h3>
-              <p className="text-xs text-[#6b6560] leading-relaxed">{article.excerpt}</p>
+              <p className="text-sm text-[#6b6560] leading-relaxed">{article.excerpt}</p>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase text-[#0d0d0b] group-hover:gap-3 transition-all duration-200">
+                Læs artikel
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M5 12h14m-7-7 7 7-7 7" />
+                </svg>
+              </span>
             </div>
           </Link>
         ))}

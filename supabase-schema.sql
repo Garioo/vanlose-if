@@ -332,7 +332,21 @@ INSERT INTO public.site_settings (key, value, label) VALUES
   ('current_season', '2024/25', 'Aktuel sæson (f.eks. 2024/25)'),
   ('contact_phone', '+45 38 74 12 12', 'Telefon'),
   ('contact_email', 'kontakt@vanlosif.dk', 'E-mail'),
-  ('contact_address', 'Klampegårdsvej 4-6, 2720 Vanløse', 'Adresse')
+  ('contact_address', 'Klampegårdsvej 4-6, 2720 Vanløse', 'Adresse'),
+  ('klubben_hero_image_1', '', 'Klubben Hero — Billede 1 (øverst)'),
+  ('klubben_hero_image_2', '', 'Klubben Hero — Billede 2 (midten)'),
+  ('klubben_hero_image_3', '', 'Klubben Hero — Billede 3 (nederst)'),
+  ('klubben_era_1_image', '', 'Arkiv — De Første År (1921–1950)'),
+  ('klubben_era_2_image', '', 'Arkiv — Guldalderen (1951–1990)'),
+  ('klubben_era_3_image', '', 'Arkiv — Moderne Tid (1991–nu)'),
+  ('hero_image_url', '', 'Forside — Hero-billede'),
+  ('forsteholdet_hero_image', '', 'Førsteholdet — Hero-billede'),
+  ('ungdom_hero_image', '', 'Ungdom — Hero-billede'),
+  ('ungdom_bornefodbold_image', '', 'Ungdom — Børnefodbold-billede'),
+  ('ungdom_elite_image', '', 'Ungdom — Elite Ungdom-billede'),
+  ('frivillig_hero_image', '', 'Frivillig — Hero-billede'),
+  ('volunteer_image', '', 'Forside — Frivillig-sektion billede'),
+  ('youth_image', '', 'Forside — Ungdomssektion billede')
 ON CONFLICT (key) DO NOTHING;
 
 UPDATE public.matches
@@ -498,3 +512,6 @@ BEGIN
     WHERE b.id = p_key;
 END;
 $$;
+
+-- Images are stored in Cloudinary under the vanlose-if/ folder.
+-- No Supabase Storage bucket is required.

@@ -3,30 +3,30 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Player, PlayerStats } from "@/lib/supabase";
 import { sortPlayersByNumber } from "@/lib/playerSort";
+import MediaPicker from "@/components/admin/MediaPicker";
 
 const POSITIONS = ["MÅLMÆND", "FORSVAR", "MIDTBANE", "ANGREB"] as const;
-const CURRENT_SEASON = "2024/25";
+const FALLBACK_SEASON = "2024/25";
 
 const empty = { number: "", name: "", position: "FORSVAR" as Player["position"], image_url: "" };
-const emptyStats = { season: CURRENT_SEASON, goals: 0, assists: 0, appearances: 0, yellow_cards: 0, red_cards: 0 };
 
 type PlayerStatsWithPlayer = PlayerStats & { players?: { id: string; name: string; number: string; position: string } };
 
 export default function AdminSpillerePage() {
+  const [currentSeason, setCurrentSeason] = useState(FALLBACK_SEASON);
   const [players, setPlayers] = useState<Player[]>([]);
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statsSaving, setStatsSaving] = useState(false);
 
   // Stats state
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const [allStats, setAllStats] = useState<PlayerStatsWithPlayer[]>([]);
-  const [statsForm, setStatsForm] = useState(emptyStats);
+  const [statsForm, setStatsForm] = useState({ season: FALLBACK_SEASON, goals: 0, assists: 0, appearances: 0, yellow_cards: 0, red_cards: 0 });
   const [statsEditId, setStatsEditId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [syncSeason, setSyncSeason] = useState(CURRENT_SEASON);
+  const [syncSeason, setSyncSeason] = useState(FALLBACK_SEASON);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/players");
@@ -40,37 +40,41 @@ export default function AdminSpillerePage() {
     setAllStats(Array.isArray(data) ? data : []);
   }, []);
 
-  useEffect(() => { load(); loadStats(); }, [load, loadStats]);
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    const { url } = await res.json();
-    setForm((f) => ({ ...f, image_url: url }));
-    setUploading(false);
-  }
+  useEffect(() => {
+    load();
+    loadStats();
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((settings: { key: string; value: string }[]) => {
+        const season = settings.find((s) => s.key === "current_season")?.value;
+        if (season) {
+          setCurrentSeason(season);
+          setSyncSeason(season);
+          setStatsForm((prev) => ({ ...prev, season }));
+        }
+      })
+      .catch(() => {});
+  }, [load, loadStats]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
       if (editId) {
-        await fetch(`/api/players/${editId}`, {
+        const res = await fetch(`/api/players/${editId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
           body: JSON.stringify(form),
         });
+        if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
         setEditId(null);
       } else {
-        await fetch("/api/players", {
+        const res = await fetch("/api/players", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
           body: JSON.stringify(form),
         });
+        if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
       }
       setForm(empty);
       load();
@@ -81,7 +85,8 @@ export default function AdminSpillerePage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Slet spiller?")) return;
-    await fetch(`/api/players/${id}`, { method: "DELETE", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    const res = await fetch(`/api/players/${id}`, { method: "DELETE", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
     load();
   }
 
@@ -93,7 +98,7 @@ export default function AdminSpillerePage() {
   function toggleStats(playerId: string) {
     setExpandedPlayerId((prev) => (prev === playerId ? null : playerId));
     setStatsEditId(null);
-    setStatsForm(emptyStats);
+    setStatsForm({ season: currentSeason, goals: 0, assists: 0, appearances: 0, yellow_cards: 0, red_cards: 0 });
   }
 
   function playerStats(playerId: string) {
@@ -126,20 +131,22 @@ export default function AdminSpillerePage() {
     setStatsSaving(true);
     try {
       if (statsEditId) {
-        await fetch(`/api/admin/players/stats/${statsEditId}`, {
+        const res = await fetch(`/api/admin/players/stats/${statsEditId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
         setStatsEditId(null);
       } else {
-        await fetch("/api/admin/players/stats", {
+        const res = await fetch("/api/admin/players/stats", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
       }
-      setStatsForm(emptyStats);
+      setStatsForm({ season: currentSeason, goals: 0, assists: 0, appearances: 0, yellow_cards: 0, red_cards: 0 });
       loadStats();
     } finally {
       setStatsSaving(false);
@@ -148,7 +155,8 @@ export default function AdminSpillerePage() {
 
   async function handleStatsDelete(id: string) {
     if (!confirm("Slet statistik-række?")) return;
-    await fetch(`/api/admin/players/stats/${id}`, { method: "DELETE", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    const res = await fetch(`/api/admin/players/stats/${id}`, { method: "DELETE", headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
     loadStats();
   }
 
@@ -200,11 +208,8 @@ export default function AdminSpillerePage() {
           <div>
             <label className={labelCls}>Billede</label>
             <div className="flex gap-2">
-              <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className={`${inputCls} flex-1 min-w-0`} placeholder="/uploads/..." />
-              <label className="shrink-0 text-[10px] font-bold border border-gray-300 px-2 py-2 cursor-pointer hover:border-black transition-colors">
-                {uploading ? "..." : "↑"}
-                <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-              </label>
+              <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className={`${inputCls} flex-1 min-w-0`} placeholder="URL..." />
+              <MediaPicker onSelect={(url) => setForm((f) => ({ ...f, image_url: url }))} label="↑" />
             </div>
           </div>
           <div className="col-span-2 md:col-span-4 flex gap-2">
@@ -334,7 +339,7 @@ export default function AdminSpillerePage() {
                       {statsSaving ? "GEMMER..." : statsEditId ? "GEM" : "TILFØJ"}
                     </button>
                     {statsEditId && (
-                      <button type="button" onClick={() => { setStatsEditId(null); setStatsForm(emptyStats); }} className="text-[10px] font-bold tracking-widest uppercase border border-gray-300 px-4 py-2 hover:border-black">
+                      <button type="button" onClick={() => { setStatsEditId(null); setStatsForm({ season: currentSeason, goals: 0, assists: 0, appearances: 0, yellow_cards: 0, red_cards: 0 }); }} className="text-[10px] font-bold tracking-widest uppercase border border-gray-300 px-4 py-2 hover:border-black">
                         Annullér
                       </button>
                     )}

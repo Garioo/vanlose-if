@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FrivilligForm from "@/components/FrivilligForm";
+import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { buildPageMetadata } from "@/lib/metadata";
 import { supabase } from "@/lib/supabase";
 import type { VolunteerRole } from "@/lib/supabase";
@@ -41,17 +42,22 @@ const fallbackRoles: VolunteerRole[] = [
 ];
 
 export default async function FrivilligPage() {
-  const { data } = await supabase
-    .from("volunteer_roles")
-    .select("*")
-    .order("display_order", { ascending: true });
+  const [{ data }, { data: heroSetting }] = await Promise.all([
+    supabase.from("volunteer_roles").select("*").order("display_order", { ascending: true }),
+    supabase.from("site_settings").select("value").eq("key", "frivillig_hero_image").single(),
+  ]);
 
+  const frivilligHeroImage = heroSetting?.value || null;
   const roles: VolunteerRole[] = data && data.length > 0 ? data : fallbackRoles;
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
       {/* Hero */}
       <section className="pt-14 min-h-screen flex items-end bg-black text-white overflow-hidden relative">
+        {frivilligHeroImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={frivilligHeroImage} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
+        )}
         <div className="absolute inset-0 top-14 bg-linear-to-b from-gray-800 to-black" />
         <div
           className="absolute inset-0 top-14 opacity-5"
@@ -62,22 +68,24 @@ export default async function FrivilligPage() {
           }}
         />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-16 md:pb-24">
-          <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-4">
-            Bliv en del af fællesskabet
-          </p>
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl leading-[0.85] mb-6 max-w-3xl">
-            FRIVILLIG I VIF
-          </h1>
-          <p className="text-sm text-gray-300 mb-8 max-w-md leading-relaxed">
-            Vanløse IF eksisterer takket være hundredvis af frivillige, der hver uge giver deres
-            tid, energi og hjerte til klubben. Vil du være en af dem?
-          </p>
-          <a
-            href="#roller"
-            className="inline-block border border-white text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-white hover:text-black transition-colors"
-          >
-            SE MULIGHEDER ↓
-          </a>
+          <HeroEnterWrapper>
+            <p className="hero-badge text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-4">
+              Bliv en del af fællesskabet
+            </p>
+            <h1 className="hero-title font-display text-6xl md:text-8xl lg:text-9xl leading-[0.85] mb-6 max-w-3xl">
+              FRIVILLIG I VIF
+            </h1>
+            <p className="hero-body text-sm text-gray-300 mb-8 max-w-md leading-relaxed">
+              Vanløse IF eksisterer takket være hundredvis af frivillige, der hver uge giver deres
+              tid, energi og hjerte til klubben. Vil du være en af dem?
+            </p>
+            <a
+              href="#roller"
+              className="hero-cta inline-block border border-white text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-white hover:text-black transition-colors"
+            >
+              SE MULIGHEDER ↓
+            </a>
+          </HeroEnterWrapper>
         </div>
       </section>
 

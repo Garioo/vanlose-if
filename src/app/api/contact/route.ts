@@ -4,6 +4,7 @@ import { getClientIp, isRateLimited } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { captureApiError, captureApiMessage } from "@/lib/observability";
 import { RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { sendNewContactNotification } from "@/lib/email";
 
 export const maxRequestBodySize = 4096; // 4 KB
 
@@ -38,6 +39,8 @@ export async function POST(req: NextRequest) {
       captureApiError(error, { route: "/api/contact" });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    await sendNewContactNotification(payload).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

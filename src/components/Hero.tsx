@@ -37,6 +37,7 @@ function useCountdown(targetTimestamp: number | null) {
 type HeroProps = {
   nextMatch: Match | null;
   heroImageUrl?: string | null;
+  teamLogoMap?: Record<string, string | null>;
 };
 
 function CountdownDigit({ value }: { value: string }) {
@@ -62,7 +63,24 @@ function getBadgeLabel(name: string) {
     .toUpperCase();
 }
 
-export default function Hero({ nextMatch, heroImageUrl }: HeroProps) {
+function TeamBadge({ name, teamId, logoMap, darkBg }: { name: string; teamId: string | null; logoMap: Record<string, string | null>; darkBg?: boolean }) {
+  const logoUrl = teamId ? logoMap[teamId] : null;
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <div className="mb-1 flex h-10 w-10 items-center justify-center">
+        <img src={logoUrl} alt={name} className="object-contain w-full h-full" />
+      </div>
+    );
+  }
+  return (
+    <div className={`mb-1 flex h-10 w-10 items-center justify-center rounded text-xs font-bold ${darkBg ? "bg-black text-white" : "bg-[#ddd8d0] text-black"}`}>
+      {getBadgeLabel(name)}
+    </div>
+  );
+}
+
+export default function Hero({ nextMatch, heroImageUrl, teamLogoMap = {} }: HeroProps) {
   const targetTimestamp = nextMatch ? getMatchSortTimestamp(nextMatch) : null;
   const { days, hours, minutes, seconds } = useCountdown(targetTimestamp);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -70,7 +88,7 @@ export default function Hero({ nextMatch, heroImageUrl }: HeroProps) {
   useEffect(() => setMounted(true), []);
 
   return (
-    <section className="relative flex h-screen min-h-[600px] items-end overflow-hidden bg-black text-white">
+    <section className="noise-overlay relative flex h-screen min-h-[600px] items-end overflow-hidden bg-black text-white">
       <div className="absolute inset-0">
         {heroImageUrl ? (
           <Image
@@ -124,7 +142,40 @@ export default function Hero({ nextMatch, heroImageUrl }: HeroProps) {
         </div>
 
         <div className="hero-card w-full flex-shrink-0 border border-gray-300/85 bg-white p-5 text-black shadow-xl md:w-[22rem] md:p-6">
-          {nextMatch && targetTimestamp != null ? (
+          {nextMatch && nextMatch.status === "live" ? (
+            <>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
+                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                  LIVE
+                </span>
+                {nextMatch.live_minute != null && (
+                  <span className="text-[10px] font-bold text-gray-500">{nextMatch.live_minute}&apos;</span>
+                )}
+              </div>
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="text-center">
+                  <TeamBadge name={nextMatch.home} teamId={nextMatch.home_team_id} logoMap={teamLogoMap} darkBg />
+                  <span className="text-[10px] font-bold">{nextMatch.home}</span>
+                </div>
+                <div className="text-center">
+                  <span className="font-display text-3xl leading-none">
+                    {nextMatch.home_score ?? 0} – {nextMatch.away_score ?? 0}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <TeamBadge name={nextMatch.away} teamId={nextMatch.away_team_id} logoMap={teamLogoMap} />
+                  <span className="text-[10px] font-bold">{nextMatch.away}</span>
+                </div>
+              </div>
+              <Link
+                href={`/kampe/${nextMatch.id}`}
+                className="block w-full bg-red-600 py-3 text-center text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              >
+                Se Live
+              </Link>
+            </>
+          ) : nextMatch && targetTimestamp != null ? (
             <>
               <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">
                 Næste Kamp
@@ -134,16 +185,12 @@ export default function Hero({ nextMatch, heroImageUrl }: HeroProps) {
               </div>
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div className="text-center">
-                  <div className="mb-1 flex h-10 w-10 items-center justify-center rounded bg-black text-xs font-bold text-white">
-                    {getBadgeLabel(nextMatch.home)}
-                  </div>
+                  <TeamBadge name={nextMatch.home} teamId={nextMatch.home_team_id} logoMap={teamLogoMap} darkBg />
                   <span className="text-[10px] font-bold">{nextMatch.home}</span>
                 </div>
                 <span className="text-xs font-bold text-gray-400 uppercase">vs</span>
                 <div className="text-center">
-                  <div className="mb-1 flex h-10 w-10 items-center justify-center rounded bg-[#ddd8d0] text-xs font-bold text-black">
-                    {getBadgeLabel(nextMatch.away)}
-                  </div>
+                  <TeamBadge name={nextMatch.away} teamId={nextMatch.away_team_id} logoMap={teamLogoMap} />
                   <span className="text-[10px] font-bold">{nextMatch.away}</span>
                 </div>
               </div>
@@ -174,7 +221,7 @@ export default function Hero({ nextMatch, heroImageUrl }: HeroProps) {
           ) : (
             <>
               <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                Sæsonen 2026
+                Sæsonen {new Date().getFullYear()}
               </p>
               <h2 className="mb-3 font-display text-3xl leading-[0.9]">
                 Følg holdet gennem hele sæsonen

@@ -1,6 +1,8 @@
 import Image from "next/image";
 
-export default function YouthFootball() {
+type Props = { imageUrl?: string | null };
+
+export default function YouthFootball({ imageUrl }: Props) {
   return (
     <section className="py-16 md:py-24 bg-[#edeae3]">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
@@ -8,7 +10,7 @@ export default function YouthFootball() {
           {/* Left: Image */}
           <div className="reveal relative aspect-[4/3] bg-[#ddd8d0] overflow-hidden">
             <Image
-              src="/images/youth.svg"
+              src={imageUrl || "/images/youth.svg"}
               alt="Ungdomsfodbold"
               fill
               className="object-cover"
@@ -26,21 +28,21 @@ export default function YouthFootball() {
               fodbold
             </h2>
             <p className="text-sm text-[#4a4540] mb-8 max-w-sm">
-              Vi skaber fremtidens stjerner. Med over 800 aktive ungdomsspillere er Vanløse IF et af
-              Danmarks stærkeste fundamenter for talentudvikling og fællesskab.
+              Vi skaber fremtidens stjerner. Vanløse IF er et af Danmarks stærkeste fundamenter for
+              talentudvikling og fællesskab — med hundredvis af aktive spillere fra U5 til U19.
             </p>
 
             <div className="flex gap-12 mb-8">
               <div className="reveal reveal-delay-1">
-                <span className="font-display text-4xl md:text-5xl">800+</span>
+                <span className="font-display text-4xl md:text-5xl">U5–U19</span>
                 <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#6b6560] mt-1">
-                  Aktive Spillere
+                  Årgange
                 </p>
               </div>
               <div className="reveal reveal-delay-2">
-                <span className="font-display text-4xl md:text-5xl">45+</span>
+                <span className="font-display text-4xl md:text-5xl">1921</span>
                 <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#6b6560] mt-1">
-                  Holdledere
+                  Grundlagt
                 </p>
               </div>
             </div>

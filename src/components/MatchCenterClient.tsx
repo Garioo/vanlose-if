@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Match, MatchEvent, MatchLineup } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
 import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/lib/live-clock";
 import LineupPitch, { type PlayerEventSummary } from "@/components/LineupPitch";
@@ -11,7 +12,6 @@ type Props = {
   initialMatch: Match;
   initialEvents: MatchEvent[];
   initialLineup: MatchLineup | null;
-  lineupSide: "home" | "away";
 };
 
 function statusLabel(match: Match): string {
@@ -111,47 +111,65 @@ function eventLabel(type: string): string {
   }
 }
 
-export default function MatchCenterClient({ initialMatch, initialEvents, initialLineup, lineupSide }: Props) {
+export default function MatchCenterClient({ initialMatch, initialEvents, initialLineup }: Props) {
   const [match, setMatch] = useState<Match>(initialMatch);
   const [events, setEvents] = useState<MatchEvent[]>(initialEvents);
-  const [lineup, setLineup] = useState<MatchLineup | null>(initialLineup);
+  const [lineup] = useState<MatchLineup | null>(initialLineup);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
+  // IDs of events present at mount — these won't animate
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initialEventIds = useMemo(() => new Set(initialEvents.map((e) => e.id)), []);
+
   useEffect(() => {
-    let cancelled = false;
-    const interval = setInterval(async () => {
-      try {
-        const [matchRes, eventRes, lineupRes] = await Promise.all([
-          fetch(`/api/matches/${match.id}`, { cache: "no-store" }),
-          fetch(`/api/matches/${match.id}/events`, { cache: "no-store" }),
-          fetch(`/api/matches/${match.id}/lineup?team_side=${lineupSide}`, { cache: "no-store" }),
-        ]);
-        if (cancelled) return;
-
-        if (matchRes.ok) {
-          const nextMatch = (await matchRes.json()) as Match;
-          setMatch(nextMatch);
-        }
-
-        if (eventRes.ok) {
-          const nextEvents = (await eventRes.json()) as MatchEvent[];
-          setEvents(Array.isArray(nextEvents) ? nextEvents : []);
-        }
-
-        if (lineupRes.ok) {
-          const nextLineup = (await lineupRes.json()) as MatchLineup | null;
-          setLineup(nextLineup);
-        }
-      } catch {
-        // keep current snapshot on polling errors
-      }
-    }, 15000);
+    const channel = supabase
+      .channel(`match-${initialMatch.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "matches", filter: `id=eq.${initialMatch.id}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            setMatch(payload.new as Match);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${initialMatch.id}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            setEvents((prev) => [...prev, payload.new as MatchEvent]);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "match_events", filter: `match_id=eq.${initialMatch.id}` },
+        async () => {
+          const res = await fetch(`/api/matches/${initialMatch.id}/events`, { cache: "no-store" });
+          if (res.ok) {
+            const next = (await res.json()) as MatchEvent[];
+            if (Array.isArray(next)) setEvents(next);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "match_events", filter: `match_id=eq.${initialMatch.id}` },
+        async () => {
+          const res = await fetch(`/api/matches/${initialMatch.id}/events`, { cache: "no-store" });
+          if (res.ok) {
+            const next = (await res.json()) as MatchEvent[];
+            if (Array.isArray(next)) setEvents(next);
+          }
+        },
+      )
+      .subscribe();
 
     return () => {
-      cancelled = true;
-      clearInterval(interval);
+      supabase.removeChannel(channel);
     };
-  }, [match.id, lineupSide]);
+  }, [initialMatch.id]);
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 1000);
@@ -258,6 +276,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                   {liveClock}
                 </span>
               )}
+              {/* Intentionally hardcoded — Vanløse IF plays in 3. Division */}
               <span className="ml-auto text-white/30 text-[10px] tracking-widest uppercase hidden md:block">
                 3. Division
               </span>
@@ -270,9 +289,12 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 <p className="font-display text-2xl md:text-4xl lg:text-5xl text-white leading-none tracking-tight">
                   {match.home}
                 </p>
+                <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">
+                  HJEMMEHOLD
+                </p>
                 {isHome && (
-                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase mt-2">
-                    Hjemmehold
+                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase">
+                    VANLØSE IF
                   </p>
                 )}
               </div>
@@ -296,9 +318,12 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 <p className="font-display text-2xl md:text-4xl lg:text-5xl text-white leading-none tracking-tight">
                   {match.away}
                 </p>
+                <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">
+                  UDEBANE
+                </p>
                 {!isHome && (
-                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase mt-2">
-                    Hjemmehold
+                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase">
+                    VANLØSE IF
                   </p>
                 )}
               </div>
@@ -333,7 +358,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
       {/* Timeline + Lineup */}
       <section
         id="tidslinje"
-        className="max-w-7xl mx-auto px-4 md:px-8 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12"
+        className="max-w-7xl mx-auto px-4 md:px-8 pb-16 flex flex-col gap-10"
       >
         {/* Timeline */}
         <div>
@@ -354,52 +379,88 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#e0dbd3] border border-[#e0dbd3] bg-white/60">
+            <div className="border border-[#e0dbd3] overflow-hidden">
+              {/* Team header */}
+              <div className="grid border-b border-[#e0dbd3] bg-[#f7f4ef]" style={{ gridTemplateColumns: "1fr 44px 1fr" }}>
+                <div className="px-3 py-2 text-right">
+                  <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${isHome ? "text-[#dc2626]" : "text-[#6b7280]"}`}>
+                    {match.home}
+                  </p>
+                  <p className="text-[8px] text-[#c0bab3] uppercase tracking-widest">Hjemme</p>
+                </div>
+                <div className="border-x border-[#e0dbd3]" />
+                <div className="px-3 py-2">
+                  <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${!isHome ? "text-[#dc2626]" : "text-[#6b7280]"}`}>
+                    {match.away}
+                  </p>
+                  <p className="text-[8px] text-[#c0bab3] uppercase tracking-widest">Ude</p>
+                </div>
+              </div>
+
+              {/* Event rows */}
               {[...events].reverse().map((event) => {
                 const color = eventColor(event.event_type);
-                return (
-                  <div key={event.id} className="flex items-stretch gap-0">
-                    {/* Colored left border */}
-                    <div style={{ width: 3, backgroundColor: color, flexShrink: 0 }} />
+                const isNew = !initialEventIds.has(event.id);
+                const isHomeEvent = event.team_side === "home";
+                const isGoal = event.event_type === "goal";
+                const isSystem = event.event_type === "kickoff" || event.event_type === "halftime" || event.event_type === "fulltime";
 
-                    <div className="flex items-center gap-4 px-4 py-4 flex-1 min-w-0">
-                      {/* Minute */}
-                      <span
-                        className="text-[11px] font-bold tabular-nums min-w-[36px] text-right"
-                        style={{ color }}
-                      >
+                // System events (kickoff / halftime / fulltime) span full width
+                if (isSystem) {
+                  return (
+                    <div key={event.id} className={`flex items-center justify-center gap-2 py-2 border-b border-[#e0dbd3] bg-[#f7f4ef]${isNew ? " event-enter" : ""}`}>
+                      <span className="text-[9px] font-bold tabular-nums text-[#8a847c]">{minuteLabel(event)}</span>
+                      <span className="w-px h-2.5 bg-[#d0cbc4]" />
+                      <span className="text-[9px] font-bold tracking-widest uppercase text-[#6b7280]">{eventLabel(event.event_type)}</span>
+                    </div>
+                  );
+                }
+
+                const content = (
+                  <>
+                    <p className="text-[9px] font-bold tracking-widest uppercase mb-0.5" style={{ color }}>
+                      {eventLabel(event.event_type)}
+                    </p>
+                    <p className={`font-bold text-[#0d0d0b] leading-tight truncate ${isGoal ? "text-sm" : "text-xs"}`}>
+                      {event.player_name ?? "—"}
+                    </p>
+                    {(event.assist_name || event.note) && (
+                      <p className="text-[10px] text-[#8a847c] mt-0.5 truncate">
+                        {[
+                          event.assist_name
+                            ? `${event.event_type === "substitution" ? "Ind" : "Assist"}: ${event.assist_name}`
+                            : null,
+                          event.note,
+                        ].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </>
+                );
+
+                return (
+                  <div
+                    key={event.id}
+                    className={`grid border-b border-[#e0dbd3] last:border-b-0${isNew ? " event-enter" : ""}`}
+                    style={{ gridTemplateColumns: "1fr 44px 1fr", backgroundColor: isGoal ? "#fff8f7" : "#fff" }}
+                  >
+                    {/* Home side */}
+                    <div className={`px-3 py-3 flex justify-end border-r border-[#e0dbd3]${isHomeEvent && isGoal ? " border-l-[3px]" : ""}`}
+                      style={isHomeEvent && isGoal ? { borderLeftColor: color } : {}}>
+                      {isHomeEvent && <div className="text-right">{content}</div>}
+                    </div>
+
+                    {/* Center: dot + minute */}
+                    <div className="flex flex-col items-center justify-center gap-1 py-2 border-r border-[#e0dbd3]">
+                      <div style={{ width: isGoal ? 8 : 6, height: isGoal ? 8 : 6, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
+                      <span className="text-[9px] font-bold tabular-nums leading-none" style={{ color }}>
                         {minuteLabel(event)}
                       </span>
+                    </div>
 
-                      {/* Icon */}
-                      <span className="flex-shrink-0 text-[#8a847c]">
-                        <EventIcon type={event.event_type} />
-                      </span>
-
-                      {/* Info */}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color }}>
-                          {eventLabel(event.event_type)}
-                        </p>
-                        <p className="text-sm font-semibold text-[#0d0d0b] truncate">
-                          {event.player_name ?? "—"}
-                        </p>
-                        {(event.assist_name || event.note) && (
-                          <p className="text-[11px] text-[#8a847c] truncate">
-                            {[
-                              event.assist_name ? `${event.event_type === "substitution" ? "Ind" : "Assist"}: ${event.assist_name}` : null,
-                              event.note,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Side */}
-                      <span className="text-[9px] font-bold tracking-widest uppercase text-[#c0bab3] ml-auto flex-shrink-0">
-                        {event.team_side === "home" ? "HJEMME" : "UDE"}
-                      </span>
+                    {/* Away side */}
+                    <div className={`px-3 py-3${!isHomeEvent && isGoal ? " border-r-[3px]" : ""}`}
+                      style={!isHomeEvent && isGoal ? { borderRightColor: color } : {}}>
+                      {!isHomeEvent && <div>{content}</div>}
                     </div>
                   </div>
                 );
@@ -411,7 +472,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
         {/* Lineup */}
         <div>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-3xl tracking-tight">VANLØSE LINEUP</h2>
+            <h2 className="font-display text-xl tracking-tight">LINEUP</h2>
             <span
               className="text-[10px] font-bold tracking-widest uppercase px-2 py-1"
               style={{
@@ -424,13 +485,57 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           </div>
 
           {lineup && lineup.starters.length > 0 ? (
-            <LineupPitch
-              starters={lineup.starters}
-              bench={lineup.bench}
-              formation={lineup.formation}
-              confirmed={lineup.confirmed}
-              playerEvents={playerEvents}
-            />
+            <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+              {/* Left: pitch */}
+              <div style={{ flex: "1 1 340px", maxWidth: 560 }}>
+                <LineupPitch
+                  starters={lineup.starters}
+                  bench={lineup.bench}
+                  formation={lineup.formation}
+                  confirmed={lineup.confirmed}
+                  playerEvents={playerEvents}
+                  hideMeta
+                />
+              </div>
+
+              {/* Right: formation + bench list */}
+              <div style={{ flex: "1 1 180px" }}>
+                {lineup.formation && (
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 4 }}>Formation</p>
+                    <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", color: "#0d0d0b" }}>{lineup.formation}</p>
+                  </div>
+                )}
+                {lineup.bench.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>Bænk</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                      {lineup.bench.map((player, i) => {
+                        const summary = playerEvents[player.name.trim().toLowerCase()];
+                        return (
+                          <div key={`${player.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f0ede8" }}>
+                            <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, minWidth: 24 }}>
+                              {player.number ? `#${player.number}` : "—"}
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "#0d0d0b", flex: 1 }}>{player.name}</span>
+                            {summary && (
+                              <span style={{ display: "inline-flex", gap: 3, alignItems: "center" }}>
+                                {summary.subIn && <span style={{ color: "#22c55e", fontSize: 10, fontWeight: 700 }}>↑</span>}
+                                {summary.yellowCard && <span style={{ display: "inline-block", width: 6, height: 8, borderRadius: 1, backgroundColor: "#fbbf24" }} />}
+                                {summary.redCard && <span style={{ display: "inline-block", width: 6, height: 8, borderRadius: 1, backgroundColor: "#ef4444" }} />}
+                                {Array.from({ length: summary.goals }).map((_, gi) => (
+                                  <span key={gi} style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", backgroundColor: "#374151", boxShadow: "0 0 0 1px #9ca3af" }} />
+                                ))}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="border border-[#e0dbd3] bg-white/60 px-6 py-12 text-center">
               <p className="text-xs text-[#8a847c] tracking-wide">

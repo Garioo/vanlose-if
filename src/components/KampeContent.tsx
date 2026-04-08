@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Match, Standing } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { getTeamOutcome, isVanlose } from "@/lib/match-result";
 
@@ -15,14 +16,35 @@ interface Props {
 
 export default function KampeContent({ matches, standings }: Props) {
   const [view, setView] = useState<View>("KOMMENDE");
+  const [liveMatches, setLiveMatches] = useState<Match[]>(matches);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("kampe-matches")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "matches" },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            const updated = payload.new as Match;
+            setLiveMatches((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const upcoming = useMemo(
-    () => sortMatchesByKickoff(matches.filter((m) => m.is_upcoming), "asc"),
-    [matches],
+    () => sortMatchesByKickoff(liveMatches.filter((m) => m.is_upcoming), "asc"),
+    [liveMatches],
   );
   const pastResults = useMemo(
-    () => sortMatchesByKickoff(matches.filter((m) => !m.is_upcoming), "desc"),
-    [matches],
+    () => sortMatchesByKickoff(liveMatches.filter((m) => !m.is_upcoming), "desc"),
+    [liveMatches],
   );
 
   return (
@@ -57,7 +79,7 @@ export default function KampeContent({ matches, standings }: Props) {
                     <Link
                       key={match.id}
                       href={`/kampe/${match.id}`}
-                      className="flex flex-col gap-4 border border-[#e0dbd3] bg-[#f7f4ef] px-5 py-5 transition-all duration-200 hover:border-[#d4cfc7] hover:shadow-sm md:px-6 md:py-6"
+                      className="card-lift flex flex-col gap-4 border border-[#e0dbd3] bg-[#f7f4ef] px-5 py-5 transition-colors duration-200 hover:border-[#d4cfc7] md:px-6 md:py-6"
                     >
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="text-center min-w-[84px]">
@@ -75,6 +97,12 @@ export default function KampeContent({ matches, standings }: Props) {
                         >
                           {isHome ? "HJEMME" : "UDE"}
                         </div>
+                        {match.status === "live" && (
+                          <div className="flex items-center gap-1.5 bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
+                            <span className="live-pulse inline-block h-1.5 w-1.5 rounded-full bg-white" />
+                            LIVE
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="truncate text-base font-bold uppercase md:text-lg">{match.home}</span>
@@ -105,7 +133,7 @@ export default function KampeContent({ matches, standings }: Props) {
                   <Link
                     key={r.id}
                     href={`/kampe/${r.id}`}
-                    className="flex items-center gap-4 border border-[#e0dbd3] px-4 py-3 transition-colors hover:bg-[#edeae3]"
+                    className="card-lift flex items-center gap-4 border border-[#e0dbd3] px-4 py-3 transition-colors hover:bg-[#edeae3]"
                   >
                     <span className="w-16 shrink-0 text-[10px] font-bold text-[#6b6560]">{r.date}</span>
                     <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -147,15 +175,21 @@ export default function KampeContent({ matches, standings }: Props) {
                         );
                       })()}
                     </div>
-                    {r.home_score != null && r.away_score != null && (
-                      <span className="shrink-0 border border-[#e0dbd3] bg-[#f7f4ef] px-2 py-1 text-[10px] font-bold">
-                        {r.home_score > r.away_score
-                          ? "HJEMMESEJR"
-                          : r.away_score > r.home_score
-                            ? "UDESEJR"
-                            : "UAFGJORT"}
-                      </span>
-                    )}
+                    {r.home_score != null && r.away_score != null && (() => {
+                      const vanloseSide = isVanlose(r.home) ? "home" : "away";
+                      const outcome = getTeamOutcome(r, vanloseSide);
+                      const pill =
+                        outcome === "win"
+                          ? { label: "S", cls: "bg-[#166534] text-white" }
+                          : outcome === "loss"
+                            ? { label: "N", cls: "bg-[#7f1d1d] text-white" }
+                            : { label: "U", cls: "bg-[#edeae3] text-[#4a4540]" };
+                      return (
+                        <span className={`shrink-0 px-2 py-1 text-[10px] font-bold ${pill.cls}`}>
+                          {pill.label}
+                        </span>
+                      );
+                    })()}
                   </Link>
                 ))}
                 {pastResults.length === 0 && (

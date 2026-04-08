@@ -7,7 +7,11 @@ export default function DeleteButton({ id, endpoint }: { id: string; endpoint: s
 
   async function handleDelete() {
     if (!confirm("Er du sikker på, at du vil slette dette?")) return;
-    await fetch(`/api/${endpoint}/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/${endpoint}/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("Kunne ikke slette. Prøv igen.");
+      return;
+    }
     router.refresh();
   }
 

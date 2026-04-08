@@ -17,6 +17,7 @@ type Props = {
   formation: string | null;
   confirmed: boolean;
   playerEvents?: Record<string, PlayerEventSummary>;
+  hideMeta?: boolean;
 };
 
 function lastName(name: string): string {
@@ -120,6 +121,9 @@ function PlayerDot({ player, size = 34, summary }: { player: LineupPlayerSlot; s
           whiteSpace: "nowrap",
           textShadow: "0 1px 3px rgba(0,0,0,0.7)",
           lineHeight: 1.1,
+          maxWidth: size * 2.2,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
         {lastName(player.name)}
@@ -133,7 +137,7 @@ function PlayerDot({ player, size = 34, summary }: { player: LineupPlayerSlot; s
   );
 }
 
-export default function LineupPitch({ starters, bench, formation, playerEvents }: Props) {
+export default function LineupPitch({ starters, bench, formation, playerEvents, hideMeta }: Props) {
   const formationRows: number[] = formation
     ? formation.split("-").map((n) => parseInt(n, 10)).filter((n) => !isNaN(n) && n > 0)
     : [];
@@ -189,8 +193,9 @@ export default function LineupPitch({ starters, bench, formation, playerEvents }
         style={{
           position: "relative",
           width: "100%",
+          maxWidth: 560,
+          maxHeight: 420,
           aspectRatio: "3 / 4",
-          maxHeight: 520,
           overflow: "hidden",
           backgroundColor: "#3a7d44",
         }}
@@ -247,7 +252,7 @@ export default function LineupPitch({ starters, bench, formation, playerEvents }
       </div>
 
       {/* Formation label */}
-      {formation && (
+      {!hideMeta && formation && (
         <p
           style={{
             marginTop: 8,
@@ -263,7 +268,7 @@ export default function LineupPitch({ starters, bench, formation, playerEvents }
       )}
 
       {/* Bench */}
-      {bench.length > 0 && (
+      {!hideMeta && bench.length > 0 && (
         <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
           <span
             style={{

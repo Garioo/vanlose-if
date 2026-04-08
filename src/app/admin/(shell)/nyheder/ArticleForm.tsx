@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Article } from "@/lib/supabase";
+import TiptapEditor from "@/components/TiptapEditor";
+import MediaPicker from "@/components/admin/MediaPicker";
 
 interface Props {
   article?: Partial<Article>;
@@ -23,7 +25,6 @@ export default function ArticleForm({ article }: Props) {
     latest: article?.latest ?? false,
   });
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   function slugify(s: string) {
@@ -42,22 +43,17 @@ export default function ArticleForm({ article }: Props) {
     }));
   }
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    const { url } = await res.json();
-    setForm((f) => ({ ...f, image_url: url }));
-    setUploading(false);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    const strippedContent = form.content.replace(/<[^>]*>/g, "").trim();
+    if (!strippedContent) {
+      setError("Indhold er påkrævet.");
+      setLoading(false);
+      return;
+    }
 
     const url = isEdit ? `/api/articles/${article!.id}` : "/api/articles";
     const method = isEdit ? "PUT" : "POST";
@@ -122,17 +118,17 @@ export default function ArticleForm({ article }: Props) {
 
       <div>
         <label className={labelCls}>Indhold</label>
-        <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={12} className={inputCls} required />
+        <TiptapEditor
+          content={form.content}
+          onChange={(html) => setForm((f) => ({ ...f, content: html }))}
+        />
       </div>
 
       <div>
         <label className={labelCls}>Billede</label>
         <div className="flex items-center gap-3">
-          <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="/uploads/... eller ekstern URL" className={`${inputCls} flex-1`} />
-          <label className="shrink-0 text-[10px] font-bold tracking-widest uppercase border border-gray-300 px-4 py-3 cursor-pointer hover:border-black transition-colors">
-            {uploading ? "Uploader..." : "Upload"}
-            <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
-          </label>
+          <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="URL..." className={`${inputCls} flex-1`} />
+          <MediaPicker onSelect={(url) => setForm((f) => ({ ...f, image_url: url }))} />
         </div>
         {form.image_url && (
           // eslint-disable-next-line @next/next/no-img-element

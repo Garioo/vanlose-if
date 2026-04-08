@@ -2,27 +2,38 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import type { VolunteerRole } from "@/lib/supabase";
 
-const accordionItems = [
+const fallbackItems = [
   {
     title: "Træner & Holdleder",
-    content:
+    description:
       "Vær med til at forme næste generation på banen. Vi tilbyder uddannelse og et stærkt trænermiljø.",
   },
   {
     title: "Event & Kiosk",
-    content:
+    description:
       "Hjælp med at drive vores kampdagsoplevelse. Fra kiosken til events, er der altid brug for hjælpende hænder.",
   },
   {
     title: "Bestyrelse & Administration",
-    content:
+    description:
       "Vær med til at forme klubbens fremtid. Vi søger altid engagerede mennesker til bestyrelsen og administrationen.",
   },
 ];
 
-export default function Volunteer() {
+type Props = {
+  roles?: VolunteerRole[];
+  imageUrl?: string | null;
+};
+
+export default function Volunteer({ roles, imageUrl }: Props) {
   const [openIndex, setOpenIndex] = useState(0);
+
+  const items =
+    roles && roles.length > 0
+      ? roles.map((r) => ({ title: r.title, description: r.description }))
+      : fallbackItems;
 
   return (
     <section className="py-16 md:py-24 px-4 md:px-8 max-w-7xl mx-auto">
@@ -42,7 +53,7 @@ export default function Volunteer() {
 
           {/* Accordion */}
           <div className="divide-y divide-[#e0dbd3] border-t border-[#e0dbd3]">
-            {accordionItems.map((item, idx) => (
+            {items.map((item, idx) => (
               <div key={item.title} className={`reveal reveal-delay-${idx + 1}`}>
                 <button
                   className="w-full flex items-center justify-between py-4 text-left"
@@ -59,7 +70,7 @@ export default function Volunteer() {
                     openIndex === idx ? "max-h-40 pb-4" : "max-h-0"
                   }`}
                 >
-                  <p className="text-sm text-[#4a4540]">{item.content}</p>
+                  <p className="text-sm text-[#4a4540]">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -73,7 +84,7 @@ export default function Volunteer() {
             <div
               className="absolute inset-0"
               style={{
-                backgroundImage: `url('/images/volunteer.svg')`,
+                backgroundImage: `url('${imageUrl || "/images/volunteer.svg"}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}

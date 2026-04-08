@@ -25,7 +25,7 @@ export default function AdminPageTitle() {
     .find((key) => pathname === key || pathname.startsWith(key + "/"));
   const title = match ? titleMap[match] : "Admin";
   return (
-    <h1 className="font-display text-lg text-white tracking-wider">
+    <h1 className="font-display text-lg text-gray-900 tracking-wider">
       {title.toUpperCase()}
     </h1>
   );

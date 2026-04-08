@@ -57,7 +57,6 @@ export default async function MatchCenterPage({ params }: Props) {
       initialMatch={match}
       initialEvents={(events ?? []) as MatchEvent[]}
       initialLineup={lineupResolved ?? null}
-      lineupSide={lineupSide}
     />
   );
 }

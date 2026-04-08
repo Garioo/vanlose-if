@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import TruppenFilter from "@/components/TruppenFilter";
+import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { supabase } from "@/lib/supabase";
 import type { Player, Match, Standing, PlayerStats } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
@@ -38,6 +39,10 @@ export default async function ForsteholdetPage() {
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
       <section id="profil" className="pt-14 min-h-[70vh] flex items-end relative overflow-hidden bg-black text-white">
+        {settingsMap["forsteholdet_hero_image"] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={settingsMap["forsteholdet_hero_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
+        )}
         <div className="absolute inset-0 top-14 bg-linear-to-b from-gray-900/50 to-black" />
         <div
           className="absolute inset-x-0 bottom-0 font-display text-[20vw] leading-none text-white/5 select-none overflow-hidden whitespace-nowrap"
@@ -47,18 +52,20 @@ export default async function ForsteholdetPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-12 md:pb-16">
-          <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-4">
-            Førsteholdet
-          </p>
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl leading-[0.85] mb-8">
-            KLAR TIL
-            <br />
-            <span className="text-gray-400">KAMPDAG</span>
-          </h1>
-          <div className="max-w-2xl text-sm text-gray-300 leading-relaxed">
-            Her finder du den aktuelle trup, de seneste resultater og stillingen omkring Vanløse IFs
-            førstehold. Kampdata opdateres løbende i takt med sæsonen.
-          </div>
+          <HeroEnterWrapper>
+            <p className="hero-badge text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-4">
+              Førsteholdet
+            </p>
+            <h1 className="hero-title font-display text-6xl md:text-8xl lg:text-9xl leading-[0.85] mb-8">
+              KLAR TIL
+              <br />
+              <span className="text-gray-400">KAMPDAG</span>
+            </h1>
+            <div className="hero-body max-w-2xl text-sm text-gray-300 leading-relaxed">
+              Her finder du den aktuelle trup, de seneste resultater og stillingen omkring Vanløse IFs
+              førstehold. Kampdata opdateres løbende i takt med sæsonen.
+            </div>
+          </HeroEnterWrapper>
         </div>
       </section>
 

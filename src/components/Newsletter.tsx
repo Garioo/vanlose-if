@@ -11,7 +11,7 @@ export default function Newsletter() {
   const [error, setError] = useState("");
 
   return (
-    <section className="py-16 md:py-24 bg-[#1a1816]">
+    <section className="noise-overlay py-16 md:py-24 bg-[#1a1816]">
       <div className="max-w-2xl mx-auto px-4 md:px-8 text-center">
         <h2 className="font-display text-3xl md:text-5xl lg:text-6xl leading-[0.9] mb-8 text-white">
           Gå aldrig glip af en kamp

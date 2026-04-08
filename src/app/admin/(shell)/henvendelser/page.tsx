@@ -500,15 +500,38 @@ export default function AdminHenvendelserPage() {
       )}
 
       {!loading && tab === "newsletter" && (
-        <div className="bg-white border border-gray-200 divide-y divide-gray-100">
-          {newsletter.map((row) => (
-            <div key={row.id} className="px-4 py-4 flex items-center justify-between gap-4">
-              <p className="text-xs font-bold">{row.email}</p>
-              <p className="text-[10px] text-gray-400">{new Date(row.created_at).toLocaleString("da-DK")}</p>
+        <>
+          {newsletter.length > 0 && (
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  const rows = newsletter.map((r) => `${r.email},${new Date(r.created_at).toLocaleString("da-DK")}`);
+                  const csv = ["E-mail,Tilmeldt"].concat(rows).join("\n");
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "nyhedsbrev-abonnenter.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="text-[10px] font-bold tracking-widest uppercase border border-gray-300 px-4 py-2 hover:border-black transition-colors"
+              >
+                EKSPORTER CSV
+              </button>
             </div>
-          ))}
-          {newsletter.length === 0 && <div className="px-4 py-8 text-center text-xs text-gray-400">Ingen nyhedsbrevstilmeldinger.</div>}
-        </div>
+          )}
+          <div className="bg-white border border-gray-200 divide-y divide-gray-100">
+            {newsletter.map((row) => (
+              <div key={row.id} className="px-4 py-4 flex items-center justify-between gap-4">
+                <p className="text-xs font-bold">{row.email}</p>
+                <p className="text-[10px] text-gray-400">{new Date(row.created_at).toLocaleString("da-DK")}</p>
+              </div>
+            ))}
+            {newsletter.length === 0 && <div className="px-4 py-8 text-center text-xs text-gray-400">Ingen nyhedsbrevstilmeldinger.</div>}
+          </div>
+        </>
       )}
 
       {!loading && tab === "membership" && (

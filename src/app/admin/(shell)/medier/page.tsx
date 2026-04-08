@@ -21,6 +21,7 @@ interface MediaItem {
   created_at: string;
   bytes: number;
   filename: string;
+  resource_type?: "image" | "video";
 }
 
 export default function AdminMedierPage() {
@@ -58,12 +59,16 @@ export default function AdminMedierPage() {
   }, [activeTag, selectedFolder]);
 
   useEffect(() => {
-    load();
-    loadFolders();
-    fetch("/api/players")
-      .then((r) => r.json())
-      .then((data: Player[]) => setPlayers(Array.isArray(data) ? data : []))
-      .catch(() => {});
+    const timeoutId = window.setTimeout(() => {
+      void load();
+      void loadFolders();
+      void fetch("/api/players")
+        .then((r) => r.json())
+        .then((data: Player[]) => setPlayers(Array.isArray(data) ? data : []))
+        .catch(() => {});
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [load, loadFolders]);
 
   const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).sort();
@@ -135,7 +140,7 @@ export default function AdminMedierPage() {
 
       {/* Upload panel */}
       <div className="bg-white border border-gray-200 p-6 mb-6">
-        <h2 className="text-xs font-bold tracking-widest uppercase mb-5">Upload billeder</h2>
+        <h2 className="text-xs font-bold tracking-widest uppercase mb-5">Upload medier</h2>
         <div className="flex flex-wrap items-end gap-6">
           <FolderCreator
             folders={folders}
@@ -145,8 +150,9 @@ export default function AdminMedierPage() {
             layout="row"
           />
           <CldUploadWidget
-            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-            options={{ folder: cloudinaryFolder, resourceType: "image", sources: ["local", "camera"], multiple: true, language: "da" }}
+            key={cloudinaryFolder}
+            signatureEndpoint="/api/media/sign"
+            options={{ folder: cloudinaryFolder, resourceType: "auto", sources: ["local", "camera"], multiple: true, language: "da", useFilename: true, uniqueFilename: false }}
             onSuccess={() => load()}
           >
             {({ open }) => (
@@ -154,7 +160,7 @@ export default function AdminMedierPage() {
                 onClick={() => open()}
                 className="text-[10px] font-bold tracking-widest uppercase bg-black text-white px-6 py-2.5 hover:bg-gray-900 transition-colors mb-5"
               >
-                ↑ Upload billeder
+                ↑ Upload medier
               </button>
             )}
           </CldUploadWidget>
@@ -184,17 +190,28 @@ export default function AdminMedierPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="text-xs text-gray-400 py-12 text-center">Henter billeder...</div>
+        <div className="text-xs text-gray-400 py-12 text-center">Henter medier...</div>
       ) : items.length === 0 ? (
         <div className="bg-white border border-gray-200 px-6 py-12 text-center text-xs text-gray-400">
-          {activeTag ? `Ingen billeder med tagget "${activeTag}".` : "Ingen billeder endnu. Upload det første ovenfor."}
+          {activeTag ? `Ingen medier med tagget "${activeTag}".` : "Ingen medier endnu. Upload det første ovenfor."}
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (
             <div key={item.public_id} className="bg-white border border-gray-200 overflow-hidden">
               <div className="relative aspect-4/3 overflow-hidden bg-gray-50">
-                <Image src={item.url} alt={item.filename} fill className="object-cover" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" />
+                {item.resource_type === "video" ? (
+                  <video
+                    src={item.url}
+                    className="h-full w-full object-cover"
+                    controls
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <Image src={item.url} alt={item.filename} fill className="object-cover" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" />
+                )}
               </div>
 
               <div className="px-3 py-2">

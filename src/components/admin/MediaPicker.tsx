@@ -15,6 +15,7 @@ interface MediaItem {
   url: string;
   tags: string[];
   filename: string;
+  resource_type?: "image" | "video";
 }
 
 interface Props {
@@ -56,10 +57,14 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
   }, []);
 
   useEffect(() => {
-    if (open) {
-      load(activeTag, selectedFolder);
-      loadFolders();
-    }
+    if (!open) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void load(activeTag, selectedFolder);
+      void loadFolders();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [open, activeTag, selectedFolder, load, loadFolders]);
 
   // Close on Escape
@@ -151,8 +156,9 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                 </h2>
                 <div className="flex items-center gap-2">
                   <CldUploadWidget
-                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                    options={{ folder: cloudinaryFolder, resourceType: "image", sources: ["local", "camera"], multiple: false }}
+                    key={cloudinaryFolder}
+                    signatureEndpoint="/api/media/sign"
+                    options={{ folder: cloudinaryFolder, resourceType: "auto", sources: ["local", "camera"], multiple: false, useFilename: true, uniqueFilename: false }}
                     onSuccess={(result) => {
                       const info = result.info as { secure_url?: string } | undefined;
                       if (info?.secure_url) {
@@ -214,9 +220,9 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
               {/* Grid */}
               <div className="overflow-y-auto p-4 flex-1">
                 {loading ? (
-                  <p className="text-xs text-gray-400 text-center py-12">Henter billeder...</p>
+                  <p className="text-xs text-gray-400 text-center py-12">Henter medier...</p>
                 ) : items.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-12">Ingen billeder i denne mappe.</p>
+                  <p className="text-xs text-gray-400 text-center py-12">Ingen medier i denne mappe.</p>
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {items.map((item) => (
@@ -227,13 +233,23 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                         className="group relative aspect-square overflow-hidden border border-gray-200 hover:border-black transition-colors focus:outline-none focus:border-black"
                         title={item.filename}
                       >
-                        <Image
-                          src={item.url}
-                          alt={item.filename}
-                          fill
-                          className="object-cover group-hover:opacity-90 transition-opacity"
-                          sizes="(max-width: 768px) 33vw, 20vw"
-                        />
+                        {item.resource_type === "video" ? (
+                          <video
+                            src={item.url}
+                            className="h-full w-full object-cover group-hover:opacity-90 transition-opacity"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <Image
+                            src={item.url}
+                            alt={item.filename}
+                            fill
+                            className="object-cover group-hover:opacity-90 transition-opacity"
+                            sizes="(max-width: 768px) 33vw, 20vw"
+                          />
+                        )}
                       </button>
                     ))}
                   </div>

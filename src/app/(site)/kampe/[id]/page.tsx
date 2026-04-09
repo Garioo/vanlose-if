@@ -43,20 +43,18 @@ export default async function MatchCenterPage({ params }: Props) {
   ]);
 
   if (!match) notFound();
-  const lineupSide: "home" | "away" = isVanlose(match.home) ? "home" : "away";
 
-  const { data: lineupResolved } = await supabase
-    .from("match_lineups")
-    .select("*")
-    .eq("match_id", id)
-    .eq("team_side", lineupSide)
-    .maybeSingle<MatchLineup>();
+  const [{ data: homeLineup }, { data: awayLineup }] = await Promise.all([
+    supabase.from("match_lineups").select("*").eq("match_id", id).eq("team_side", "home").maybeSingle<MatchLineup>(),
+    supabase.from("match_lineups").select("*").eq("match_id", id).eq("team_side", "away").maybeSingle<MatchLineup>(),
+  ]);
 
   return (
     <MatchCenterClient
       initialMatch={match}
       initialEvents={(events ?? []) as MatchEvent[]}
-      initialLineup={lineupResolved ?? null}
+      initialHomeLineup={homeLineup ?? null}
+      initialAwayLineup={awayLineup ?? null}
     />
   );
 }

@@ -11,40 +11,88 @@ function resolveCount(r: PromiseSettledResult<{ count: number | null; error: unk
   return r.value?.count ?? 0;
 }
 
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("da-DK", { day: "numeric", month: "short" });
+}
+
+function formatDateTime(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("da-DK", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default async function DashboardPage() {
-  const [
-    articles,
-    players,
-    matches,
-    standings,
-    contact,
-    volunteer,
-    newsletter,
-    membership,
-    contactNew,
-    volunteerNew,
-  ] = await Promise.allSettled([
-    supabase.from("articles").select("id", { count: "exact", head: true }),
-    supabase.from("players").select("id", { count: "exact", head: true }),
-    supabase.from("matches").select("id", { count: "exact", head: true }),
-    supabase.from("standings").select("id", { count: "exact", head: true }),
-    supabaseAdmin
-      .from("contact_submissions")
-      .select("id", { count: "exact", head: true })
-      .not("subject", "ilike", `${MEMBERSHIP_SUBJECT_PREFIX}%`),
-    supabaseAdmin.from("volunteer_submissions").select("id", { count: "exact", head: true }),
-    supabaseAdmin.from("newsletter_subscriptions").select("id", { count: "exact", head: true }),
-    supabaseAdmin.from("membership_submissions").select("id", { count: "exact", head: true }),
-    supabaseAdmin
-      .from("contact_submissions")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "new")
-      .not("subject", "ilike", `${MEMBERSHIP_SUBJECT_PREFIX}%`),
-    supabaseAdmin
-      .from("volunteer_submissions")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "new"),
+  const today = new Date().toISOString().split("T")[0];
+
+  // Run count queries and feed queries in parallel
+  const [counts, feed] = await Promise.all([
+    Promise.allSettled([
+      supabase.from("articles").select("id", { count: "exact", head: true }),
+      supabase.from("players").select("id", { count: "exact", head: true }),
+      supabase.from("matches").select("id", { count: "exact", head: true }),
+      supabase.from("standings").select("id", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("contact_submissions")
+        .select("id", { count: "exact", head: true })
+        .not("subject", "ilike", `${MEMBERSHIP_SUBJECT_PREFIX}%`),
+      supabaseAdmin.from("volunteer_submissions").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("newsletter_subscriptions").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("membership_submissions").select("id", { count: "exact", head: true }),
+      supabaseAdmin
+        .from("contact_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "new")
+        .not("subject", "ilike", `${MEMBERSHIP_SUBJECT_PREFIX}%`),
+      supabaseAdmin
+        .from("volunteer_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "new"),
+    ]),
+    Promise.allSettled([
+      supabaseAdmin
+        .from("contact_submissions")
+        .select("id, name, subject, created_at")
+        .eq("status", "new")
+        .not("subject", "ilike", `${MEMBERSHIP_SUBJECT_PREFIX}%`)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabaseAdmin
+        .from("volunteer_submissions")
+        .select("id, name, role, created_at")
+        .eq("status", "new")
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabaseAdmin
+        .from("membership_submissions")
+        .select("id, name, membership_tier, created_at")
+        .eq("status", "new")
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("matches")
+        .select("id, date, time, home, away")
+        .eq("status", "scheduled")
+        .gte("date", today)
+        .order("date", { ascending: true })
+        .limit(3),
+      supabase
+        .from("articles")
+        .select("id, title, category, date")
+        .order("date", { ascending: false })
+        .limit(3),
+    ]),
   ]);
+
+  const [
+    articles, players, matches, standings,
+    contact, volunteer, newsletter, membership,
+    contactNew, volunteerNew,
+  ] = counts;
+
+  const [recentContact, recentVolunteer, recentMembership, upcomingMatches, recentArticles] = feed;
 
   // Membership count with fallback to contact_submissions if membership_submissions table is unavailable
   const membershipResult = membership.status === "fulfilled" ? membership.value : null;
@@ -86,6 +134,44 @@ export default async function DashboardPage() {
     { href: "/admin/henvendelser", label: "Tjek henvendelser", desc: "Håndter indkomne formularer" },
   ];
 
+  // Build unified submissions feed
+  type FeedItem = { id: string; name: string; label: string; ts: string };
+
+  type ContactRow = { id: string; name: string; subject: string; created_at: string };
+  type VolunteerRow = { id: string; name: string; role: string; created_at: string };
+  type MembershipRow = { id: string; name: string; membership_tier: string; created_at: string };
+
+  const contactRows: ContactRow[] =
+    recentContact.status === "fulfilled" && !recentContact.value.error
+      ? ((recentContact.value.data ?? []) as ContactRow[])
+      : [];
+  const volunteerRows: VolunteerRow[] =
+    recentVolunteer.status === "fulfilled" && !recentVolunteer.value.error
+      ? ((recentVolunteer.value.data ?? []) as VolunteerRow[])
+      : [];
+  const membershipRows: MembershipRow[] =
+    recentMembership.status === "fulfilled" && !recentMembership.value.error
+      ? ((recentMembership.value.data ?? []) as MembershipRow[])
+      : [];
+
+  const newSubmissions: FeedItem[] = [
+    ...contactRows.map((s) => ({ id: s.id, name: s.name, label: "Kontakt", ts: s.created_at })),
+    ...volunteerRows.map((s) => ({ id: s.id, name: s.name, label: "Frivillig", ts: s.created_at })),
+    ...membershipRows.map((s) => ({ id: s.id, name: s.name, label: "Medlemskab", ts: s.created_at })),
+  ]
+    .sort((a, b) => b.ts.localeCompare(a.ts))
+    .slice(0, 5);
+
+  const nextMatches =
+    upcomingMatches.status === "fulfilled" && !upcomingMatches.value.error
+      ? (upcomingMatches.value.data ?? [])
+      : [];
+
+  const latestArticles =
+    recentArticles.status === "fulfilled" && !recentArticles.value.error
+      ? (recentArticles.value.data ?? [])
+      : [];
+
   return (
     <div>
       {/* Header */}
@@ -119,7 +205,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="mb-3">
+      <div className="mb-8">
         <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-gray-400 mb-3">
           Hurtige handlinger
         </p>
@@ -147,6 +233,111 @@ export default async function DashboardPage() {
               </svg>
             </Link>
           ))}
+        </div>
+      </div>
+
+      {/* Activity feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* New submissions */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-gray-400">Nye henvendelser</p>
+            <Link
+              href="/admin/henvendelser"
+              className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+            >
+              Se alle →
+            </Link>
+          </div>
+          <div className="border border-gray-200 divide-y divide-gray-100">
+            {newSubmissions.length === 0 ? (
+              <p className="px-4 py-5 text-[10px] text-gray-300 text-center">Ingen nye henvendelser</p>
+            ) : (
+              newSubmissions.map((item) => (
+                <Link
+                  key={`${item.label}-${item.id}`}
+                  href="/admin/henvendelser"
+                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-800 truncate">{item.name}</p>
+                    <p className="text-[9px] uppercase tracking-widest text-gray-400 mt-0.5">{item.label}</p>
+                  </div>
+                  <p className="text-[9px] text-gray-400 shrink-0 ml-3">{formatDateTime(item.ts)}</p>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Upcoming matches */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-gray-400">Kommende kampe</p>
+            <Link
+              href="/admin/kampe"
+              className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+            >
+              Se alle →
+            </Link>
+          </div>
+          <div className="border border-gray-200 divide-y divide-gray-100">
+            {nextMatches.length === 0 ? (
+              <p className="px-4 py-5 text-[10px] text-gray-300 text-center">Ingen kommende kampe</p>
+            ) : (
+              nextMatches.map((match) => (
+                <Link
+                  key={match.id}
+                  href="/admin/kampe"
+                  className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-800 truncate">
+                      {match.home} – {match.away}
+                    </p>
+                    <p className="text-[9px] uppercase tracking-widest text-gray-400 mt-0.5">
+                      {match.time
+                        ? `${formatDate(match.date)} kl. ${match.time}`
+                        : formatDate(match.date)}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Recent articles */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[9px] font-bold tracking-[0.25em] uppercase text-gray-400">Seneste artikler</p>
+            <Link
+              href="/admin/nyheder"
+              className="text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+            >
+              Se alle →
+            </Link>
+          </div>
+          <div className="border border-gray-200 divide-y divide-gray-100">
+            {latestArticles.length === 0 ? (
+              <p className="px-4 py-5 text-[10px] text-gray-300 text-center">Ingen artikler endnu</p>
+            ) : (
+              latestArticles.map((article) => (
+                <Link
+                  key={article.id}
+                  href={`/admin/nyheder/${article.id}`}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-800 truncate">{article.title}</p>
+                    <p className="text-[9px] uppercase tracking-widest text-gray-400 mt-0.5">
+                      {article.category} · {formatDate(article.date)}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

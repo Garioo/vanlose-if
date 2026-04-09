@@ -38,6 +38,15 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
   const cloudinaryFolder = selectedFolder
     ? `vanlose-if/${selectedFolder}`
     : "vanlose-if";
+  const uploadWidgetSources: Array<"local" | "camera"> = ["local", "camera"];
+  const uploadWidgetOptions = {
+    folder: cloudinaryFolder,
+    resourceType: "auto" as const,
+    sources: uploadWidgetSources,
+    multiple: false,
+    useFilename: true,
+    uniqueFilename: false,
+  };
 
   const load = useCallback(async (tag?: string | null, folder?: string) => {
     setLoading(true);
@@ -158,7 +167,7 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                   <CldUploadWidget
                     key={cloudinaryFolder}
                     signatureEndpoint="/api/media/sign"
-                    options={{ folder: cloudinaryFolder, resourceType: "auto", sources: ["local", "camera"], multiple: false, useFilename: true, uniqueFilename: false }}
+                    options={uploadWidgetOptions}
                     onSuccess={(result) => {
                       const info = result.info as { secure_url?: string } | undefined;
                       if (info?.secure_url) {
@@ -250,6 +259,14 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                             sizes="(max-width: 768px) 33vw, 20vw"
                           />
                         )}
+                        {item.resource_type === "video" && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span className="bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm">▶</span>
+                          </div>
+                        )}
+                        <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] truncate px-1 py-0.5 pointer-events-none">
+                          {item.filename}
+                        </p>
                       </button>
                     ))}
                   </div>

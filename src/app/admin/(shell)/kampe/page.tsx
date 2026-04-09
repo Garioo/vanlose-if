@@ -263,15 +263,6 @@ export default function AdminKampePage() {
         <h1 className="font-display text-3xl">KAMPE & RESULTATER</h1>
       </div>
 
-      <div className="bg-black text-white p-5 border border-black mb-8 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-white/60 mb-1">Matchday</p>
-          <p className="text-sm font-bold">Livekontrol er flyttet til sin egen side for hurtigere flow.</p>
-        </div>
-        <Link href="/admin/live" className="shrink-0 bg-white text-black text-[10px] font-bold tracking-widest uppercase px-4 py-2.5 hover:bg-gray-200 transition-colors">
-          Gå til Livekontrol
-        </Link>
-      </div>
 
       <div className="bg-white border border-gray-200 p-6 mb-8">
         <h2 className="text-xs font-bold tracking-widest uppercase mb-5">{editId ? "Redigér kamp" : "Tilføj kamp"}</h2>
@@ -389,6 +380,9 @@ export default function AdminKampePage() {
             <div className="col-span-2 flex items-center justify-end gap-2">
               <Link href={`/admin/live?match=${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-blue-600 hover:text-blue-800">
                 Live
+              </Link>
+              <Link href={`/admin/kampe/${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">
+                Begivenheder
               </Link>
               <button onClick={() => startEdit(m)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Redigér</button>
               <button onClick={() => void handleDelete(m.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>

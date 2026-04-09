@@ -80,8 +80,8 @@ export default function AdminSidebar() {
                   className={[
                     "flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase px-3 py-2 transition-all",
                     isActive
-                      ? "border-l-2 border-red-600 bg-red-50 text-gray-900 pl-[10px]"
-                      : "border-l-2 border-transparent text-gray-400 hover:text-gray-500 hover:bg-gray-50 pl-[10px]",
+                      ? "border-l-2 border-red-600 bg-red-50 text-gray-900 pl-2.5"
+                      : "border-l-2 border-transparent text-gray-400 hover:text-gray-500 hover:bg-gray-50 pl-2.5",
                   ].join(" ")}
                 >
                   {label}

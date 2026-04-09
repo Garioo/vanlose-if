@@ -5,13 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Match, MatchEvent, MatchLineup } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
-import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/lib/live-clock";
+import { formatClockSeconds, getLiveClockSeconds } from "@/lib/live-clock";
 import LineupPitch, { type PlayerEventSummary } from "@/components/LineupPitch";
 
 type Props = {
   initialMatch: Match;
   initialEvents: MatchEvent[];
-  initialLineup: MatchLineup | null;
+  initialHomeLineup: MatchLineup | null;
+  initialAwayLineup: MatchLineup | null;
 };
 
 function statusLabel(match: Match): string {
@@ -111,10 +112,14 @@ function eventLabel(type: string): string {
   }
 }
 
-export default function MatchCenterClient({ initialMatch, initialEvents, initialLineup }: Props) {
+export default function MatchCenterClient({ initialMatch, initialEvents, initialHomeLineup, initialAwayLineup }: Props) {
   const [match, setMatch] = useState<Match>(initialMatch);
   const [events, setEvents] = useState<MatchEvent[]>(initialEvents);
-  const [lineup] = useState<MatchLineup | null>(initialLineup);
+  const isHome = useMemo(() => isVanlose(initialMatch.home), [initialMatch.home]);
+  const [lineupTab, setLineupTab] = useState<"home" | "away">(isHome ? "home" : "away");
+  const homeLineup = initialHomeLineup;
+  const awayLineup = initialAwayLineup;
+  const lineup = lineupTab === "home" ? homeLineup : awayLineup;
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   // IDs of events present at mount — these won't animate
@@ -189,9 +194,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
     }
   }, [match.home_score, match.away_score]);
 
-  const isHome = useMemo(() => isVanlose(match.home), [match.home]);
   const liveSeconds = useMemo(() => getLiveClockSeconds(match, nowMs), [match, nowMs]);
-  const liveMinute = useMemo(() => getLiveClockMinute(match, nowMs), [match, nowMs]);
   const liveClock = useMemo(() => formatClockSeconds(liveSeconds), [liveSeconds]);
 
   const playerEvents = useMemo(() => {
@@ -208,13 +211,13 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
         if (e.event_type === "goal") s.goals++;
         if (e.event_type === "yellow_card") s.yellowCard = true;
         if (e.event_type === "red_card") s.redCard = true;
-        if (e.event_type === "substitution") s.subOut = true;
+        if (e.event_type === "substitution") s.subIn = true;
       }
       if (e.assist_name && e.event_type === "goal") {
         get(e.assist_name).assists++;
       }
       if (e.assist_name && e.event_type === "substitution") {
-        get(e.assist_name).subIn = true;
+        get(e.assist_name).subOut = true;
       }
     }
     return map;
@@ -428,7 +431,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                       <p className="text-[10px] text-[#8a847c] mt-0.5 truncate">
                         {[
                           event.assist_name
-                            ? `${event.event_type === "substitution" ? "Ind" : "Assist"}: ${event.assist_name}`
+                            ? `${event.event_type === "substitution" ? "Ud" : "Assist"}: ${event.assist_name}`
                             : null,
                           event.note,
                         ].filter(Boolean).join(" · ")}
@@ -449,9 +452,9 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                       {isHomeEvent && <div className="text-right">{content}</div>}
                     </div>
 
-                    {/* Center: dot + minute */}
+                    {/* Center: icon + minute */}
                     <div className="flex flex-col items-center justify-center gap-1 py-2 border-r border-[#e0dbd3]">
-                      <div style={{ width: isGoal ? 8 : 6, height: isGoal ? 8 : 6, borderRadius: "50%", backgroundColor: color, flexShrink: 0 }} />
+                      <EventIcon type={event.event_type} />
                       <span className="text-[9px] font-bold tabular-nums leading-none" style={{ color }}>
                         {minuteLabel(event)}
                       </span>
@@ -483,6 +486,27 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
               {lineup?.confirmed ? "✓ Bekræftet" : "Foreløbig"}
             </span>
           </div>
+
+          {/* Tab toggle — only shown if both lineups exist */}
+          {homeLineup && awayLineup && (
+            <div className="flex border border-[#e0dbd3] mb-5 w-fit">
+              {(["home", "away"] as const).map((side) => (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => setLineupTab(side)}
+                  className={[
+                    "px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors",
+                    lineupTab === side
+                      ? "bg-[#0d0d0b] text-white"
+                      : "bg-white text-[#8a847c] hover:text-[#0d0d0b]",
+                  ].join(" ")}
+                >
+                  {side === "home" ? match.home : match.away}
+                </button>
+              ))}
+            </div>
+          )}
 
           {lineup && lineup.starters.length > 0 ? (
             <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>

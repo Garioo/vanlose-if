@@ -526,7 +526,22 @@ export default function AdminHenvendelserPage() {
             {newsletter.map((row) => (
               <div key={row.id} className="px-4 py-4 flex items-center justify-between gap-4">
                 <p className="text-xs font-bold">{row.email}</p>
-                <p className="text-[10px] text-gray-400">{new Date(row.created_at).toLocaleString("da-DK")}</p>
+                <div className="flex items-center gap-4">
+                  <p className="text-[10px] text-gray-400">{new Date(row.created_at).toLocaleString("da-DK")}</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!confirm(`Fjern ${row.email} fra nyhedsbrevet?`)) return;
+                      await fetch(`/api/newsletter/${row.id}`, { method: "DELETE" });
+                      const remaining = newsletter.filter((r) => r.id !== row.id);
+                      dispatch({ type: "SET_ITEMS", tab: "newsletter", items: remaining, total: remaining.length });
+                    }}
+                    className="text-[10px] text-gray-400 hover:text-red-600 transition-colors font-bold"
+                    aria-label="Fjern abonnent"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
             {newsletter.length === 0 && <div className="px-4 py-8 text-center text-xs text-gray-400">Ingen nyhedsbrevstilmeldinger.</div>}

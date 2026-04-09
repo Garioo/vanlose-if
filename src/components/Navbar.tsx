@@ -13,7 +13,8 @@ const navLinks = [
   { href: "/klubben", label: "Klubben" },
   { href: "/nyheder", label: "Nyheder" },
   { href: "/kampe", label: "Kampe" },
-  { href: "/frivillig", label: "Frivillig" },
+  { href: "/bliv-medlem", label: "Bliv Medlem" },
+  { href: "/kontakt", label: "Kontakt" },
 ];
 
 interface NavbarProps {

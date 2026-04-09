@@ -384,7 +384,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           ) : (
             <div className="border border-[#e0dbd3] overflow-hidden">
               {/* Team header */}
-              <div className="grid border-b border-[#e0dbd3] bg-[#f7f4ef]" style={{ gridTemplateColumns: "1fr 44px 1fr" }}>
+              <div className="grid grid-cols-[1fr_44px_1fr] border-b border-[#e0dbd3] bg-[#f7f4ef]">
                 <div className="px-3 py-2 text-right">
                   <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${isHome ? "text-[#dc2626]" : "text-[#6b7280]"}`}>
                     {match.home}
@@ -443,8 +443,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 return (
                   <div
                     key={event.id}
-                    className={`grid border-b border-[#e0dbd3] last:border-b-0${isNew ? " event-enter" : ""}`}
-                    style={{ gridTemplateColumns: "1fr 44px 1fr", backgroundColor: isGoal ? "#fff8f7" : "#fff" }}
+                    className={`grid grid-cols-[1fr_44px_1fr] border-b border-[#e0dbd3] last:border-b-0${isNew ? " event-enter" : ""}${isGoal ? " bg-[#fff8f7]" : " bg-white"}`}
                   >
                     {/* Home side */}
                     <div className={`px-3 py-3 flex justify-end border-r border-[#e0dbd3]${isHomeEvent && isGoal ? " border-l-[3px]" : ""}`}
@@ -509,9 +508,9 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           )}
 
           {lineup && lineup.starters.length > 0 ? (
-            <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div className="flex flex-wrap items-start gap-6">
               {/* Left: pitch */}
-              <div style={{ flex: "1 1 340px", maxWidth: 560 }}>
+              <div className="flex-1 basis-85 max-w-140 min-w-0">
                 <LineupPitch
                   starters={lineup.starters}
                   bench={lineup.bench}
@@ -523,32 +522,32 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
               </div>
 
               {/* Right: formation + bench list */}
-              <div style={{ flex: "1 1 180px" }}>
+              <div className="flex-1 basis-45 min-w-0">
                 {lineup.formation && (
-                  <div style={{ marginBottom: 20 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 4 }}>Formation</p>
-                    <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", color: "#0d0d0b" }}>{lineup.formation}</p>
+                  <div className="mb-5">
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1">Formation</p>
+                    <p className="text-[22px] font-extrabold tracking-tight text-[#0d0d0b]">{lineup.formation}</p>
                   </div>
                 )}
                 {lineup.bench.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>Bænk</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                    <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-2">Bænk</p>
+                    <div>
                       {lineup.bench.map((player, i) => {
                         const summary = playerEvents[player.name.trim().toLowerCase()];
                         return (
-                          <div key={`${player.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f0ede8" }}>
-                            <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, minWidth: 24 }}>
+                          <div key={`${player.name}-${i}`} className="flex items-center gap-2 py-1.5 border-b border-[#f0ede8]">
+                            <span className="text-[10px] text-gray-400 font-semibold w-6 shrink-0">
                               {player.number ? `#${player.number}` : "—"}
                             </span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "#0d0d0b", flex: 1 }}>{player.name}</span>
+                            <span className="text-xs font-semibold text-[#0d0d0b] flex-1 min-w-0 truncate">{player.name}</span>
                             {summary && (
-                              <span style={{ display: "inline-flex", gap: 3, alignItems: "center" }}>
-                                {summary.subIn && <span style={{ color: "#22c55e", fontSize: 10, fontWeight: 700 }}>↑</span>}
-                                {summary.yellowCard && <span style={{ display: "inline-block", width: 6, height: 8, borderRadius: 1, backgroundColor: "#fbbf24" }} />}
-                                {summary.redCard && <span style={{ display: "inline-block", width: 6, height: 8, borderRadius: 1, backgroundColor: "#ef4444" }} />}
+                              <span className="inline-flex gap-0.5 items-center shrink-0">
+                                {summary.subIn && <span className="text-[10px] text-green-500 font-bold">↑</span>}
+                                {summary.yellowCard && <span className="inline-block w-1.5 h-2 rounded-[1px] bg-yellow-400" />}
+                                {summary.redCard && <span className="inline-block w-1.5 h-2 rounded-[1px] bg-red-500" />}
                                 {Array.from({ length: summary.goals }).map((_, gi) => (
-                                  <span key={gi} style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", backgroundColor: "#374151", boxShadow: "0 0 0 1px #9ca3af" }} />
+                                  <span key={gi} className="inline-block w-1.5 h-1.5 rounded-full bg-gray-700 ring-1 ring-gray-400" />
                                 ))}
                               </span>
                             )}

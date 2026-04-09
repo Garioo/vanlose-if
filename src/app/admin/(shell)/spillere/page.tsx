@@ -246,7 +246,7 @@ export default function AdminSpillerePage() {
 
       {/* Players table */}
       <div className="bg-white border border-gray-200">
-        <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="hidden md:grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-1">#</span>
           <span className="col-span-4">Navn</span>
           <span className="col-span-3">Position</span>
@@ -254,23 +254,45 @@ export default function AdminSpillerePage() {
         </div>
         {Array.isArray(players) && players.map((p) => (
           <div key={p.id}>
-            <div className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-100 hover:bg-gray-50">
-              <span className="col-span-1 font-display text-lg text-gray-300">{p.number}</span>
-              <span className="col-span-4 text-xs font-bold uppercase tracking-wide">{p.name}</span>
-              <span className="col-span-3 text-[10px] text-gray-400 uppercase">{p.position}</span>
-              <div className="col-span-4 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => toggleStats(p.id)}
-                  className="text-[10px] font-bold tracking-widest uppercase text-blue-500 hover:text-blue-700 transition-colors"
-                >
-                  {expandedPlayerId === p.id ? "LUK STATS" : "STATS"}
-                </button>
-                <button onClick={() => startEdit(p)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
-                  Redigér
-                </button>
-                <button onClick={() => handleDelete(p.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
-                  Slet
-                </button>
+            <div className="border-b border-gray-100 hover:bg-gray-50">
+              {/* Mobile card */}
+              <div className="md:hidden px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="font-display text-lg text-gray-300 shrink-0 w-6">{p.number}</span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wide truncate">{p.name}</p>
+                      <p className="text-[10px] text-gray-400 uppercase">{p.position}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => toggleStats(p.id)} className="text-[10px] font-bold tracking-widest uppercase text-blue-500 hover:text-blue-700">
+                      {expandedPlayerId === p.id ? "LUK" : "STATS"}
+                    </button>
+                    <button onClick={() => startEdit(p)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Ret</button>
+                    <button onClick={() => handleDelete(p.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
+                  </div>
+                </div>
+              </div>
+              {/* Desktop row */}
+              <div className="hidden md:grid grid-cols-12 items-center px-4 py-3">
+                <span className="col-span-1 font-display text-lg text-gray-300">{p.number}</span>
+                <span className="col-span-4 text-xs font-bold uppercase tracking-wide">{p.name}</span>
+                <span className="col-span-3 text-[10px] text-gray-400 uppercase">{p.position}</span>
+                <div className="col-span-4 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => toggleStats(p.id)}
+                    className="text-[10px] font-bold tracking-widest uppercase text-blue-500 hover:text-blue-700 transition-colors"
+                  >
+                    {expandedPlayerId === p.id ? "LUK STATS" : "STATS"}
+                  </button>
+                  <button onClick={() => startEdit(p)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
+                    Redigér
+                  </button>
+                  <button onClick={() => handleDelete(p.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
+                    Slet
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -282,7 +304,7 @@ export default function AdminSpillerePage() {
                 {/* Existing stats rows */}
                 {playerStats(p.id).length > 0 && (
                   <div className="mb-4">
-                    <div className="grid grid-cols-9 text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-2">
+                    <div className="hidden md:grid grid-cols-9 text-[9px] font-bold tracking-widest uppercase text-gray-400 mb-2">
                       <span className="col-span-2">Sæson</span>
                       <span className="text-center">Mål</span>
                       <span className="text-center">Assists</span>
@@ -292,16 +314,32 @@ export default function AdminSpillerePage() {
                       <span className="col-span-2 text-right">Handl.</span>
                     </div>
                     {playerStats(p.id).map((s) => (
-                      <div key={s.id} className="grid grid-cols-9 items-center py-1.5 text-xs border-t border-gray-200">
-                        <span className="col-span-2 font-bold">{s.season}</span>
-                        <span className="text-center">{s.goals}</span>
-                        <span className="text-center">{s.assists}</span>
-                        <span className="text-center">{s.appearances}</span>
-                        <span className="text-center text-yellow-500">{s.yellow_cards}</span>
-                        <span className="text-center text-red-500">{s.red_cards}</span>
-                        <div className="col-span-2 flex justify-end gap-2">
-                          <button onClick={() => startStatsEdit(s)} className="text-[10px] font-bold uppercase text-gray-500 hover:text-black">Ret</button>
-                          <button onClick={() => handleStatsDelete(s.id)} className="text-[10px] font-bold uppercase text-red-400 hover:text-red-600">Slet</button>
+                      <div key={s.id} className="border-t border-gray-200">
+                        {/* Mobile stats card */}
+                        <div className="md:hidden py-2 flex items-center justify-between gap-2">
+                          <div>
+                            <span className="text-xs font-bold">{s.season}</span>
+                            <span className="text-[10px] text-gray-500 ml-2">{s.goals}m {s.assists}a {s.appearances}k</span>
+                            {s.yellow_cards > 0 && <span className="text-[10px] text-yellow-500 ml-1">{s.yellow_cards}gk</span>}
+                            {s.red_cards > 0 && <span className="text-[10px] text-red-500 ml-1">{s.red_cards}rk</span>}
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button onClick={() => startStatsEdit(s)} className="text-[10px] font-bold uppercase text-gray-500 hover:text-black">Ret</button>
+                            <button onClick={() => handleStatsDelete(s.id)} className="text-[10px] font-bold uppercase text-red-400 hover:text-red-600">Slet</button>
+                          </div>
+                        </div>
+                        {/* Desktop stats row */}
+                        <div className="hidden md:grid grid-cols-9 items-center py-1.5 text-xs">
+                          <span className="col-span-2 font-bold">{s.season}</span>
+                          <span className="text-center">{s.goals}</span>
+                          <span className="text-center">{s.assists}</span>
+                          <span className="text-center">{s.appearances}</span>
+                          <span className="text-center text-yellow-500">{s.yellow_cards}</span>
+                          <span className="text-center text-red-500">{s.red_cards}</span>
+                          <div className="col-span-2 flex justify-end gap-2">
+                            <button onClick={() => startStatsEdit(s)} className="text-[10px] font-bold uppercase text-gray-500 hover:text-black">Ret</button>
+                            <button onClick={() => handleStatsDelete(s.id)} className="text-[10px] font-bold uppercase text-red-400 hover:text-red-600">Slet</button>
+                          </div>
                         </div>
                       </div>
                     ))}

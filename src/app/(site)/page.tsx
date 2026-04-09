@@ -11,9 +11,9 @@ import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Vanløse IF - Københavns mest ambitiøse klub",
+  title: "Vanløse Idrætsforening",
   description:
-    "Vanløse IF - Stolthed & Passion. Oplev intensiteten på Vanløse Idrætspark. Siden 1921.",
+    "Vanløse Idrætsforening - Siden 1921.",
   path: "/",
 });
 

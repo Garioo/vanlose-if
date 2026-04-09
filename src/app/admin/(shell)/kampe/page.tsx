@@ -359,7 +359,7 @@ export default function AdminKampePage() {
             placeholder="Søg på hold, bane eller dato..."
           />
         </div>
-        <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="hidden md:grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-2">Dato</span>
           <span className="col-span-4">Kamp</span>
           <span className="col-span-2">Score</span>
@@ -367,25 +367,48 @@ export default function AdminKampePage() {
           <span className="col-span-2 text-right">Handlinger</span>
         </div>
         {filteredMatches.map((m) => (
-          <div key={m.id} className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50">
-            <span className="col-span-2 text-[10px] text-gray-400">{formatMatchDateTime(m)}</span>
-            <div className="col-span-4">
-              <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
-              <p className="text-[10px] text-gray-400 truncate">{m.venue || "Bane mangler"}</p>
+          <div key={m.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+            {/* Mobile card */}
+            <div className="md:hidden px-4 py-3 space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
+                  <p className="text-[10px] text-gray-400">{formatMatchDateTime(m)}</p>
+                </div>
+                <span className={`text-[10px] font-bold uppercase shrink-0 ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
+                  {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-600">{m.home_score != null ? `${m.home_score}–${m.away_score}` : "—"}</span>
+                <div className="flex items-center gap-2">
+                  <Link href={`/admin/live?match=${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-blue-600 hover:text-blue-800">Live</Link>
+                  <button onClick={() => startEdit(m)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Redigér</button>
+                  <button onClick={() => void handleDelete(m.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
+                </div>
+              </div>
             </div>
-            <span className="col-span-2 text-xs text-gray-600">{m.home_score != null ? `${m.home_score}–${m.away_score}` : "—"}</span>
-            <span className={`col-span-2 text-[10px] font-bold uppercase ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
-              {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
-            </span>
-            <div className="col-span-2 flex items-center justify-end gap-2">
-              <Link href={`/admin/live?match=${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-blue-600 hover:text-blue-800">
-                Live
-              </Link>
-              <Link href={`/admin/kampe/${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">
-                Begivenheder
-              </Link>
-              <button onClick={() => startEdit(m)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Redigér</button>
-              <button onClick={() => void handleDelete(m.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
+            {/* Desktop row */}
+            <div className="hidden md:grid grid-cols-12 items-center px-4 py-3">
+              <span className="col-span-2 text-[10px] text-gray-400">{formatMatchDateTime(m)}</span>
+              <div className="col-span-4">
+                <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
+                <p className="text-[10px] text-gray-400 truncate">{m.venue || "Bane mangler"}</p>
+              </div>
+              <span className="col-span-2 text-xs text-gray-600">{m.home_score != null ? `${m.home_score}–${m.away_score}` : "—"}</span>
+              <span className={`col-span-2 text-[10px] font-bold uppercase ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
+                {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
+              </span>
+              <div className="col-span-2 flex items-center justify-end gap-2">
+                <Link href={`/admin/live?match=${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-blue-600 hover:text-blue-800">
+                  Live
+                </Link>
+                <Link href={`/admin/kampe/${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">
+                  Begivenheder
+                </Link>
+                <button onClick={() => startEdit(m)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Redigér</button>
+                <button onClick={() => void handleDelete(m.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
+              </div>
             </div>
           </div>
         ))}

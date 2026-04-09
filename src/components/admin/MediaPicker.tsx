@@ -121,18 +121,18 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
         >
           <div
             ref={dialogRef}
-            className="bg-white w-full max-w-5xl max-h-[90vh] flex shadow-2xl"
+            className="bg-white w-full max-w-5xl max-h-[85dvh] md:max-h-[90vh] flex flex-col md:flex-row shadow-2xl"
           >
             {/* Sidebar — folders */}
-            <div className="w-48 shrink-0 border-r border-gray-200 flex flex-col">
+            <div className="md:w-48 md:shrink-0 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col">
               <div className="px-4 py-3 border-b border-gray-200">
                 <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400">Mapper</p>
               </div>
-              <div className="flex-1 overflow-y-auto py-2">
+              <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:flex-1 py-2 md:overflow-y-auto">
                 <button
                   type="button"
                   onClick={() => setSelectedFolder("")}
-                  className={["w-full text-left px-4 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors", selectedFolder === "" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black hover:bg-gray-50"].join(" ")}
+                  className={["shrink-0 md:w-full text-left px-4 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors", selectedFolder === "" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black hover:bg-gray-50"].join(" ")}
                 >
                   Alle billeder
                 </button>
@@ -141,19 +141,21 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                     key={folder}
                     type="button"
                     onClick={() => setSelectedFolder(folder)}
-                    className={["w-full text-left px-4 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors", selectedFolder === folder ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black hover:bg-gray-50"].join(" ")}
+                    className={["shrink-0 md:w-full text-left px-4 py-2 text-[10px] font-bold tracking-wider uppercase transition-colors", selectedFolder === folder ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black hover:bg-gray-50"].join(" ")}
                   >
                     {folder}
                   </button>
                 ))}
               </div>
-              <FolderCreator
-                folders={folders}
-                selected={selectedFolder}
-                onSelect={setSelectedFolder}
-                onCreate={handleCreateFolder}
-                layout="sidebar"
-              />
+              <div className="hidden md:block">
+                <FolderCreator
+                  folders={folders}
+                  selected={selectedFolder}
+                  onSelect={setSelectedFolder}
+                  onCreate={handleCreateFolder}
+                  layout="sidebar"
+                />
+              </div>
             </div>
 
             {/* Main area */}

@@ -159,7 +159,7 @@ export default function AdminHoldPage() {
 
       {/* Teams list */}
       <div className="bg-white border border-gray-200">
-        <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="hidden md:grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-1">Logo</span>
           <span className="col-span-4">Navn</span>
           <span className="col-span-2">Fork.</span>
@@ -167,27 +167,53 @@ export default function AdminHoldPage() {
           <span className="col-span-2 text-right">Handlinger</span>
         </div>
         {teams.map((t) => (
-          <div key={t.id} className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50">
-            <div className="col-span-1 h-8 w-8 bg-gray-50 flex items-center justify-center p-1 border border-gray-100">
-              {t.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={t.logo_url} alt="" className="max-h-full max-w-full object-contain" />
-              ) : (
-                <span className="text-[10px] text-gray-300 font-bold">{t.name.substring(0, 1)}</span>
-              )}
+          <div key={t.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+            {/* Mobile card */}
+            <div className="md:hidden px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-8 w-8 shrink-0 bg-gray-50 flex items-center justify-center p-1 border border-gray-100">
+                    {t.logo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.logo_url} alt="" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <span className="text-[10px] text-gray-300 font-bold">{t.name.substring(0, 1)}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wide truncate">{t.name}</p>
+                    <p className="text-[10px] text-gray-400">{t.abbreviation || "—"} · {t.home_turf || "Bane mangler"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => startEdit(t)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Ret</button>
+                  <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
+                </div>
+              </div>
             </div>
-            <span className="col-span-4 ml-4 text-xs font-bold uppercase tracking-wide">{t.name}</span>
-            <span className="col-span-2 text-xs font-bold uppercase tracking-widest text-gray-600">
-              {t.abbreviation || "—"}
-            </span>
-            <span className="col-span-3 text-xs text-gray-500 truncate">{t.home_turf || "—"}</span>
-            <div className="col-span-2 flex items-center justify-end gap-2">
-              <button onClick={() => startEdit(t)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
-                Redigér
-              </button>
-              <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
-                Slet
-              </button>
+            {/* Desktop row */}
+            <div className="hidden md:grid grid-cols-12 items-center px-4 py-3">
+              <div className="col-span-1 h-8 w-8 bg-gray-50 flex items-center justify-center p-1 border border-gray-100">
+                {t.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.logo_url} alt="" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <span className="text-[10px] text-gray-300 font-bold">{t.name.substring(0, 1)}</span>
+                )}
+              </div>
+              <span className="col-span-4 ml-4 text-xs font-bold uppercase tracking-wide">{t.name}</span>
+              <span className="col-span-2 text-xs font-bold uppercase tracking-widest text-gray-600">
+                {t.abbreviation || "—"}
+              </span>
+              <span className="col-span-3 text-xs text-gray-500 truncate">{t.home_turf || "—"}</span>
+              <div className="col-span-2 flex items-center justify-end gap-2">
+                <button onClick={() => startEdit(t)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
+                  Redigér
+                </button>
+                <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
+                  Slet
+                </button>
+              </div>
             </div>
           </div>
         ))}

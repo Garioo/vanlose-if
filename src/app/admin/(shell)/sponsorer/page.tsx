@@ -109,24 +109,41 @@ export default function AdminSponsorerPage() {
 
       {/* Sponsors table */}
       <div className="bg-white border border-gray-200">
-        <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="hidden md:grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-4">Navn</span>
           <span className="col-span-2">Tier</span>
           <span className="col-span-4">Website</span>
           <span className="col-span-2 text-right">Handlinger</span>
         </div>
         {sponsors.map((s) => (
-          <div key={s.id} className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50">
-            <span className="col-span-4 text-xs font-bold uppercase tracking-wide">{s.name}</span>
-            <span className="col-span-2 text-[10px] text-gray-400 uppercase">{TIER_LABELS[s.tier]}</span>
-            <span className="col-span-4 text-[10px] text-gray-400 truncate">{s.website_url || "—"}</span>
-            <div className="col-span-2 flex items-center justify-end gap-2">
-              <button onClick={() => startEdit(s)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
-                Redigér
-              </button>
-              <button onClick={() => handleDelete(s.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
-                Slet
-              </button>
+          <div key={s.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+            {/* Mobile card */}
+            <div className="md:hidden px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide">{s.name}</p>
+                  <p className="text-[10px] text-gray-400 uppercase">{TIER_LABELS[s.tier]}</p>
+                  {s.website_url && <p className="text-[10px] text-gray-400 truncate mt-0.5">{s.website_url}</p>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => startEdit(s)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black">Ret</button>
+                  <button onClick={() => handleDelete(s.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600">Slet</button>
+                </div>
+              </div>
+            </div>
+            {/* Desktop row */}
+            <div className="hidden md:grid grid-cols-12 items-center px-4 py-3">
+              <span className="col-span-4 text-xs font-bold uppercase tracking-wide">{s.name}</span>
+              <span className="col-span-2 text-[10px] text-gray-400 uppercase">{TIER_LABELS[s.tier]}</span>
+              <span className="col-span-4 text-[10px] text-gray-400 truncate">{s.website_url || "—"}</span>
+              <div className="col-span-2 flex items-center justify-end gap-2">
+                <button onClick={() => startEdit(s)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
+                  Redigér
+                </button>
+                <button onClick={() => handleDelete(s.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
+                  Slet
+                </button>
+              </div>
             </div>
           </div>
         ))}

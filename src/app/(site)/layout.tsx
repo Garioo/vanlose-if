@@ -30,14 +30,36 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 z-50">
+      <div className="fixed top-0 left-0 right-0 z-50 md:hidden">
         {hasBanner && <MatchDayBanner match={todayOrLive} />}
-        <Navbar nextMatch={nextMatch} />
+        <Navbar nextMatch={nextMatch} todayOrLive={todayOrLive} />
       </div>
-      <div className={hasBanner ? "pt-[6.5rem]" : "pt-16"}>
-        {children}
+
+      <div className="md:min-h-screen">
+        <div
+          className="hidden md:block"
+          style={{
+            position: "fixed",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 50,
+            width: "180px",
+            overflow: "hidden",
+            background: "#ffffff",
+            borderRight: "1px solid #d8d2c8",
+          }}
+        >
+          <Navbar nextMatch={nextMatch} todayOrLive={todayOrLive} />
+        </div>
+
+        <div className={hasBanner ? "h-[6.5rem] md:hidden" : "h-16 md:hidden"} />
+
+        <div className="md:ml-[180px] md:min-h-screen">
+          {children}
+          <Footer />
+        </div>
       </div>
-      <Footer />
     </>
   );
 }

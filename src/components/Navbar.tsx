@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Search, User } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { ChevronRight, Search } from "lucide-react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import SearchOverlay from "@/components/SearchOverlay";
 import type { Match } from "@/lib/supabase";
@@ -19,25 +19,35 @@ const navLinks = [
 
 interface NavbarProps {
   nextMatch?: Match | null;
+  todayOrLive?: Match | null;
+}
+
+function MatchPill({ match, compact = false }: { match: Match; compact?: boolean }) {
+  return (
+    <Link
+      href={`/kampe/${match.id}`}
+      className={`flex items-center gap-2 border border-red-600 text-[10px] font-bold uppercase tracking-widest text-red-600 transition-colors hover:bg-red-600 hover:text-white ${
+        compact ? "px-3 py-2" : "px-4 py-3"
+      }`}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+      <span className="truncate">
+        {match.date}
+        {match.time ? ` · ${match.time}` : ""}
+      </span>
+    </Link>
+  );
 }
 
 export default function Navbar({ nextMatch }: NavbarProps = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
-  const navRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const onScroll = () =>
-      navRef.current?.classList.toggle("nav-scrolled", window.scrollY > 40);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   return (
     <>
-      <nav ref={navRef} className="border-b border-[#e0dbd3]/90 bg-[#f7f4ef]/95 text-black backdrop-blur transition-shadow duration-200">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
+      <nav className="h-full text-black">
+        <div className="flex h-16 items-center justify-between border-b border-[#e0dbd3]/90 bg-[#f7f4ef]/95 px-4 backdrop-blur md:hidden">
           {/* Logo */}
           <Link
             href="/"
@@ -49,38 +59,6 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
             <span className="font-display text-sm tracking-wider">VANLØSE IF</span>
           </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden items-center gap-5 md:flex">
-            {navLinks.map(({ href, label }) => {
-              const active = pathname === href || pathname.startsWith(href + "/");
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`rounded-sm px-2 py-1 text-xs font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 ${
-                    active
-                      ? "bg-red-600 text-white"
-                      : "text-[#4a4540] hover:bg-[#e0dbd3] hover:text-black"
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Næste kamp pill (desktop only) */}
-          {nextMatch && (
-            <Link
-              href={`/kampe/${nextMatch.id}`}
-              className="hidden lg:flex items-center gap-2 border border-red-600 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white transition-colors"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-              {nextMatch.date}{nextMatch.time ? ` · ${nextMatch.time}` : ""}
-            </Link>
-          )}
-
-          {/* Right side icons */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSearchOpen(true)}
@@ -89,7 +67,6 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
             >
               <Search size={18} />
             </button>
-            {/* Mobile hamburger */}
             <button
               className="rounded p-2 transition-colors hover:bg-[#e0dbd3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -105,9 +82,9 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
           </div>
         </div>
 
-        {/* Mobile menu */}
         {mobileOpen && (
           <div className="space-y-2 border-t border-[#e0dbd3] bg-[#f7f4ef] px-4 py-3 md:hidden">
+            {nextMatch && <MatchPill match={nextMatch} compact />}
             {navLinks.map(({ href, label }) => (
               <Link
                 key={href}
@@ -124,6 +101,81 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
             ))}
           </div>
         )}
+
+        <aside
+          className="hidden h-screen flex-col md:flex"
+          style={{
+            width: "180px",
+            minWidth: "180px",
+            maxWidth: "180px",
+            background: "#ffffff",
+            color: "#111111",
+          }}
+        >
+          <div className="border-b border-[#d8d2c8] px-5 py-6">
+            <Link
+              href="/"
+              className="block transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              <div className="flex h-12 w-12 items-center justify-center border border-[#111111] bg-[#c61f2d] text-sm font-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+                V
+              </div>
+              <p className="mt-4 font-display text-[2.15rem] leading-[0.88] tracking-tight text-[#111111]">
+                Vanløse IF
+              </p>
+            </Link>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="py-2">
+              {navLinks.map(({ href, label }) => {
+                const active = pathname === href || pathname.startsWith(href + "/");
+
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`group flex items-center justify-between border-b border-[#d8d2c8] px-5 py-3.5 text-[0.72rem] font-semibold uppercase tracking-[0.22em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-inset ${
+                      active
+                        ? "bg-[#f5f1ea] text-[#111111] shadow-[inset_3px_0_0_#dc2626]"
+                        : "text-[#111111] hover:bg-[#f5f1ea] hover:text-[#111111]"
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <ChevronRight
+                      size={14}
+                      className={`transition-transform ${
+                        active ? "translate-x-0 text-[#d73a45]" : "text-[#7d766f] group-hover:translate-x-0.5 group-hover:text-[#111111]"
+                      }`}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-[#d8d2c8] px-5 py-4">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex w-full items-center justify-between border border-[#111111] px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#f5f1ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80"
+              aria-label="Søg"
+            >
+              <span>Søg</span>
+              <Search size={14} />
+            </button>
+
+            <div className="mt-5 border-t border-[#d8d2c8] pt-4">
+              <p className="text-[0.56rem] font-semibold uppercase tracking-[0.26em] text-[#7d766f]">
+                Vanløse Idrætspark
+              </p>
+              <p className="mt-2 text-[0.72rem] leading-relaxed text-[#3d3934]">
+                Klitmøllervej 20
+                <br />
+                2720 Vanløse
+              </p>
+            </div>
+          </div>
+        </aside>
       </nav>
 
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}

@@ -17,6 +17,10 @@ export async function POST(req: NextRequest) {
   const payload = {
     ...body,
     name: typeof body?.name === "string" ? body.name.trim() : body?.name,
+    abbreviation:
+      typeof body?.abbreviation === "string"
+        ? body.abbreviation.trim().toUpperCase() || null
+        : body?.abbreviation ?? null,
   };
 
   const { data, error } = await supabaseAdmin.from("teams").insert(payload).select().single();

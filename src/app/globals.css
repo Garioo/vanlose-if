@@ -115,13 +115,6 @@ body {
 .hero-enter .hero-cta    { animation: vif-fade-up    0.5s 0.55s cubic-bezier(0.22,1,0.36,1) both; }
 .hero-enter .hero-card   { animation: vif-slide-right 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) both; }
 
-/* ─── Navbar scroll shadow ───────────────────────────────────────────── */
-
-.nav-scrolled {
-  box-shadow: 0 1px 16px rgba(13,13,11,0.08);
-  border-bottom-color: #d4cfc7 !important;
-}
-
 /* ─── Countdown digit flip ───────────────────────────────────────────── */
 
 .digit-flip { display: inline-block; overflow: hidden; line-height: 1; }
@@ -153,19 +146,6 @@ body {
 
 .btn-press { transition: transform 0.1s ease; }
 .btn-press:active { transform: scale(0.97); }
-
-/* ─── Marquee ticker ─────────────────────────────────────────────────── */
-
-@keyframes vif-marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.marquee-track {
-  display: flex;
-  width: max-content;
-  white-space: nowrap;
-  animation: vif-marquee 28s linear infinite;
-}
 
 /* ─── Live pulse dot ─────────────────────────────────────────────────── */
 

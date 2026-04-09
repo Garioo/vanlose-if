@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Team } from "@/lib/supabase";
 import MediaPicker from "@/components/admin/MediaPicker";
 
-const empty = { name: "", home_turf: "", logo_url: "" };
+const empty = { name: "", abbreviation: "", home_turf: "", logo_url: "" };
 
 export default function AdminHoldPage() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -68,7 +68,12 @@ export default function AdminHoldPage() {
 
   function startEdit(team: Team) {
     setEditId(team.id);
-    setForm({ name: team.name, home_turf: team.home_turf ?? "", logo_url: team.logo_url ?? "" });
+    setForm({
+      name: team.name,
+      abbreviation: team.abbreviation ?? "",
+      home_turf: team.home_turf ?? "",
+      logo_url: team.logo_url ?? "",
+    });
   }
 
   const inputCls = "w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors";
@@ -99,6 +104,17 @@ export default function AdminHoldPage() {
               className={inputCls} 
               placeholder="F.eks. HIK, Brønshøj Boldklub" 
               required 
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Forkortelse</label>
+            <input
+              type="text"
+              value={form.abbreviation}
+              onChange={(e) => setForm({ ...form, abbreviation: e.target.value.toUpperCase() })}
+              className={inputCls}
+              placeholder="F.eks. VIF, FCK, VB"
+              maxLength={6}
             />
           </div>
           <div>
@@ -145,8 +161,9 @@ export default function AdminHoldPage() {
       <div className="bg-white border border-gray-200">
         <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-1">Logo</span>
-          <span className="col-span-5">Navn</span>
-          <span className="col-span-4">Hjemmebane</span>
+          <span className="col-span-4">Navn</span>
+          <span className="col-span-2">Fork.</span>
+          <span className="col-span-3">Hjemmebane</span>
           <span className="col-span-2 text-right">Handlinger</span>
         </div>
         {teams.map((t) => (
@@ -159,8 +176,11 @@ export default function AdminHoldPage() {
                 <span className="text-[10px] text-gray-300 font-bold">{t.name.substring(0, 1)}</span>
               )}
             </div>
-            <span className="col-span-5 text-xs font-bold uppercase tracking-wide ml-4">{t.name}</span>
-            <span className="col-span-4 text-xs text-gray-500 truncate">{t.home_turf || "—"}</span>
+            <span className="col-span-4 ml-4 text-xs font-bold uppercase tracking-wide">{t.name}</span>
+            <span className="col-span-2 text-xs font-bold uppercase tracking-widest text-gray-600">
+              {t.abbreviation || "—"}
+            </span>
+            <span className="col-span-3 text-xs text-gray-500 truncate">{t.home_turf || "—"}</span>
             <div className="col-span-2 flex items-center justify-end gap-2">
               <button onClick={() => startEdit(t)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
                 Redigér

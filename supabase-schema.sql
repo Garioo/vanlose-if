@@ -28,10 +28,12 @@ CREATE TABLE IF NOT EXISTS public.players (
 CREATE TABLE IF NOT EXISTS public.teams (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name text NOT NULL UNIQUE,
+  abbreviation text,
   logo_url text,
   home_turf text
 );
 
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS abbreviation text;
 ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS home_turf text;
 
 -- 4. Create 'matches' table

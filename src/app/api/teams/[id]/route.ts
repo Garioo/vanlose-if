@@ -20,6 +20,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const payload = {
     ...body,
     name: typeof body?.name === "string" ? body.name.trim() : body?.name,
+    abbreviation:
+      typeof body?.abbreviation === "string"
+        ? body.abbreviation.trim().toUpperCase() || null
+        : body?.abbreviation ?? null,
   };
 
   const { data, error } = await supabaseAdmin.from("teams").update(payload).eq("id", id).select().single();

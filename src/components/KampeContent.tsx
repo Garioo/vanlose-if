@@ -12,9 +12,62 @@ type View = "KOMMENDE" | "RESULTATER";
 interface Props {
   matches: Match[];
   standings: Standing[];
+  teamLogoMap?: Record<string, string | null>;
+  teamAbbreviationMap?: Record<string, string | null>;
 }
 
-export default function KampeContent({ matches, standings }: Props) {
+function getTeamShortName(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 3).toUpperCase();
+  return parts
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+}
+
+function TeamMark({
+  name,
+  teamId,
+  teamLogoMap,
+  teamAbbreviationMap,
+}: {
+  name: string;
+  teamId: string | null;
+  teamLogoMap: Record<string, string | null>;
+  teamAbbreviationMap: Record<string, string | null>;
+}) {
+  const logoUrl = teamId ? teamLogoMap[teamId] : null;
+  const abbreviation = teamId ? teamAbbreviationMap[teamId] : null;
+  const shortName = abbreviation || getTeamShortName(name);
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
+      <span className="shrink-0 text-2xl font-black uppercase tracking-tight text-black md:text-[2rem]">
+        {shortName}
+      </span>
+      {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt={name}
+          className="h-14 w-14 shrink-0 object-contain md:h-16 md:w-16"
+        />
+      ) : (
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-black text-sm font-bold uppercase text-black md:h-16 md:w-16">
+          {shortName}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function KampeContent({
+  matches,
+  standings,
+  teamLogoMap = {},
+  teamAbbreviationMap = {},
+}: Props) {
   const [view, setView] = useState<View>("KOMMENDE");
   const [liveMatches, setLiveMatches] = useState<Match[]>(matches);
 
@@ -74,48 +127,57 @@ export default function KampeContent({ matches, standings }: Props) {
               <h2 className="font-display text-2xl mb-6">KOMMENDE KAMPE</h2>
               <div className="space-y-4">
                 {upcoming.map((match) => {
-                  const isHome = isVanlose(match.home);
                   return (
                     <Link
                       key={match.id}
                       href={`/kampe/${match.id}`}
-                      className="card-lift flex flex-col gap-4 border border-[#e0dbd3] bg-[#f7f4ef] px-5 py-5 transition-colors duration-200 hover:border-[#d4cfc7] md:px-6 md:py-6"
+                      className="card-lift block overflow-hidden border border-[#e0dbd3] bg-[#f7f4ef] transition-colors duration-200 hover:border-[#d4cfc7]"
                     >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="text-center min-w-[84px]">
-                          <div className="text-sm font-bold md:text-base">{match.date}</div>
-                          <div className="text-xs text-[#6b6560]">
-                            {match.time ? `Kl. ${match.time}` : "Tid kommer"}
-                          </div>
+                      <div className="border-b border-[#e0dbd3] bg-[#edeae3]/60 px-5 py-3 text-center md:px-6">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6b6560]">
+                          3. Division
+                        </p>
+                        <div className="mt-2 text-2xl font-bold leading-tight text-black md:text-[2rem]">
+                          {match.date}
                         </div>
-                        <div
-                          className={`px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${
-                            isHome
-                              ? "bg-black text-white"
-                              : "border border-[#e0dbd3] bg-[#edeae3] text-[#2e2b27]"
-                          }`}
-                        >
-                          {isHome ? "HJEMME" : "UDE"}
+                        <div className="mt-1 text-lg font-semibold text-[#3f3a35]">
+                          {match.time ? `Kl. ${match.time}` : "Tid kommer"}
                         </div>
                         {match.status === "live" && (
-                          <div className="flex items-center gap-1.5 bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
+                          <div className="mx-auto mt-3 flex w-fit items-center gap-1.5 bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
                             <span className="live-pulse inline-block h-1.5 w-1.5 rounded-full bg-white" />
                             LIVE
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="truncate text-base font-bold uppercase md:text-lg">{match.home}</span>
-                        <span className="text-xs text-[#8a847c] shrink-0">vs</span>
-                        <span className="truncate text-base font-bold uppercase md:text-lg">{match.away}</span>
+
+                      <div className="px-5 py-6 md:px-6 md:py-7">
+                        <div className="flex items-center justify-between gap-3">
+                          <TeamMark
+                            name={match.home}
+                            teamId={match.home_team_id}
+                            teamLogoMap={teamLogoMap}
+                            teamAbbreviationMap={teamAbbreviationMap}
+                          />
+                          <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8a847c]">
+                            VS
+                          </span>
+                          <TeamMark
+                            name={match.away}
+                            teamId={match.away_team_id}
+                            teamLogoMap={teamLogoMap}
+                            teamAbbreviationMap={teamAbbreviationMap}
+                          />
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-xs text-[#4a4540] md:text-sm">
-                          {match.venue || "Bane annonceres snart"}
-                        </span>
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-[#8a847c]">
+
+                      <div className="border-t border-[#e0dbd3] px-5 py-4 text-center md:px-6">
+                        <span className="text-sm font-bold text-red-600 underline decoration-red-600/60 underline-offset-4">
                           Se kampdetaljer
                         </span>
+                        <p className="mt-2 text-xs text-[#6b6560]">
+                          {match.venue || "Bane annonceres snart"}
+                        </p>
                       </div>
                     </Link>
                   );

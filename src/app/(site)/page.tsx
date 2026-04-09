@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Hero from "@/components/Hero";
-import Marquee from "@/components/Marquee";
 import News from "@/components/News";
 import FirstTeam from "@/components/FirstTeam";
 import YouthFootball from "@/components/YouthFootball";
@@ -25,7 +24,7 @@ export default async function Home() {
       supabase.from("players").select("*"),
       supabase.from("site_settings").select("key, value").in("key", ["hero_image_url", "volunteer_image", "youth_image"]),
       supabase.from("volunteer_roles").select("*").order("display_order", { ascending: true }),
-      supabase.from("teams").select("id, logo_url"),
+      supabase.from("teams").select("id, logo_url, abbreviation"),
     ]);
 
   const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
@@ -38,11 +37,18 @@ export default async function Home() {
   const teamLogoMap = Object.fromEntries(
     (teamsData ?? []).map((t) => [t.id, t.logo_url as string | null])
   );
+  const teamAbbreviationMap = Object.fromEntries(
+    (teamsData ?? []).map((t) => [t.id, (t as { abbreviation?: string | null }).abbreviation ?? null])
+  );
 
   return (
     <main>
-      <Hero nextMatch={nextMatch} heroImageUrl={heroImageUrl} teamLogoMap={teamLogoMap} />
-      <Marquee />
+      <Hero
+        nextMatch={nextMatch}
+        heroImageUrl={heroImageUrl}
+        teamLogoMap={teamLogoMap}
+        teamAbbreviationMap={teamAbbreviationMap}
+      />
       <News />
       <FirstTeam players={featuredPlayers} />
       <YouthFootball imageUrl={youthImageUrl} />

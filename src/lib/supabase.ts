@@ -121,6 +121,7 @@ export interface Standing {
 export interface Team {
   id: string;
   name: string;
+  abbreviation: string | null;
   logo_url: string | null;
   home_turf: string | null;
 }

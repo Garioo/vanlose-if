@@ -27,7 +27,7 @@ export default async function UngdomPage() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={settingsMap["ungdom_hero_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
         )}
-        <div className="absolute inset-0 top-14 bg-gradient-to-b from-gray-900 to-black" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black" />
         <div className="absolute top-1/3 right-0 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-16 md:pb-24">
           <HeroEnterWrapper>

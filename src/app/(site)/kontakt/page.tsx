@@ -14,8 +14,8 @@ export default async function KontaktPage() {
   const settingsMap: Record<string, string> = {};
   for (const row of settingsData ?? []) settingsMap[row.key] = row.value;
 
-  const address = settingsMap["contact_address"] ?? "Klampegårdsvej 4-6, 2720 Vanløse";
-  const email = settingsMap["contact_email"] ?? "kontakt@vanlosif.dk";
+  const address = settingsMap["contact_address"] ?? "Klitmøllervej 20, 2720 Vanløse";
+  const email = settingsMap["contact_email"] ?? "vanloeseif@gmail.com";
   const phone = settingsMap["contact_phone"] ?? "+45 38 74 12 12";
 
   const mapQuery = encodeURIComponent(address);
@@ -43,7 +43,7 @@ export default async function KontaktPage() {
                 { label: "Adresse", lines: address.split(",").map((s) => s.trim()) },
                 { label: "E-mail", lines: [email] },
                 { label: "Telefon", lines: [phone] },
-                { label: "Sekretariat åbningstider", lines: ["Mandag – torsdag: 16:00 – 19:00", "Lørdag: 10:00 – 13:00"] },
+                { label: "Åbningstider", lines: ["Mandag – torsdag: 16:00 – 19:00", "Lørdag: 10:00 – 13:00"] },
               ].map((item) => (
                 <div key={item.label}>
                   <p className="text-[10px] font-bold tracking-widest uppercase text-[#8a847c] mb-1">

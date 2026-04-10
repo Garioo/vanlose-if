@@ -264,37 +264,60 @@ export default function KampeContent({
 
         {/* Standings sidebar */}
         <div>
-          <h2 className="font-display text-2xl mb-6">STILLING</h2>
-          <div className="border border-[#e0dbd3] bg-[#f7f4ef]">
-            <div className="grid grid-cols-[24px_1fr_32px_40px_36px] border-b border-[#e0dbd3] bg-[#edeae3] px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-[#6b6560]">
-              <span>#</span>
-              <span>Hold</span>
-              <span className="text-center">K</span>
-              <span className="text-center">+/-</span>
-              <span className="text-center">Pts</span>
-            </div>
-            {standings.map((row) => (
-              <div
-                key={row.id}
-                className={`grid grid-cols-[24px_1fr_32px_40px_36px] items-center border-b border-[#e0dbd3] px-3 py-3 text-xs font-bold last:border-0 ${
-                  row.highlight ? "bg-black text-white" : "even:bg-[#edeae3]/40"
-                }`}
-              >
-                <span className={row.highlight ? "text-gray-300" : "text-[#6b6560]"}>{row.pos}</span>
-                <span className="uppercase tracking-wide truncate">{row.team}</span>
-                <span className="text-center">{row.played}</span>
-                <span className="text-center">
-                  {((row.goals_scored ?? 0) - (row.goals_conceded ?? 0)) > 0
-                    ? `+${(row.goals_scored ?? 0) - (row.goals_conceded ?? 0)}`
-                    : (row.goals_scored ?? 0) - (row.goals_conceded ?? 0)}
-                </span>
-                <span className="text-center">{row.pts}</span>
-              </div>
-            ))}
-            {standings.length === 0 && (
-              <p className="text-xs text-[#8a847c] py-4 text-center">Ingen stilling.</p>
-            )}
-          </div>
+          {(() => {
+            const isPlayoff = standings.some((r) => r.gruppe !== "regular");
+            const groups: Array<{ key: string; label: string }> = isPlayoff
+              ? [
+                  { key: "oprykning", label: "OPRYKNINGSSPIL" },
+                  { key: "nedrykning", label: "NEDRYKNINGSSPIL" },
+                ]
+              : [{ key: "regular", label: "STILLING" }];
+
+            return (
+              <>
+                {groups.map(({ key, label }) => {
+                  const rows = isPlayoff
+                    ? standings.filter((r) => r.gruppe === key)
+                    : standings;
+                  return (
+                    <div key={key} className="mb-8 last:mb-0">
+                      <h2 className="font-display text-2xl mb-6">{label}</h2>
+                      <div className="border border-[#e0dbd3] bg-[#f7f4ef]">
+                        <div className="grid grid-cols-[24px_1fr_32px_40px_36px] border-b border-[#e0dbd3] bg-[#edeae3] px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-[#6b6560]">
+                          <span>#</span>
+                          <span>Hold</span>
+                          <span className="text-center">K</span>
+                          <span className="text-center">+/-</span>
+                          <span className="text-center">Pts</span>
+                        </div>
+                        {rows.map((row) => (
+                          <div
+                            key={row.id}
+                            className={`grid grid-cols-[24px_1fr_32px_40px_36px] items-center border-b border-[#e0dbd3] px-3 py-3 text-xs font-bold last:border-0 ${
+                              row.highlight ? "bg-black text-white" : "even:bg-[#edeae3]/40"
+                            }`}
+                          >
+                            <span className={row.highlight ? "text-gray-300" : "text-[#6b6560]"}>{row.pos}</span>
+                            <span className="uppercase tracking-wide truncate">{row.team}</span>
+                            <span className="text-center">{row.played}</span>
+                            <span className="text-center">
+                              {((row.goals_scored ?? 0) - (row.goals_conceded ?? 0)) > 0
+                                ? `+${(row.goals_scored ?? 0) - (row.goals_conceded ?? 0)}`
+                                : (row.goals_scored ?? 0) - (row.goals_conceded ?? 0)}
+                            </span>
+                            <span className="text-center">{row.pts}</span>
+                          </div>
+                        ))}
+                        {rows.length === 0 && (
+                          <p className="text-xs text-[#8a847c] py-4 text-center">Ingen stilling.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
         </div>
       </div>
     </>

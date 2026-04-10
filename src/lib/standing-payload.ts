@@ -45,5 +45,6 @@ export async function buildStandingWritePayload(body: unknown) {
     goals_conceded: normalizeNumber(input.goals_conceded, 0),
     pts: normalizeNumber(input.pts, 0),
     highlight: typeof input.highlight === "boolean" ? input.highlight : false,
+    gruppe: normalizeText(input.gruppe) || "regular",
   };
 }

@@ -40,13 +40,18 @@ export default function AdminIndstillingerPage() {
 
   async function handleImageSelect(key: string, url: string) {
     setValues((prev) => ({ ...prev, [key]: url }));
-    await fetch(`/api/settings/${key}`, {
+    const res = await fetch(`/api/settings/${key}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value: url }),
     });
-    setSaved((prev) => ({ ...prev, [key]: true }));
-    setTimeout(() => setSaved((prev) => ({ ...prev, [key]: false })), 2000);
+    if (res.ok) {
+      setSaved((prev) => ({ ...prev, [key]: true }));
+      setTimeout(() => setSaved((prev) => ({ ...prev, [key]: false })), 2000);
+    } else {
+      setSaveError((prev) => ({ ...prev, [key]: true }));
+      setTimeout(() => setSaveError((prev) => ({ ...prev, [key]: false })), 2000);
+    }
   }
 
   const inputCls = "flex-1 border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors";

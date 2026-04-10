@@ -29,7 +29,7 @@ export default function Footer() {
               <span className="font-display text-sm tracking-wider">VANLØSE IF</span>
             </Link>
             <div className="text-xs text-[#8a847c] space-y-1">
-              <p>Klampegårdsvej 4-6, 2720 Vanløse</p>
+              <p>Klitmøllervej 20 2720 Vanløse</p>
               <p>Stolt medlem af DBU.</p>
             </div>
             <p className="mt-4 text-[10px] uppercase tracking-widest text-[#5a5550]">

@@ -15,6 +15,7 @@ const emptyRow = {
   goals_conceded: 0,
   pts: 0,
   highlight: false,
+  gruppe: "regular",
 };
 
 export default function AdminStillingPage() {
@@ -23,6 +24,7 @@ export default function AdminStillingPage() {
   const [form, setForm] = useState(emptyRow);
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [splitLoading, setSplitLoading] = useState(false);
 
   const load = useCallback(async () => {
     const [standingsRes, teamsRes] = await Promise.all([
@@ -40,7 +42,35 @@ export default function AdminStillingPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSplit() {
+    if (!confirm("Split stilling i Oprykningsspil og Nedrykningsspil? De øverste halvdel rykker op i Oprykningsspil.")) return;
+    setSplitLoading(true);
+    setError(null);
+    const res = await fetch("/api/standings/split", { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Kunne ikke splitte stilling.");
+    } else {
+      load();
+    }
+    setSplitLoading(false);
+  }
+
+  async function handleResetSplit() {
+    if (!confirm("Nulstil til grundspil? Alle hold sættes tilbage til én samlet tabel.")) return;
+    setSplitLoading(true);
+    setError(null);
+    const res = await fetch("/api/standings/split", { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Kunne ikke nulstille split.");
+    } else {
+      load();
+    }
+    setSplitLoading(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const selectedTeam = teams.find((t) => t.id === form.team_id);
@@ -87,18 +117,19 @@ export default function AdminStillingPage() {
 
   function startEdit(row: Standing) {
     setEditId(row.id);
-    setForm({ 
-      pos: row.pos, 
-      team: row.team, 
+    setForm({
+      pos: row.pos,
+      team: row.team,
       team_id: row.team_id ?? teams.find((t) => t.name === row.team)?.id ?? "",
-      played: row.played, 
-      wins: row.wins, 
-      draws: row.draws, 
-      losses: row.losses, 
+      played: row.played,
+      wins: row.wins,
+      draws: row.draws,
+      losses: row.losses,
       goals_scored: row.goals_scored || 0,
       goals_conceded: row.goals_conceded || 0,
-      pts: row.pts, 
-      highlight: row.highlight 
+      pts: row.pts,
+      highlight: row.highlight,
+      gruppe: row.gruppe ?? "regular",
     });
   }
 
@@ -176,6 +207,18 @@ export default function AdminStillingPage() {
               <span className="text-[10px] font-bold tracking-widest uppercase">VIF</span>
             </label>
           </div>
+          <div className="col-span-4 md:col-span-2">
+            <label className={labelCls}>Gruppe</label>
+            <select
+              value={form.gruppe}
+              onChange={(e) => setForm({ ...form, gruppe: e.target.value })}
+              className={inputCls}
+            >
+              <option value="regular">Grundspil</option>
+              <option value="oprykning">Oprykningsspil</option>
+              <option value="nedrykning">Nedrykningsspil</option>
+            </select>
+          </div>
           <div className="col-span-4 md:col-span-12 flex gap-2 pt-2">
             <button type="submit" className="text-xs font-bold tracking-widest uppercase bg-black text-white px-6 py-2.5 hover:bg-gray-900 transition-colors">
               {editId ? "GEM" : "TILFØJ"}
@@ -192,20 +235,64 @@ export default function AdminStillingPage() {
         </form>
       </div>
 
+      {/* Playoff split actions */}
+      {(() => {
+        const isPlayoff = rows.some((r) => r.gruppe !== "regular");
+        return (
+          <div className="flex items-center gap-3 mb-4">
+            {!isPlayoff ? (
+              <button
+                type="button"
+                onClick={handleSplit}
+                disabled={splitLoading || rows.length === 0}
+                className="text-xs font-bold tracking-widest uppercase bg-black text-white px-5 py-2.5 hover:bg-gray-900 transition-colors disabled:opacity-40"
+              >
+                {splitLoading ? "Splitter..." : "SPLIT TIL PLAYOFF"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResetSplit}
+                disabled={splitLoading}
+                className="text-xs font-bold tracking-widest uppercase border border-gray-400 px-5 py-2.5 hover:border-black transition-colors disabled:opacity-40"
+              >
+                {splitLoading ? "Nulstiller..." : "NULSTIL TIL GRUNDSPIL"}
+              </button>
+            )}
+            <p className="text-[9px] text-gray-400">
+              {isPlayoff
+                ? "Stilling er splittet i Oprykningsspil og Nedrykningsspil."
+                : "Splitter øverste halvdel til Oprykningsspil, nederste til Nedrykningsspil."}
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Table */}
-      <div className="bg-white border border-gray-200">
-        <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <span className="col-span-1">#</span>
-          <span className="col-span-3">Hold</span>
-          <span className="text-center">K</span>
-          <span className="text-center">S</span>
-          <span className="text-center">U</span>
-          <span className="text-center">N</span>
-          <span className="text-center">Mål</span>
-          <span className="text-center">Pts</span>
-          <span className="col-span-2 text-right">Handlinger</span>
-        </div>
-        {Array.isArray(rows) && rows.map((row) => (
+      {(() => {
+        const isPlayoff = Array.isArray(rows) && rows.some((r) => r.gruppe !== "regular");
+        const groups: Array<{ key: string; label: string; colorCls: string }> = isPlayoff
+          ? [
+              { key: "oprykning", label: "OPRYKNINGSSPIL", colorCls: "bg-green-50 text-green-800" },
+              { key: "nedrykning", label: "NEDRYKNINGSSPIL", colorCls: "bg-red-50 text-red-800" },
+            ]
+          : [{ key: "regular", label: "", colorCls: "" }];
+
+        const colHeader = (
+          <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <span className="col-span-1">#</span>
+            <span className="col-span-3">Hold</span>
+            <span className="text-center">K</span>
+            <span className="text-center">S</span>
+            <span className="text-center">U</span>
+            <span className="text-center">N</span>
+            <span className="text-center">Mål</span>
+            <span className="text-center">Pts</span>
+            <span className="col-span-2 text-right">Handlinger</span>
+          </div>
+        );
+
+        const renderRow = (row: Standing) => (
           <div key={row.id} className={`grid grid-cols-12 items-center px-4 py-3 border-b border-gray-100 last:border-0 ${row.highlight ? "bg-black text-white" : "hover:bg-gray-50"}`}>
             <span className="col-span-1 text-xs font-bold">{row.pos}</span>
             <span className="col-span-3 text-xs font-bold uppercase tracking-wide truncate">{row.team}</span>
@@ -224,13 +311,38 @@ export default function AdminStillingPage() {
               </button>
             </div>
           </div>
-        ))}
-        {(!Array.isArray(rows) || rows.length === 0) && (
-          <div className="px-4 py-8 text-center text-xs text-gray-400">
-            {!Array.isArray(rows) ? "Kunne ikke indlæse hold." : "Tabellen er tom."}
+        );
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return (
+            <div className="bg-white border border-gray-200 px-4 py-8 text-center text-xs text-gray-400">
+              {!Array.isArray(rows) ? "Kunne ikke indlæse hold." : "Tabellen er tom."}
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex flex-col gap-6">
+            {groups.map(({ key, label, colorCls }) => {
+              const groupRows = isPlayoff ? rows.filter((r) => r.gruppe === key) : rows;
+              return (
+                <div key={key} className="bg-white border border-gray-200">
+                  {isPlayoff && (
+                    <div className={`px-4 py-2 text-[10px] font-bold tracking-widest uppercase ${colorCls}`}>
+                      {label}
+                    </div>
+                  )}
+                  {colHeader}
+                  {groupRows.map(renderRow)}
+                  {groupRows.length === 0 && (
+                    <div className="px-4 py-6 text-center text-xs text-gray-400">Ingen hold.</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 }

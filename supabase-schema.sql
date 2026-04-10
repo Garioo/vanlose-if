@@ -517,3 +517,13 @@ $$;
 
 -- Images are stored in Cloudinary under the vanlose-if/ folder.
 -- No Supabase Storage bucket is required.
+
+-- Playoff split: grundspil / oprykningsspil / nedrykningsspil
+ALTER TABLE public.standings ADD COLUMN IF NOT EXISTS gruppe text NOT NULL DEFAULT 'regular';
+
+-- Social media links (managed via admin indstillinger)
+INSERT INTO public.site_settings (key, value, label) VALUES
+  ('social_instagram', '', 'Instagram URL'),
+  ('social_facebook', '', 'Facebook URL'),
+  ('social_youtube', '', 'YouTube URL')
+ON CONFLICT (key) DO NOTHING;

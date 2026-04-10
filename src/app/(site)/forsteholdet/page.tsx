@@ -26,24 +26,36 @@ export default async function ForsteholdetPage() {
   const [{ data: playerData }, { data: matchData }, { data: standingsData }, { data: statsData }] = await Promise.all([
     supabase.from("players").select("*"),
     supabase.from("matches").select("*").eq("is_upcoming", false),
-    supabase.from("standings").select("*").order("pos", { ascending: true }).limit(5),
+    supabase.from("standings").select("*").order("pos", { ascending: true }),
     supabase.from("player_stats").select("*, players(id, name, number, position)").eq("season", currentSeason).order("goals", { ascending: false }),
   ]);
 
   const players: Player[] = sortPlayersByNumber(playerData ?? [], "asc");
   const results: Match[] = sortMatchesByKickoff(matchData ?? [], "desc").slice(0, 2);
-  const standings: Standing[] = standingsData ?? [];
+  const allStandings: Standing[] = standingsData ?? [];
+  const isPlayoff = allStandings.some((r) => r.gruppe !== "regular");
+  const vifRow = allStandings.find((r) => r.highlight);
+  const vifGruppe = isPlayoff && vifRow ? vifRow.gruppe : null;
+  const standingsGroup = isPlayoff && vifGruppe
+    ? allStandings.filter((r) => r.gruppe === vifGruppe)
+    : allStandings;
+  const standings: Standing[] = standingsGroup.slice(0, 5);
+  const standingsLabel = isPlayoff && vifGruppe === "oprykning"
+    ? "OPRYKNINGSSPIL — TOP 5"
+    : isPlayoff && vifGruppe === "nedrykning"
+    ? "NEDRYKNINGSSPIL — TOP 5"
+    : "STILLING — TOP 5";
   const stats: StatsRow[] = (statsData ?? []) as StatsRow[];
   const topScorers = stats.filter((s) => s.goals > 0 || s.assists > 0).slice(0, 5);
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
-      <section id="profil" className="pt-14 min-h-[70vh] flex items-end relative overflow-hidden bg-black text-white">
+      <section id="profil" className="pt-14 min-h-screen flex items-end relative overflow-hidden bg-black text-white">
         {settingsMap["forsteholdet_hero_image"] && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={settingsMap["forsteholdet_hero_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
         )}
-        <div className="absolute inset-0 top-14 bg-linear-to-b from-gray-900/50 to-black" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 to-black" />
         <div
           className="absolute inset-x-0 bottom-0 font-display text-[20vw] leading-none text-white/5 select-none overflow-hidden whitespace-nowrap"
           aria-hidden
@@ -123,7 +135,7 @@ export default async function ForsteholdetPage() {
           {/* Standings */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display text-xl tracking-wide">STILLING — TOP 5</h2>
+              <h2 className="font-display text-xl tracking-wide">{standingsLabel}</h2>
             </div>
             <div className="border border-[#e0dbd3] divide-y divide-[#e0dbd3]">
               {standings.map((row) => (

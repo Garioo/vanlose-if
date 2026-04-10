@@ -116,6 +116,7 @@ export interface Standing {
   goals_conceded: number;
   pts: number;
   highlight: boolean;
+  gruppe: string; // 'regular' | 'oprykning' | 'nedrykning'
 }
 
 export interface Team {

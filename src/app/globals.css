@@ -21,7 +21,7 @@
   --font-display:     var(--font-bebas);
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; background: var(--background); }
 
 body {
   background: var(--background);

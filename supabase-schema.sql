@@ -72,6 +72,7 @@ ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS period_label text;
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS matchday_notes text;
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS home_team_id uuid;
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS away_team_id uuid;
+ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS gruppe text NOT NULL DEFAULT 'regular';
 
 DO $$
 BEGIN
@@ -404,6 +405,20 @@ CREATE TABLE IF NOT EXISTS public.youth_teams (
   created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+ALTER TABLE public.youth_teams ADD COLUMN IF NOT EXISTS image_url text;
+ALTER TABLE public.youth_teams ADD COLUMN IF NOT EXISTS contact_email text;
+
+-- Staff / coaches
+CREATE TABLE IF NOT EXISTS public.staff (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  role text NOT NULL,
+  image_url text,
+  bio text,
+  display_order int DEFAULT 0,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Player stats
 CREATE TABLE IF NOT EXISTS public.player_stats (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -436,6 +451,7 @@ ALTER TABLE public.match_lineups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.youth_teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.staff ENABLE ROW LEVEL SECURITY;
 
 -- Public read access to site-facing tables
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.articles;
@@ -458,6 +474,8 @@ DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.yout
 CREATE POLICY "Public profiles are viewable by everyone." ON public.youth_teams FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.player_stats;
 CREATE POLICY "Public profiles are viewable by everyone." ON public.player_stats FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.staff;
+CREATE POLICY "Public profiles are viewable by everyone." ON public.staff FOR SELECT USING (true);
 
 -- Remove permissive write policies on core tables (writes are now API + service role only)
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.articles;

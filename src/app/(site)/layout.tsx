@@ -1,6 +1,5 @@
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import MatchDayBanner from "@/components/MatchDayBanner";
+import SiteShell from "@/components/SiteShell";
 import { supabase, type Match } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 
@@ -29,37 +28,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const hasBanner = todayOrLive !== null;
 
   return (
-    <>
-      <div className="fixed top-0 left-0 right-0 z-50 md:hidden">
-        {hasBanner && <MatchDayBanner match={todayOrLive} />}
-        <Navbar nextMatch={nextMatch} todayOrLive={todayOrLive} />
-      </div>
-
-      <div className="md:min-h-screen">
-        <div
-          className="hidden md:block"
-          style={{
-            position: "fixed",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            zIndex: 50,
-            width: "180px",
-            overflow: "hidden",
-            background: "#ffffff",
-            borderRight: "1px solid #d8d2c8",
-          }}
-        >
-          <Navbar nextMatch={nextMatch} todayOrLive={todayOrLive} />
-        </div>
-
-        <div className={hasBanner ? "h-[6.5rem] md:hidden" : "h-16 md:hidden"} />
-
-        <div className="md:ml-[180px] md:min-h-screen">
-          {children}
-          <Footer />
-        </div>
-      </div>
-    </>
+    <SiteShell hasBanner={hasBanner} nextMatch={nextMatch} todayOrLive={todayOrLive}>
+      {children}
+      <Footer />
+    </SiteShell>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Player } from "@/lib/supabase";
 import { sortPlayersByNumber } from "@/lib/playerSort";
 
@@ -33,7 +34,7 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {filteredPlayers.map((player) => (
-          <div key={player.id} className="group cursor-pointer">
+          <Link key={player.id} href={`/spillere/${player.id}`} className="group">
             <div className="aspect-3/4 bg-[#edeae3] mb-3 overflow-hidden relative">
               {player.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -46,13 +47,13 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
             <div className="flex items-baseline gap-2">
               <span className="font-display text-2xl text-[#c5bfb6]">{player.number}</span>
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wide">{player.name}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wide group-hover:underline">{player.name}</h3>
                 <p className="text-[10px] text-[#6b6560] uppercase tracking-wider">
                   {player.position}
                 </p>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </>

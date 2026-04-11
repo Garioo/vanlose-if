@@ -24,6 +24,7 @@ const groups = [
       { href: "/admin/medier", label: "Mediebibliotek" },
       { href: "/admin/sponsorer", label: "Sponsorer" },
       { href: "/admin/ungdom", label: "Ungdom" },
+      { href: "/admin/stab", label: "Stab" },
       { href: "/admin/medlemskaber", label: "Medlemskaber" },
       { href: "/admin/frivillig", label: "Frivillig" },
     ],

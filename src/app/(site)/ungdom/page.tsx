@@ -27,7 +27,7 @@ export default async function UngdomPage() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={settingsMap["ungdom_hero_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 to-black" />
         <div className="absolute top-1/3 right-0 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-16 md:pb-24">
           <HeroEnterWrapper>
@@ -157,57 +157,76 @@ export default async function UngdomPage() {
 
       {/* Træningstider */}
       <section id="traening" className="py-16 md:py-24 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12 items-start">
-          <div className="md:w-1/2">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-10">
             <h2 className="font-display text-4xl md:text-5xl leading-[0.9] mb-4">TRÆNINGSTIDER</h2>
-            <p className="text-sm text-[#4a4540] leading-relaxed">
+            <p className="text-sm text-[#4a4540] leading-relaxed max-w-xl">
               Find din årgang herunder og se hvornår vi træner på banerne ved Vanløse Idrætspark.
               Bemærk at tiderne kan variere mellem sommer- og vintersæson.
             </p>
           </div>
-          <div className="md:w-1/2 w-full">
-            {youthTeams.length > 0 ? (
-              <>
-                <div className="divide-y divide-[#e0dbd3] mb-6">
-                  {youthTeams.map((team) => (
-                    <div key={team.id} className="py-5">
-                      <div className="flex justify-between items-start gap-4 mb-1">
-                        <span className="text-xs font-bold uppercase tracking-wide">{team.age_group}</span>
-                        {team.training_schedule && (
-                          <span className="text-xs text-[#6b6560] text-right">{team.training_schedule}</span>
-                        )}
+
+          {youthTeams.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {youthTeams.map((team) => (
+                  <div key={team.id} className="bg-[#f7f4ef] border border-[#e0dbd3] overflow-hidden">
+                    {team.image_url && (
+                      <div className="aspect-4/3 relative overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={team.image_url} alt={team.age_group} className="absolute inset-0 w-full h-full object-cover" />
                       </div>
+                    )}
+                    <div className="p-5">
+                      <h3 className="font-display text-2xl mb-2">{team.age_group}</h3>
                       {team.coach && (
-                        <p className="text-[10px] text-[#8a847c] uppercase tracking-wide">Træner: {team.coach}</p>
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-[#6b6560] mb-2">
+                          Træner: {team.coach}
+                        </p>
+                      )}
+                      {team.training_schedule && (
+                        <p className="text-xs text-[#4a4540] mb-3">{team.training_schedule}</p>
                       )}
                       {team.description && (
-                        <p className="text-xs text-[#6b6560] mt-1 leading-relaxed">{team.description}</p>
+                        <p className="text-xs text-[#6b6560] leading-relaxed mb-3">{team.description}</p>
+                      )}
+                      {team.contact_email && (
+                        <a
+                          href={`mailto:${team.contact_email}`}
+                          className="text-[10px] font-bold tracking-widest uppercase flex items-center gap-1 hover:underline"
+                        >
+                          KONTAKT HOLDET
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M5 12h14m-7-7 7 7-7 7" />
+                          </svg>
+                        </a>
                       )}
                     </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="divide-y divide-gray-200 mb-6">
-                {[
-                  { group: "Børnefodbold (U5-U12)", schedule: "Kontakt klubben for aktuelle træningstider" },
-                  { group: "Elite Ungdom (U13-U19)", schedule: "Kontakt klubben for aktuelle træningstider" },
-                  { group: "Målmandstræning", schedule: "Kontakt klubben for aktuelle træningstider" },
-                ].map((row) => (
-                  <div key={row.group} className="flex justify-between items-center py-4">
-                    <span className="text-xs font-bold uppercase tracking-wide">{row.group}</span>
-                    <span className="text-xs text-[#6b6560]">{row.schedule}</span>
                   </div>
                 ))}
               </div>
-            )}
-            <a
-              href="/kontakt"
-              className="inline-block bg-black text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-gray-900 transition-colors"
-            >
-              KONTAKT OS FOR TRÆNINGSTIDER
-            </a>
-          </div>
+            </>
+          ) : (
+            <div className="divide-y divide-gray-200 mb-6 max-w-xl">
+              {[
+                { group: "Børnefodbold (U5-U12)", schedule: "Kontakt klubben for aktuelle træningstider" },
+                { group: "Elite Ungdom (U13-U19)", schedule: "Kontakt klubben for aktuelle træningstider" },
+                { group: "Målmandstræning", schedule: "Kontakt klubben for aktuelle træningstider" },
+              ].map((row) => (
+                <div key={row.group} className="flex justify-between items-center py-4">
+                  <span className="text-xs font-bold uppercase tracking-wide">{row.group}</span>
+                  <span className="text-xs text-[#6b6560]">{row.schedule}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <a
+            href="/kontakt"
+            className="inline-block bg-black text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-gray-900 transition-colors"
+          >
+            KONTAKT OS FOR TRÆNINGSTIDER
+          </a>
         </div>
       </section>
 

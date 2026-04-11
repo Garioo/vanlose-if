@@ -107,6 +107,16 @@ export function getMatchSortTimestamp(match: Pick<Match, "kickoff_at" | "date" |
   return parseMatchTimestamp(match.date, match.time);
 }
 
+export function formatMatchDate(dateText: string): string {
+  const ts = parseMatchTimestamp(dateText);
+  if (ts == null) return dateText;
+  const d = new Date(ts);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 export function sortMatchesByKickoff(matches: Match[], direction: "asc" | "desc"): Match[] {
   return matches
     .map((match, index) => ({

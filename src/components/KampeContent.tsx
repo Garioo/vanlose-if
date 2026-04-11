@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Match, Standing } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
-import { sortMatchesByKickoff } from "@/lib/matchDate";
+import { sortMatchesByKickoff, formatMatchDate } from "@/lib/matchDate";
 import { getTeamOutcome, isVanlose } from "@/lib/match-result";
 
 type View = "KOMMENDE" | "RESULTATER";
@@ -135,10 +135,14 @@ export default function KampeContent({
                     >
                       <div className="border-b border-[#e0dbd3] bg-[#edeae3]/60 px-5 py-3 text-center md:px-6">
                         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6b6560]">
-                          3. Division
+                          {match.gruppe === "oprykning"
+                            ? "Oprykningsspil"
+                            : match.gruppe === "nedrykning"
+                              ? "Nedrykningsspil"
+                              : "3. Division"}
                         </p>
                         <div className="mt-2 text-2xl font-bold leading-tight text-black md:text-[2rem]">
-                          {match.date}
+                          {formatMatchDate(match.date)}
                         </div>
                         <div className="mt-1 text-lg font-semibold text-[#3f3a35]">
                           {match.time ? `Kl. ${match.time}` : "Tid kommer"}
@@ -197,7 +201,14 @@ export default function KampeContent({
                     href={`/kampe/${r.id}`}
                     className="card-lift flex items-center gap-4 border border-[#e0dbd3] px-4 py-3 transition-colors hover:bg-[#edeae3]"
                   >
-                    <span className="w-16 shrink-0 text-[10px] font-bold text-[#6b6560]">{r.date}</span>
+                    <span className="w-16 shrink-0 text-[10px] font-bold text-[#6b6560]">
+                      {formatMatchDate(r.date)}
+                      {r.gruppe && r.gruppe !== "regular" && (
+                        <span className={`ml-1 inline-block px-1 py-0.5 text-[8px] font-bold uppercase ${r.gruppe === "oprykning" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {r.gruppe === "oprykning" ? "OPR" : "NED"}
+                        </span>
+                      )}
+                    </span>
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       {(() => {
                         const homeOutcome = getTeamOutcome(r, "home");

@@ -80,5 +80,6 @@ export async function buildMatchWritePayload(body: unknown) {
     live_minute: liveMinute,
     period_label: periodLabel,
     matchday_notes: matchdayNotes,
+    gruppe: normalizeText(input.gruppe) || "regular",
   };
 }

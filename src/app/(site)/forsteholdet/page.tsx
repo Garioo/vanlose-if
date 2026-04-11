@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import TruppenFilter from "@/components/TruppenFilter";
 import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { supabase } from "@/lib/supabase";
-import type { Player, Match, Standing, PlayerStats } from "@/lib/supabase";
+import type { Player, Match, Standing, PlayerStats, Staff } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { buildPageMetadata } from "@/lib/metadata";
 import { getTeamOutcome, isVanlose } from "@/lib/match-result";
@@ -23,11 +23,12 @@ export default async function ForsteholdetPage() {
   for (const row of settingsData ?? []) settingsMap[row.key] = row.value;
   const currentSeason = settingsMap["current_season"] ?? "2024/25";
 
-  const [{ data: playerData }, { data: matchData }, { data: standingsData }, { data: statsData }] = await Promise.all([
+  const [{ data: playerData }, { data: matchData }, { data: standingsData }, { data: statsData }, { data: staffData }] = await Promise.all([
     supabase.from("players").select("*"),
     supabase.from("matches").select("*").eq("is_upcoming", false),
     supabase.from("standings").select("*").order("pos", { ascending: true }),
     supabase.from("player_stats").select("*, players(id, name, number, position)").eq("season", currentSeason).order("goals", { ascending: false }),
+    supabase.from("staff").select("*").order("display_order", { ascending: true }),
   ]);
 
   const players: Player[] = sortPlayersByNumber(playerData ?? [], "asc");
@@ -47,6 +48,7 @@ export default async function ForsteholdetPage() {
     : "STILLING — TOP 5";
   const stats: StatsRow[] = (statsData ?? []) as StatsRow[];
   const topScorers = stats.filter((s) => s.goals > 0 || s.assists > 0).slice(0, 5);
+  const staff: Staff[] = (staffData ?? []) as Staff[];
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
@@ -193,6 +195,34 @@ export default async function ForsteholdetPage() {
                   <span className="col-span-2 text-sm font-bold text-center">{s.goals}</span>
                   <span className="col-span-2 text-xs text-[#6b6560] text-center">{s.assists}</span>
                   <span className="col-span-2 text-[10px] text-[#8a847c] text-center">{s.appearances}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Træner & Stab */}
+      {staff.length > 0 && (
+        <section id="stab" className="py-12 md:py-16 px-4 md:px-8 bg-[#edeae3] border-b border-[#e0dbd3]">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="font-display text-xl tracking-wide mb-8">TRÆNER & STAB</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {staff.map((member) => (
+                <div key={member.id}>
+                  <div className="aspect-3/4 bg-[#ddd8d0] mb-3 overflow-hidden relative">
+                    {member.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={member.image_url} alt={member.name} className="w-full h-full object-cover object-top" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="font-display text-5xl text-[#c5bfb6]">{member.name.charAt(0)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[#6b6560] mb-0.5">{member.role}</p>
+                  <h3 className="text-sm font-bold uppercase tracking-wide">{member.name}</h3>
+                  {member.bio && <p className="text-[10px] text-[#8a847c] mt-1 leading-relaxed">{member.bio}</p>}
                 </div>
               ))}
             </div>

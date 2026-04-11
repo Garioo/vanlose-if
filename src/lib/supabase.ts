@@ -54,6 +54,7 @@ export interface Match {
   away_score: number | null;
   result: "win" | "draw" | "loss" | null;
   is_upcoming: boolean;
+  gruppe: string; // 'regular' | 'oprykning' | 'nedrykning'
 }
 
 export type MatchStatus = "scheduled" | "live" | "finished";
@@ -180,6 +181,18 @@ export interface YouthTeam {
   coach: string | null;
   training_schedule: string | null;
   description: string | null;
+  display_order: number;
+  created_at: string;
+  image_url: string | null;
+  contact_email: string | null;
+}
+
+export interface Staff {
+  id: string;
+  name: string;
+  role: string;
+  image_url: string | null;
+  bio: string | null;
   display_order: number;
   created_at: string;
 }

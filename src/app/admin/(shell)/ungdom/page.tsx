@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { YouthTeam } from "@/lib/supabase";
+import MediaPicker from "@/components/admin/MediaPicker";
 
-const empty = { age_group: "", coach: "", training_schedule: "", description: "", display_order: 0 };
+const empty = { age_group: "", coach: "", training_schedule: "", description: "", display_order: 0, image_url: "", contact_email: "" };
 
 export default function AdminUngdomPage() {
   const [teams, setTeams] = useState<YouthTeam[]>([]);
@@ -20,7 +21,12 @@ export default function AdminUngdomPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = { ...form, display_order: Number(form.display_order) };
+    const payload = {
+      ...form,
+      image_url: form.image_url || null,
+      contact_email: form.contact_email || null,
+      display_order: Number(form.display_order),
+    };
     if (editId) {
       await fetch(`/api/youth-teams/${editId}`, {
         method: "PUT",
@@ -53,6 +59,8 @@ export default function AdminUngdomPage() {
       training_schedule: t.training_schedule ?? "",
       description: t.description ?? "",
       display_order: t.display_order,
+      image_url: t.image_url ?? "",
+      contact_email: t.contact_email ?? "",
     });
   }
 
@@ -85,6 +93,10 @@ export default function AdminUngdomPage() {
             <label className={labelCls}>Rækkefølge</label>
             <input type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: Number(e.target.value) })} className={inputCls} />
           </div>
+          <div>
+            <label className={labelCls}>Kontakt-email</label>
+            <input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} className={inputCls} placeholder="u10@vanlosif.dk" />
+          </div>
           <div className="col-span-2 md:col-span-3">
             <label className={labelCls}>Træningstider</label>
             <textarea rows={2} value={form.training_schedule} onChange={(e) => setForm({ ...form, training_schedule: e.target.value })} className={textareaCls} placeholder="Tirsdag 16:00, Torsdag 17:00" />
@@ -92,6 +104,17 @@ export default function AdminUngdomPage() {
           <div className="col-span-2 md:col-span-3">
             <label className={labelCls}>Beskrivelse</label>
             <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={textareaCls} placeholder="Kort beskrivelse af holdet..." />
+          </div>
+          <div className="col-span-2 md:col-span-3">
+            <label className={labelCls}>Holdbillede</label>
+            <div className="flex gap-2">
+              <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className={`${inputCls} flex-1 min-w-0`} placeholder="URL..." />
+              <MediaPicker onSelect={(url) => setForm((f) => ({ ...f, image_url: url }))} label="↑" />
+            </div>
+            {form.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.image_url} alt="" className="mt-2 h-20 w-auto object-cover border border-gray-200" />
+            )}
           </div>
           <div className="col-span-2 md:col-span-3 flex gap-2">
             <button type="submit" className="text-xs font-bold tracking-widest uppercase bg-black text-white px-6 py-2.5 hover:bg-gray-900 transition-colors">
@@ -111,19 +134,21 @@ export default function AdminUngdomPage() {
         <div className="grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-2">Gruppe</span>
           <span className="col-span-3">Træner</span>
-          <span className="col-span-5">Træningstider</span>
+          <span className="col-span-4">Træningstider</span>
+          <span className="col-span-1 text-center">Billed</span>
           <span className="col-span-2 text-right">Handlinger</span>
         </div>
         {teams.map((t) => (
           <div key={t.id} className="grid grid-cols-12 items-center px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50">
             <span className="col-span-2 font-display text-lg text-gray-700">{t.age_group}</span>
             <span className="col-span-3 text-xs text-gray-600">{t.coach || "—"}</span>
-            <span className="col-span-5 text-[10px] text-gray-400 truncate">{t.training_schedule || "—"}</span>
+            <span className="col-span-4 text-[10px] text-gray-400 truncate">{t.training_schedule || "—"}</span>
+            <span className="col-span-1 text-center text-[10px] text-gray-400">{t.image_url ? "✓" : "—"}</span>
             <div className="col-span-2 flex items-center justify-end gap-2">
               <button onClick={() => startEdit(t)} className="text-[10px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
                 Redigér
               </button>
-              <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
+              <button onClick={() => void handleDelete(t.id)} className="text-[10px] font-bold tracking-widest uppercase text-red-400 hover:text-red-600 transition-colors">
                 Slet
               </button>
             </div>

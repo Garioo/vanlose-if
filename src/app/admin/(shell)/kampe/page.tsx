@@ -18,6 +18,7 @@ const emptyMatch = {
   away_score: "",
   result: "",
   status: "scheduled" as Match["status"],
+  gruppe: "regular",
 };
 
 function normalizeName(value: string): string {
@@ -250,6 +251,7 @@ export default function AdminKampePage() {
       away_score: m.away_score?.toString() ?? "",
       result: m.result ?? "",
       status: m.status ?? "scheduled",
+      gruppe: m.gruppe ?? "regular",
     });
   }
 
@@ -309,6 +311,14 @@ export default function AdminKampePage() {
             <select value={form.is_upcoming ? "1" : "0"} onChange={(e) => setForm({ ...form, is_upcoming: e.target.value === "1" })} className={`${inputCls} bg-white`}>
               <option value="1">Kommende</option>
               <option value="0">Spillet</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Gruppe</label>
+            <select value={form.gruppe} onChange={(e) => setForm({ ...form, gruppe: e.target.value })} className={`${inputCls} bg-white`}>
+              <option value="regular">Grundspil</option>
+              <option value="oprykning">Oprykningsspil</option>
+              <option value="nedrykning">Nedrykningsspil</option>
             </select>
           </div>
 
@@ -393,7 +403,14 @@ export default function AdminKampePage() {
               <span className="col-span-2 text-[10px] text-gray-400">{formatMatchDateTime(m)}</span>
               <div className="col-span-4">
                 <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
-                <p className="text-[10px] text-gray-400 truncate">{m.venue || "Bane mangler"}</p>
+                <p className="text-[10px] text-gray-400 truncate">
+                  {m.venue || "Bane mangler"}
+                  {m.gruppe && m.gruppe !== "regular" && (
+                    <span className={`ml-2 inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase ${m.gruppe === "oprykning" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {m.gruppe === "oprykning" ? "Oprykning" : "Nedrykning"}
+                    </span>
+                  )}
+                </p>
               </div>
               <span className="col-span-2 text-xs text-gray-600">{m.home_score != null ? `${m.home_score}–${m.away_score}` : "—"}</span>
               <span className={`col-span-2 text-[10px] font-bold uppercase ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>

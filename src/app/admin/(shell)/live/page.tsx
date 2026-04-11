@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Match, MatchEvent, MatchLineup, Player, LineupPlayerSlot } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
 import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/lib/live-clock";
 import type { LiveAction } from "@/lib/matchday-payload";
@@ -83,6 +84,8 @@ function toNumber(value: string): number | null {
 
 const EVENT_LABELS: Record<MatchEvent["event_type"], string> = {
   goal:         "Mål",
+  own_goal:     "Selvmål",
+  penalty:      "Straffespark",
   yellow_card:  "Gult kort",
   red_card:     "Rødt kort",
   substitution: "Udskiftning",
@@ -105,7 +108,8 @@ function nextExpectedAction(match: Match): string | null {
 }
 
 function eventDotColor(type: MatchEvent["event_type"]): string {
-  if (type === "goal") return "bg-red-600";
+  if (type === "goal" || type === "penalty") return "bg-red-600";
+  if (type === "own_goal") return "bg-gray-500";
   if (type === "yellow_card") return "bg-yellow-400";
   if (type === "red_card") return "bg-red-600";
   if (type === "substitution") return "bg-blue-500";
@@ -161,7 +165,7 @@ function PlayerField({
   labelCls: string;
 }) {
   const options =
-    isVanloseSide && lineupPlayers.length > 0
+    lineupPlayers.length > 0
       ? lineupPlayers.map((p) => ({ key: p.name, value: p.name, label: `${p.number ? `#${p.number} ` : ""}${p.name}` }))
       : isVanloseSide && allPlayers.length > 0
       ? allPlayers.map((p) => ({ key: p.id, value: p.name, label: `${p.number ? `#${p.number} ` : ""}${p.name}` }))
@@ -195,6 +199,7 @@ export default function AdminLivePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [events, setEvents] = useState<MatchEvent[]>([]);
   const [lineup, setLineup] = useState<MatchLineup | null>(null);
+  const [opponentLineup, setOpponentLineup] = useState<MatchLineup | null>(null);
 
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -281,17 +286,21 @@ export default function AdminLivePage() {
   }, [requestedMatchId]);
 
   const loadMatchday = useCallback(async (matchId: string, teamSide: "home" | "away") => {
-    const [eventRes, lineupRes] = await Promise.all([
+    const opponentSide = teamSide === "home" ? "away" : "home";
+    const [eventRes, lineupRes, opponentLineupRes] = await Promise.all([
       fetch(`/api/matches/${matchId}/events`),
       fetch(`/api/matches/${matchId}/lineup?team_side=${teamSide}`),
+      fetch(`/api/matches/${matchId}/lineup?team_side=${opponentSide}`),
     ]);
 
     const eventData = await eventRes.json().catch(() => []);
     const lineupData = await lineupRes.json().catch(() => null);
+    const opponentLineupData = await opponentLineupRes.json().catch(() => null);
 
     setEvents(Array.isArray(eventData) ? eventData : []);
     const nextLineup = lineupData && typeof lineupData === "object" ? (lineupData as MatchLineup) : null;
     setLineup(nextLineup);
+    setOpponentLineup(opponentLineupData && typeof opponentLineupData === "object" ? (opponentLineupData as MatchLineup) : null);
 
     if (!nextLineup) {
       setLineupForm(createEmptyLineupForm());
@@ -340,6 +349,7 @@ export default function AdminLivePage() {
     if (!match) return;
     setQuickTeamSide(getVanloseSide(match));
     setMatchdayNotes(match.matchday_notes ?? "");
+    setOpponentLineup(null);
     void loadMatchday(selectedMatchId, getVanloseSide(match));
   }, [selectedMatchId, matches, loadMatchday]);
 
@@ -347,6 +357,80 @@ export default function AdminLivePage() {
     const timer = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!selectedMatchId) return;
+
+    const channel = supabase
+      .channel(`admin-match-${selectedMatchId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "matches", filter: `id=eq.${selectedMatchId}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            updateMatchState(payload.new as Match);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${selectedMatchId}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            setEvents((prev) => [...prev, payload.new as MatchEvent]);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "match_events", filter: `match_id=eq.${selectedMatchId}` },
+        async () => {
+          const res = await fetch(`/api/matches/${selectedMatchId}/events`, { cache: "no-store" });
+          if (res.ok) {
+            const next = await res.json().catch(() => []);
+            if (Array.isArray(next)) setEvents(next);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "match_events", filter: `match_id=eq.${selectedMatchId}` },
+        async () => {
+          const res = await fetch(`/api/matches/${selectedMatchId}/events`, { cache: "no-store" });
+          if (res.ok) {
+            const next = await res.json().catch(() => []);
+            if (Array.isArray(next)) setEvents(next);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "match_lineups", filter: `match_id=eq.${selectedMatchId}` },
+        async () => {
+          const match = matches.find((m) => m.id === selectedMatchId);
+          if (!match) return;
+          const vanloseSide = getVanloseSide(match);
+          const opponentSide = vanloseSide === "home" ? "away" : "home";
+          const [lr, or] = await Promise.all([
+            fetch(`/api/matches/${selectedMatchId}/lineup?team_side=${vanloseSide}`, { cache: "no-store" }),
+            fetch(`/api/matches/${selectedMatchId}/lineup?team_side=${opponentSide}`, { cache: "no-store" }),
+          ]);
+          if (lr.ok) {
+            const data = await lr.json().catch(() => null);
+            setLineup(data && typeof data === "object" ? (data as MatchLineup) : null);
+          }
+          if (or.ok) {
+            const data = await or.json().catch(() => null);
+            setOpponentLineup(data && typeof data === "object" ? (data as MatchLineup) : null);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedMatchId, updateMatchState]);
 
   async function sendLiveAction(action: LiveAction, payload?: { period_label?: string | null; matchday_notes?: string | null }) {
     if (!selectedMatch) return;
@@ -738,9 +822,10 @@ export default function AdminLivePage() {
 
               {/* Quick-add area */}
               {(() => {
-                const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
                 const vanloseSide = getVanloseSide(selectedMatch);
                 const isVanloseSide = quickTeamSide === vanloseSide;
+                const quickEventLineup = isVanloseSide ? lineup : opponentLineup;
+                const lineupPlayers = [...(quickEventLineup?.starters ?? []), ...(quickEventLineup?.bench ?? [])];
                 const homeLabel = isVanlose(selectedMatch.home) ? "Hjemme (Vanløse)" : "Hjemme";
                 const awayLabel = isVanlose(selectedMatch.home) ? "Ude" : "Ude (Vanløse)";
                 return (
@@ -808,8 +893,9 @@ export default function AdminLivePage() {
               {/* Edit form — only shown when editing an existing event */}
               {editingEventId && (() => {
                 const editingEvent = events.find((e) => e.id === editingEventId);
-                const lineupPlayers = [...(lineup?.starters ?? []), ...(lineup?.bench ?? [])];
                 const isVanloseSide = eventForm.team_side === getVanloseSide(selectedMatch);
+                const eventLineup = isVanloseSide ? lineup : opponentLineup;
+                const lineupPlayers = [...(eventLineup?.starters ?? []), ...(eventLineup?.bench ?? [])];
                 const type = eventForm.event_type;
                 const noPlayers = type === "kickoff" || type === "halftime" || type === "fulltime";
                 const isSub = type === "substitution";
@@ -833,6 +919,8 @@ export default function AdminLivePage() {
                       <label className={labelCls}>Hændelse</label>
                       <select value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value as MatchEvent["event_type"] })} className={`${inputCls} bg-white`}>
                         <option value="goal">Mål</option>
+                        <option value="own_goal">Selvmål</option>
+                        <option value="penalty">Straffespark</option>
                         <option value="yellow_card">Gult kort</option>
                         <option value="red_card">Rødt kort</option>
                         <option value="substitution">Udskiftning</option>
@@ -853,7 +941,7 @@ export default function AdminLivePage() {
                     </div>
                     {!noPlayers && (
                       <PlayerField
-                        label={isSub ? "Spiller ind" : type === "goal" ? "Målscorer" : "Spiller"}
+                        label={isSub ? "Spiller ind" : (type === "goal" || type === "penalty") ? "Målscorer" : "Spiller"}
                         value={eventForm.player_name}
                         onChange={(v) => setEventForm({ ...eventForm, player_name: v })}
                         isVanloseSide={isVanloseSide}
@@ -864,7 +952,7 @@ export default function AdminLivePage() {
                         labelCls={labelCls}
                       />
                     )}
-                    {!noPlayers && !isCard && (
+                    {!noPlayers && !isCard && type !== "own_goal" && (
                       <PlayerField
                         label={isSub ? "Spiller ud" : "Assist (valgfri)"}
                         value={eventForm.assist_name}

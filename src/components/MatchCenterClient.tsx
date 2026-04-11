@@ -29,6 +29,12 @@ function minuteLabel(event: MatchEvent): string {
   return `${event.minute}'`;
 }
 
+function scorerSuffix(event: MatchEvent): string {
+  if (event.event_type === "penalty") return " (str.)";
+  if (event.event_type === "own_goal") return " (selvmål)";
+  return "";
+}
+
 function EventIcon({ type }: { type: string }) {
   const t = type.toLowerCase();
   const isGoal = t === "goal" || t === "mål" || t === "penalty" || t === "straffe";
@@ -117,8 +123,8 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
   const [events, setEvents] = useState<MatchEvent[]>(initialEvents);
   const isHome = useMemo(() => isVanlose(initialMatch.home), [initialMatch.home]);
   const [lineupTab, setLineupTab] = useState<"home" | "away">(isHome ? "home" : "away");
-  const homeLineup = initialHomeLineup;
-  const awayLineup = initialAwayLineup;
+  const [homeLineup, setHomeLineup] = useState<MatchLineup | null>(initialHomeLineup);
+  const [awayLineup, setAwayLineup] = useState<MatchLineup | null>(initialAwayLineup);
   const lineup = lineupTab === "home" ? homeLineup : awayLineup;
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -169,6 +175,18 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           }
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "match_lineups", filter: `match_id=eq.${initialMatch.id}` },
+        async () => {
+          const [homeRes, awayRes] = await Promise.all([
+            fetch(`/api/matches/${initialMatch.id}/lineup?team_side=home`, { cache: "no-store" }),
+            fetch(`/api/matches/${initialMatch.id}/lineup?team_side=away`, { cache: "no-store" }),
+          ]);
+          if (homeRes.ok) setHomeLineup((await homeRes.json()) as MatchLineup | null);
+          if (awayRes.ok) setAwayLineup((await awayRes.json()) as MatchLineup | null);
+        },
+      )
       .subscribe();
 
     return () => {
@@ -208,7 +226,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
     for (const e of events) {
       if (e.player_name) {
         const s = get(e.player_name);
-        if (e.event_type === "goal") s.goals++;
+        if (e.event_type === "goal" || e.event_type === "penalty") s.goals++;
         if (e.event_type === "yellow_card") s.yellowCard = true;
         if (e.event_type === "red_card") s.redCard = true;
         if (e.event_type === "substitution") s.subIn = true;
@@ -222,6 +240,21 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
     }
     return map;
   }, [events]);
+  const homeScorers = useMemo(
+    () => events.filter(e =>
+      (e.event_type === "goal" || e.event_type === "own_goal" || e.event_type === "penalty") &&
+      e.team_side === "home"
+    ),
+    [events],
+  );
+  const awayScorers = useMemo(
+    () => events.filter(e =>
+      (e.event_type === "goal" || e.event_type === "own_goal" || e.event_type === "penalty") &&
+      e.team_side === "away"
+    ),
+    [events],
+  );
+
   const isLive = match.status === "live";
   const isFinished = match.status === "finished";
 
@@ -246,18 +279,6 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
             background: "linear-gradient(160deg, #0d0d0b 0%, #1a1a17 60%, #0d0d0b 100%)",
           }}
         >
-          {/* Subtle grid texture */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-              pointerEvents: "none",
-            }}
-          />
-
           {/* Red top accent bar */}
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#e63329]" />
 
@@ -295,11 +316,6 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">
                   HJEMMEHOLD
                 </p>
-                {isHome && (
-                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase">
-                    VANLØSE IF
-                  </p>
-                )}
               </div>
 
               {/* Score */}
@@ -324,13 +340,31 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">
                   UDEBANE
                 </p>
-                {!isHome && (
-                  <p className="text-[9px] text-[#e63329] font-bold tracking-widest uppercase">
-                    VANLØSE IF
-                  </p>
-                )}
               </div>
             </div>
+
+            {/* Goal scorers */}
+            {(homeScorers.length > 0 || awayScorers.length > 0) && (
+              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 md:gap-8 mt-4">
+                <div className="space-y-1">
+                  {homeScorers.map((e) => (
+                    <p key={e.id} className="text-[11px] leading-snug flex items-baseline gap-1.5">
+                      <span className="text-white font-medium">{e.player_name ?? "—"}</span>
+                      <span className="text-white/50">{minuteLabel(e)}{scorerSuffix(e)}</span>
+                    </p>
+                  ))}
+                </div>
+                <div />
+                <div className="space-y-1 text-right">
+                  {awayScorers.map((e) => (
+                    <p key={e.id} className="text-[11px] leading-snug flex items-baseline justify-end gap-1.5">
+                      <span className="text-white/50">{scorerSuffix(e)}{minuteLabel(e)}</span>
+                      <span className="text-white font-medium">{e.player_name ?? "—"}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom meta strip */}
@@ -345,8 +379,6 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                   <span>{match.venue}</span>
                 </>
               )}
-              <span className="text-white/20">|</span>
-              <span>{isHome ? "Vanløse spiller hjemme" : "Vanløse spiller ude"}</span>
             </div>
             <a
               href="#tidslinje"

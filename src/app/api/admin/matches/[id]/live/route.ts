@@ -59,6 +59,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updates.live_clock_accumulated_seconds = secondsNow;
       updates.live_minute = minuteNow;
       updates.period_label = periodLabel ?? "Pause";
+      await supabaseAdmin.from("match_events").insert({
+        match_id: id,
+        team_side: "home",
+        event_type: "halftime",
+        minute: minuteNow,
+        stoppage_minute: null,
+        player_name: null,
+        assist_name: null,
+        note: null,
+      });
     } else if (action === "resume_second_half") {
       const secondHalfBase = Math.max(secondsNow, 45 * 60);
       updates.status = "live";
@@ -69,6 +79,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updates.live_clock_accumulated_seconds = secondHalfBase;
       updates.live_minute = Math.floor(secondHalfBase / 60);
       updates.period_label = periodLabel ?? "2. halvleg";
+      await supabaseAdmin.from("match_events").insert({
+        match_id: id,
+        team_side: "home",
+        event_type: "kickoff",
+        minute: 45,
+        stoppage_minute: null,
+        player_name: null,
+        assist_name: null,
+        note: null,
+      });
     } else if (action === "finish") {
       updates.status = "finished";
       updates.is_upcoming = false;
@@ -78,6 +98,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updates.live_clock_accumulated_seconds = secondsNow;
       updates.live_minute = minuteNow;
       updates.period_label = periodLabel ?? "SLUT";
+      await supabaseAdmin.from("match_events").insert({
+        match_id: id,
+        team_side: "home",
+        event_type: "fulltime",
+        minute: minuteNow,
+        stoppage_minute: null,
+        player_name: null,
+        assist_name: null,
+        note: null,
+      });
     } else if (action === "set_note") {
       if (hasPeriodLabel) {
         updates.period_label = periodLabel;

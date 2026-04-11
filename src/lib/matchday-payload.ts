@@ -32,6 +32,8 @@ type LineupPayload = {
 
 const VALID_EVENT_TYPES = new Set<MatchEventType>([
   "goal",
+  "own_goal",
+  "penalty",
   "yellow_card",
   "red_card",
   "substitution",

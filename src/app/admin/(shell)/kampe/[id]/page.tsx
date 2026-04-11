@@ -9,6 +9,8 @@ import { use } from "react";
 
 const EVENT_LABELS: Record<MatchEvent["event_type"], string> = {
   goal: "Mål",
+  own_goal: "Selvmål",
+  penalty: "Straffespark",
   yellow_card: "Gult kort",
   red_card: "Rødt kort",
   substitution: "Udskiftning",
@@ -18,7 +20,7 @@ const EVENT_LABELS: Record<MatchEvent["event_type"], string> = {
 };
 
 const EVENT_TYPES: MatchEvent["event_type"][] = [
-  "goal", "yellow_card", "red_card", "substitution", "kickoff", "halftime", "fulltime",
+  "goal", "own_goal", "penalty", "yellow_card", "red_card", "substitution", "kickoff", "halftime", "fulltime",
 ];
 
 const POSITIONS: Player["position"][] = ["MÅLMÆND", "FORSVAR", "MIDTBANE", "ANGREB"];
@@ -79,7 +81,8 @@ function statusLabel(status: Match["status"]) {
 }
 
 function eventDotClass(type: MatchEvent["event_type"]) {
-  if (type === "goal") return "bg-red-600";
+  if (type === "goal" || type === "penalty") return "bg-red-600";
+  if (type === "own_goal") return "bg-gray-500";
   if (type === "yellow_card") return "bg-yellow-400";
   if (type === "red_card") return "bg-red-700";
   if (type === "substitution") return "bg-blue-500";
@@ -511,7 +514,7 @@ export default function MatchEditorPage({ params }: { params: Promise<{ id: stri
               {!["kickoff", "halftime", "fulltime"].includes(eventForm.event_type) && (
                 <div>
                   <label className={labelCls}>
-                    {eventForm.event_type === "substitution" ? "Spiller ind" : eventForm.event_type === "goal" ? "Målscorer" : "Spiller"}
+                    {eventForm.event_type === "substitution" ? "Spiller ind" : (eventForm.event_type === "goal" || eventForm.event_type === "penalty") ? "Målscorer" : "Spiller"}
                   </label>
                   <input
                     type="text"
@@ -523,7 +526,7 @@ export default function MatchEditorPage({ params }: { params: Promise<{ id: stri
                 </div>
               )}
 
-              {(eventForm.event_type === "goal" || eventForm.event_type === "substitution") && (
+              {(eventForm.event_type === "goal" || eventForm.event_type === "penalty" || eventForm.event_type === "substitution") && (
                 <div>
                   <label className={labelCls}>
                     {eventForm.event_type === "substitution" ? "Spiller ud" : "Assist (valgfri)"}

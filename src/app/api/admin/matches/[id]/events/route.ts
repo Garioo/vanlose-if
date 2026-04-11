@@ -10,7 +10,7 @@ async function recalculateScore(matchId: string) {
     .from("match_events")
     .select("team_side")
     .eq("match_id", matchId)
-    .eq("event_type", "goal");
+    .in("event_type", ["goal", "own_goal", "penalty"]);
 
   const homeScore = goals?.filter((e) => e.team_side === "home").length ?? 0;
   const awayScore = goals?.filter((e) => e.team_side === "away").length ?? 0;

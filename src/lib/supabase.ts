@@ -62,6 +62,8 @@ export type LivePhase = "pre_match" | "first_half" | "halftime" | "second_half" 
 
 export type MatchEventType =
   | "goal"
+  | "own_goal"
+  | "penalty"
   | "yellow_card"
   | "red_card"
   | "substitution"

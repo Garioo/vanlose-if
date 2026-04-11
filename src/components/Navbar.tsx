@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Search } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import SearchOverlay from "@/components/SearchOverlay";
 import type { Match } from "@/lib/supabase";
+
+const VIF_LOGO_URL = "/uploads/b479f1c8-7804-4e16-81a1-039a647b1628.png";
 
 const navLinks = [
   { href: "/forsteholdet", label: "Førsteholdet" },
@@ -51,12 +54,17 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 text-lg font-bold tracking-tight transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2"
+            className="flex items-center gap-2.5 text-lg font-bold tracking-tight transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-black text-white text-xs font-black">
-              V
-            </div>
-            <span className="font-display text-sm tracking-wider">VANLØSE IF</span>
+            <Image
+              src={VIF_LOGO_URL}
+              alt="Vanløse IF"
+              width={30}
+              height={33}
+              className="h-[2.05rem] w-auto shrink-0"
+              priority
+            />
+            <span className="font-display text-sm leading-none tracking-tight">VANLØSE IF</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -115,12 +123,18 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
           <div className="border-b border-[#d8d2c8] px-5 py-6">
             <Link
               href="/"
-              className="block transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="flex flex-col items-center text-center transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
-              <div className="flex h-12 w-12 items-center justify-center border border-[#111111] bg-[#c61f2d] text-sm font-black text-white shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
-                V
-              </div>
-              <p className="mt-4 font-display text-[2.15rem] leading-[0.88] tracking-tight text-[#111111]">
+              <Image
+                src={VIF_LOGO_URL}
+                alt=""
+                aria-hidden="true"
+                width={62}
+                height={69}
+                className="h-[4.25rem] w-auto drop-shadow-[0_10px_24px_rgba(0,0,0,0.12)]"
+                priority
+              />
+              <p className="mt-3 font-display text-[2.05rem] leading-[0.88] tracking-tight text-[#111111]">
                 Vanløse IF
               </p>
             </Link>

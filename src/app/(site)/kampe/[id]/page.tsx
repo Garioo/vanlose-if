@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
 import { supabase } from "@/lib/supabase";
 import type { Match, MatchEvent, MatchLineup } from "@/lib/supabase";
 import { buildPageMetadata } from "@/lib/metadata";

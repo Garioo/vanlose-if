@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Match, Team } from "@/lib/supabase";
-import { formatClockSeconds, getLiveClockSeconds } from "@/lib/live-clock";
+import { formatLiveClock } from "@/lib/live-clock";
 import { parseMatchTimestamp, sortMatchesByKickoff } from "@/lib/matchDate";
 
 const emptyMatch = {
@@ -386,7 +386,7 @@ export default function AdminKampePage() {
                   <p className="text-[10px] text-gray-400">{formatMatchDateTime(m)}</p>
                 </div>
                 <span className={`text-[10px] font-bold uppercase shrink-0 ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
-                  {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
+                  {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatLiveClock(m, nowMs)}` : ""}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -414,7 +414,7 @@ export default function AdminKampePage() {
               </div>
               <span className="col-span-2 text-xs text-gray-600">{m.home_score != null ? `${m.home_score}–${m.away_score}` : "—"}</span>
               <span className={`col-span-2 text-[10px] font-bold uppercase ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
-                {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
+                {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatLiveClock(m, nowMs)}` : ""}
               </span>
               <div className="col-span-2 flex items-center justify-end gap-2">
                 <Link href={`/admin/live?match=${m.id}`} className="text-[10px] font-bold tracking-widest uppercase text-blue-600 hover:text-blue-800">

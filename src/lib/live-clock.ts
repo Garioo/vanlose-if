@@ -1,5 +1,6 @@
 type ClockFields = {
   status?: string | null;
+  live_phase?: string | null;
   live_minute?: number | null;
   live_clock_running?: boolean | null;
   live_clock_started_at?: string | null;
@@ -43,6 +44,42 @@ export function formatClockSeconds(totalSeconds: number): string {
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
   return `${mm}:${ss}`;
+}
+
+/**
+ * Returns a football-style clock string that shows stoppage time when the
+ * clock exceeds the regulation end of the current half:
+ *   first_half  → cap at 45:00, then show "45+1'", "45+2'", …
+ *   second_half → cap at 90:00, then show "90+1'", "90+2'", …
+ *   other phases → plain MM:SS (e.g. pre-match or halftime shouldn't be running)
+ */
+export function formatLiveClock(match: ClockFields, nowMs = Date.now()): string {
+  const totalSeconds = getLiveClockSeconds(match, nowMs);
+  const phase = match.live_phase;
+
+  if (phase === "first_half") {
+    const cap = 45 * 60;
+    if (totalSeconds > cap) {
+      const stoppageMinutes = Math.floor((totalSeconds - cap) / 60);
+      return `45+${stoppageMinutes}'`;
+    }
+    const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+    const ss = String(safeFloor(totalSeconds) % 60).padStart(2, "0");
+    return `${mm}:${ss}`;
+  }
+
+  if (phase === "second_half") {
+    const cap = 90 * 60;
+    if (totalSeconds > cap) {
+      const stoppageMinutes = Math.floor((totalSeconds - cap) / 60);
+      return `90+${stoppageMinutes}'`;
+    }
+    const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+    const ss = String(safeFloor(totalSeconds) % 60).padStart(2, "0");
+    return `${mm}:${ss}`;
+  }
+
+  return formatClockSeconds(totalSeconds);
 }
 
 export function withDerivedLiveMinute<T extends ClockFields>(match: T, nowMs = Date.now()): T {

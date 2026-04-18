@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Match, MatchEvent, MatchLineup } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
-import { formatClockSeconds, getLiveClockSeconds } from "@/lib/live-clock";
+import { formatLiveClock } from "@/lib/live-clock";
 import LineupPitch, { type PlayerEventSummary } from "@/components/LineupPitch";
 
 type Props = {
@@ -212,8 +212,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
     }
   }, [match.home_score, match.away_score]);
 
-  const liveSeconds = useMemo(() => getLiveClockSeconds(match, nowMs), [match, nowMs]);
-  const liveClock = useMemo(() => formatClockSeconds(liveSeconds), [liveSeconds]);
+  const liveClock = useMemo(() => formatLiveClock(match, nowMs), [match, nowMs]);
 
   const playerEvents = useMemo(() => {
     const map: Record<string, PlayerEventSummary> = {};
@@ -298,6 +297,11 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
               {isLive && (
                 <span className="font-display text-3xl md:text-4xl tracking-widest" style={{ color: "#e63329" }}>
                   {liveClock}
+                </span>
+              )}
+              {isLive && match.period_label && (
+                <span className="text-[10px] font-bold tracking-widest uppercase text-white/40">
+                  {match.period_label}
                 </span>
               )}
               {/* Intentionally hardcoded — Vanløse IF plays in 3. Division */}
@@ -437,7 +441,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 const color = eventColor(event.event_type);
                 const isNew = !initialEventIds.has(event.id);
                 const isHomeEvent = event.team_side === "home";
-                const isGoal = event.event_type === "goal";
+                const isGoal = event.event_type === "goal" || event.event_type === "penalty" || event.event_type === "own_goal";
                 const isSystem = event.event_type === "kickoff" || event.event_type === "halftime" || event.event_type === "fulltime";
 
                 // System events (kickoff / halftime / fulltime) span full width

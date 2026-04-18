@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Match, MatchEvent, MatchLineup, Player, LineupPlayerSlot } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
-import { formatClockSeconds, getLiveClockMinute, getLiveClockSeconds } from "@/lib/live-clock";
+import { formatLiveClock, getLiveClockMinute } from "@/lib/live-clock";
 import type { LiveAction } from "@/lib/matchday-payload";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
@@ -497,10 +497,13 @@ export default function AdminLivePage() {
     setError(null);
 
     const liveMinute = getLiveClockMinute(selectedMatch, Date.now()) ?? 0;
+    const rawMinute = toNumber(eventForm.minute) ?? liveMinute;
+    const manualStoppage = toNumber(eventForm.stoppage_minute);
+    const { minute: splitMin, stoppage_minute: autoStoppage } = splitMinute(rawMinute, selectedMatch.live_phase);
     const payload = {
       ...eventForm,
-      minute: toNumber(eventForm.minute) ?? liveMinute,
-      stoppage_minute: toNumber(eventForm.stoppage_minute),
+      minute: splitMin,
+      stoppage_minute: manualStoppage ?? autoStoppage,
     };
 
     const res = editingEventId
@@ -528,19 +531,26 @@ export default function AdminLivePage() {
     await loadMatchday(selectedMatch.id, getVanloseSide(selectedMatch));
   }
 
+  function splitMinute(rawMinute: number, phase: string | null): { minute: number; stoppage_minute: number | null } {
+    if (phase === "first_half" && rawMinute > 45) return { minute: 45, stoppage_minute: rawMinute - 45 };
+    if (phase === "second_half" && rawMinute > 90) return { minute: 90, stoppage_minute: rawMinute - 90 };
+    return { minute: rawMinute, stoppage_minute: null };
+  }
+
   async function createQuickEvent(eventType: MatchEvent["event_type"]) {
     if (!selectedMatch) return;
 
     setSavingEvent(true);
     setError(null);
 
-    const minute = getLiveClockMinute(selectedMatch, Date.now()) ?? 0;
+    const rawMinute = getLiveClockMinute(selectedMatch, Date.now()) ?? 0;
+    const { minute, stoppage_minute } = splitMinute(rawMinute, selectedMatch.live_phase);
 
     const payload = {
       team_side: quickTeamSide,
       event_type: eventType,
       minute,
-      stoppage_minute: null,
+      stoppage_minute,
       player_name: quickPlayerName.trim() || null,
       assist_name: quickAssistName.trim() || null,
       note: quickNote.trim() || null,
@@ -659,9 +669,8 @@ export default function AdminLivePage() {
   const inputCls = "w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors";
   const labelCls = "block text-[10px] font-bold tracking-widest uppercase mb-1 text-gray-600";
 
-  const liveSeconds = selectedMatch ? getLiveClockSeconds(selectedMatch, nowMs) : 0;
   const liveMinute = selectedMatch ? getLiveClockMinute(selectedMatch, nowMs) ?? 0 : 0;
-  const liveClock = formatClockSeconds(liveSeconds);
+  const liveClock = selectedMatch ? formatLiveClock(selectedMatch, nowMs) : "00:00";
 
   const primaryLiveLabel = selectedMatch?.live_clock_running ? "Pause" : "Play";
 
@@ -723,7 +732,7 @@ export default function AdminLivePage() {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
                 <span className={`text-[10px] font-bold uppercase shrink-0 ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
-                  {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
+                  {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatLiveClock(m, nowMs)}` : ""}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -742,7 +751,7 @@ export default function AdminLivePage() {
               </button>
               <span className="col-span-2 text-xs text-gray-600">{m.home_score != null ? `${m.home_score}–${m.away_score}` : "—"}</span>
               <span className={`col-span-2 text-[10px] font-bold uppercase ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
-                {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatClockSeconds(getLiveClockSeconds(m, nowMs))}` : ""}
+                {parseStatusLabel(m.status)}{m.status === "live" ? ` ${formatLiveClock(m, nowMs)}` : ""}
               </span>
               <div className="col-span-2 flex items-center justify-end gap-2">
                 <button onClick={() => setSelectedMatchId(m.id)} className="text-[10px] font-bold tracking-widest uppercase text-blue-600 hover:text-blue-800">

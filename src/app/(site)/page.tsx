@@ -10,6 +10,8 @@ import { supabase, type Match, type Player, type VolunteerRole } from "@/lib/sup
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = buildPageMetadata({
   title: "Vanløse Idrætsforening",
   description:

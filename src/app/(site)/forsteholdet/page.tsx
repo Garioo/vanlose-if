@@ -9,6 +9,8 @@ import { getTeamOutcome, isVanlose } from "@/lib/match-result";
 import { sortPlayersByNumber } from "@/lib/playerSort";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = buildPageMetadata({
   title: "Førsteholdet — Vanløse IF",
   description: "Mød Vanløse IFs førsteholdsgruppe, se resultater og stillingen i 3. Division.",

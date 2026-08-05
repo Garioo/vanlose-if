@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import type { Player, PlayerStats } from "@/lib/supabase";
 import { buildPageMetadata } from "@/lib/metadata";
 
+export const dynamic = "force-dynamic";
+
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

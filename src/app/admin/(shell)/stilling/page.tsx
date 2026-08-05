@@ -3,6 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Standing, Team } from "@/lib/supabase";
 
+function suggestNextSeason(current: string): string {
+  const m = current.match(/^(\d{4})\/(\d{2})$/);
+  if (!m) return "";
+  const startYear = Number(m[1]) + 1;
+  const endYear = (startYear + 1) % 100;
+  return `${startYear}/${String(endYear).padStart(2, "0")}`;
+}
+
 const emptyRow = {
   pos: 1,
   team: "",
@@ -25,6 +33,9 @@ export default function AdminStillingPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [splitLoading, setSplitLoading] = useState(false);
+  const [newSeason, setNewSeason] = useState("");
+  const [seasonLoading, setSeasonLoading] = useState(false);
+  const [seasonMsg, setSeasonMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [standingsRes, teamsRes] = await Promise.all([
@@ -41,6 +52,40 @@ export default function AdminStillingPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
+
+  // Prefill a suggested next season from the current one
+  useEffect(() => {
+    (async () => {
+      const res = await fetch("/api/settings");
+      const data = await res.json().catch(() => []);
+      if (!Array.isArray(data)) return;
+      const current = data.find((s) => s.key === "current_season")?.value ?? "";
+      const next = suggestNextSeason(current);
+      if (next) setNewSeason(next);
+    })();
+  }, []);
+
+  async function handleStartSeason() {
+    const season = newSeason.trim();
+    if (!season) { setError("Angiv en sæson (f.eks. 2025/26)."); return; }
+    if (!confirm(`Start ny sæson ${season}? Dette nulstiller stillingen til 0 og opretter tomme spillerstatistikker. Kampe bevares.`)) return;
+    setSeasonLoading(true);
+    setError(null);
+    setSeasonMsg(null);
+    const res = await fetch("/api/admin/season", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ season }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? "Kunne ikke starte ny sæson.");
+    } else {
+      setSeasonMsg(`Ny sæson ${data.season} startet. Stilling nulstillet, ${data.statsSeeded} spillerstatistikker oprettet.`);
+      load();
+    }
+    setSeasonLoading(false);
+  }
 
   async function handleSplit() {
     if (!confirm("Split stilling i Oprykningsspil og Nedrykningsspil? De øverste halvdel rykker op i Oprykningsspil.")) return;
@@ -233,6 +278,35 @@ export default function AdminStillingPage() {
             </p>
           </div>
         </form>
+      </div>
+
+      {/* Season rollover */}
+      <div className="bg-white border border-gray-200 p-6 mb-8">
+        <h2 className="text-xs font-bold tracking-widest uppercase mb-2">Ny sæson</h2>
+        <p className="text-[11px] text-gray-500 mb-4">
+          Sætter aktuel sæson, nulstiller stillingen til 0 (hold bevares) og opretter tomme spillerstatistikker. Kampe og tidligere sæsoners statistik bevares.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className={labelCls}>Sæson</label>
+            <input
+              type="text"
+              value={newSeason}
+              onChange={(e) => setNewSeason(e.target.value)}
+              placeholder="2025/26"
+              className="border border-gray-300 px-3 py-2 text-sm w-32 focus:outline-none focus:border-black transition-colors"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleStartSeason}
+            disabled={seasonLoading}
+            className="text-xs font-bold tracking-widest uppercase bg-black text-white px-6 py-2.5 hover:bg-gray-900 transition-colors disabled:opacity-40"
+          >
+            {seasonLoading ? "Starter..." : "START NY SÆSON"}
+          </button>
+          {seasonMsg && <p className="text-[11px] text-green-600 font-bold self-center">{seasonMsg}</p>}
+        </div>
       </div>
 
       {/* Playoff split actions */}

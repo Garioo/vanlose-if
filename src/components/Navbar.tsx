@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import SearchOverlay from "@/components/SearchOverlay";
@@ -50,7 +50,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
   return (
     <>
       <nav className="h-full text-black">
-        <div className="flex h-16 items-center justify-between border-b border-[#e0dbd3]/90 bg-[#f7f4ef]/95 px-4 backdrop-blur md:hidden">
+        <div className="flex h-16 items-center justify-between border-b border-[#e0dbd3]/90 bg-[#f7f4ef]/95 px-4 backdrop-blur lg:hidden">
           {/* Logo */}
           <Link
             href="/"
@@ -91,7 +91,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
         </div>
 
         {mobileOpen && (
-          <div className="space-y-2 border-t border-[#e0dbd3] bg-[#f7f4ef] px-4 py-3 md:hidden">
+          <div className="space-y-2 border-t border-[#e0dbd3] bg-[#f7f4ef] px-4 py-3 lg:hidden">
             {nextMatch && <MatchPill match={nextMatch} compact />}
             {navLinks.map(({ href, label }) => (
               <Link
@@ -110,86 +110,57 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
           </div>
         )}
 
-        <aside
-          className="hidden h-screen flex-col md:flex"
-          style={{
-            width: "180px",
-            minWidth: "180px",
-            maxWidth: "180px",
-            background: "#ffffff",
-            color: "#111111",
-          }}
-        >
-          <div className="border-b border-[#d8d2c8] px-5 py-6">
-            <Link
-              href="/"
-              className="flex flex-col items-center text-center transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              <Image
-                src={VIF_LOGO_URL}
-                alt=""
-                aria-hidden="true"
-                width={62}
-                height={69}
-                className="h-[4.25rem] w-auto drop-shadow-[0_10px_24px_rgba(0,0,0,0.12)]"
-                priority
-              />
-              <p className="mt-3 font-display text-[2.05rem] leading-[0.88] tracking-tight text-[#111111]">
-                Vanløse IF
-              </p>
-            </Link>
+        <div className="hidden h-16 items-center gap-5 border-b border-[#d8d2c8] bg-white px-6 lg:flex">
+          {/* Logo */}
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          >
+            <Image
+              src={VIF_LOGO_URL}
+              alt=""
+              aria-hidden="true"
+              width={40}
+              height={44}
+              className="h-9 w-auto"
+              priority
+            />
+            <span className="font-display text-lg leading-none tracking-tight text-[#111111]">
+              Vanløse IF
+            </span>
+          </Link>
+
+          {/* Links */}
+          <div className="flex flex-1 items-center gap-1">
+            {navLinks.map(({ href, label }) => {
+              const active = pathname === href || pathname.startsWith(href + "/");
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`whitespace-nowrap border-b-2 px-3 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 ${
+                    active
+                      ? "border-[#dc2626] text-[#111111]"
+                      : "border-transparent text-[#4a4540] hover:text-[#111111]"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="py-2">
-              {navLinks.map(({ href, label }) => {
-                const active = pathname === href || pathname.startsWith(href + "/");
-
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={`group flex items-center justify-between border-b border-[#d8d2c8] px-5 py-3.5 text-[0.72rem] font-semibold uppercase tracking-[0.22em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-inset ${
-                      active
-                        ? "bg-[#f5f1ea] text-[#111111] shadow-[inset_3px_0_0_#dc2626]"
-                        : "text-[#111111] hover:bg-[#f5f1ea] hover:text-[#111111]"
-                    }`}
-                  >
-                    <span>{label}</span>
-                    <ChevronRight
-                      size={14}
-                      className={`transition-transform ${
-                        active ? "translate-x-0 text-[#d73a45]" : "text-[#7d766f] group-hover:translate-x-0.5 group-hover:text-[#111111]"
-                      }`}
-                    />
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="border-t border-[#d8d2c8] px-5 py-4">
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex w-full items-center justify-between border border-[#111111] px-4 py-3 text-left text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#f5f1ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80"
-              aria-label="Søg"
-            >
-              <span>Søg</span>
-              <Search size={14} />
-            </button>
-
-            <div className="mt-5 border-t border-[#d8d2c8] pt-4">
-              <p className="text-[0.56rem] font-semibold uppercase tracking-[0.26em] text-[#7d766f]">
-                Vanløse Idrætspark
-              </p>
-              <p className="mt-2 text-[0.72rem] leading-relaxed text-[#3d3934]">
-                Klitmøllervej 20
-                <br />
-                2720 Vanløse
-              </p>
-            </div>
-          </div>
-        </aside>
+          {/* Search */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex shrink-0 items-center gap-2 border border-[#111111] px-4 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#111111] transition-colors hover:bg-[#f5f1ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80"
+            aria-label="Søg"
+          >
+            <span>Søg</span>
+            <Search size={14} />
+          </button>
+        </div>
       </nav>
 
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}

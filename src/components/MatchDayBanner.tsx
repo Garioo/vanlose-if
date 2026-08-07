@@ -17,7 +17,7 @@ export default function MatchDayBanner({ match }: Props) {
   return (
     <Link
       href={`/kampe/${match.id}`}
-      className="flex items-center justify-center gap-2 h-10 bg-red-600 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-red-700 transition-colors px-4"
+      className="flex items-center justify-center gap-2 h-10 bg-accent text-white text-[11px] font-bold uppercase tracking-widest hover:bg-accent-strong transition-colors px-4"
     >
       {isLive && (
         <span className="relative flex h-2 w-2 shrink-0">

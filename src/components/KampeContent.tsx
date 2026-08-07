@@ -135,11 +135,13 @@ export default function KampeContent({
                     >
                       <div className="border-b border-[#e0dbd3] bg-[#edeae3]/60 px-5 py-3 text-center md:px-6">
                         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6b6560]">
-                          {match.gruppe === "oprykning"
-                            ? "Oprykningsspil"
-                            : match.gruppe === "nedrykning"
-                              ? "Nedrykningsspil"
-                              : "3. Division"}
+                          {match.match_type === "cup"
+                            ? "Pokalturnering"
+                            : match.gruppe === "oprykning"
+                              ? "Oprykningsspil"
+                              : match.gruppe === "nedrykning"
+                                ? "Nedrykningsspil"
+                                : "3. Division"}
                         </p>
                         <div className="mt-2 text-2xl font-bold leading-tight text-black md:text-[2rem]">
                           {formatMatchDate(match.date)}
@@ -148,7 +150,7 @@ export default function KampeContent({
                           {match.time ? `Kl. ${match.time}` : "Tid kommer"}
                         </div>
                         {match.status === "live" && (
-                          <div className="mx-auto mt-3 flex w-fit items-center gap-1.5 bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
+                          <div className="mx-auto mt-3 flex w-fit items-center gap-1.5 bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
                             <span className="live-pulse inline-block h-1.5 w-1.5 rounded-full bg-white" />
                             LIVE
                           </div>
@@ -176,7 +178,7 @@ export default function KampeContent({
                       </div>
 
                       <div className="border-t border-[#e0dbd3] px-5 py-4 text-center md:px-6">
-                        <span className="text-sm font-bold text-red-600 underline decoration-red-600/60 underline-offset-4">
+                        <span className="text-sm font-bold text-accent underline decoration-accent/60 underline-offset-4">
                           Se kampdetaljer
                         </span>
                         <p className="mt-2 text-xs text-[#6b6560]">

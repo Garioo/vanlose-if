@@ -19,6 +19,7 @@ const emptyMatch = {
   result: "",
   status: "scheduled" as Match["status"],
   gruppe: "regular",
+  match_type: "league",
 };
 
 function normalizeName(value: string): string {
@@ -101,6 +102,10 @@ export default function AdminKampePage() {
   const [error, setError] = useState<string | null>(null);
   const [matchFilter, setMatchFilter] = useState("");
   const [nowMs, setNowMs] = useState(() => Date.now());
+  // Season scoping: "" = current season (default); a specific season or "all" reaches the archive.
+  const [seasonView, setSeasonView] = useState("");
+  const [seasons, setSeasons] = useState<string[]>([]);
+  const [currentSeason, setCurrentSeason] = useState<string | null>(null);
 
   const getHomeTurf = useCallback(
     (teamId: string) => teams.find((t) => t.id === teamId)?.home_turf?.trim() ?? "",
@@ -132,8 +137,9 @@ export default function AdminKampePage() {
   }, []);
 
   const load = useCallback(async () => {
+    const matchesUrl = seasonView ? `/api/matches?season=${encodeURIComponent(seasonView)}` : "/api/matches";
     const [matchesRes, teamsRes] = await Promise.all([
-      fetch("/api/matches"),
+      fetch(matchesUrl),
       fetch("/api/teams"),
     ]);
 
@@ -148,11 +154,26 @@ export default function AdminKampePage() {
 
     setMatches(nextMatches);
     setTeams(Array.isArray(teamsData) ? teamsData : []);
-  }, []);
+  }, [seasonView]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/seasons")
+      .then((res) => res.json())
+      .then((data: { current?: string; seasons?: string[] }) => {
+        if (cancelled) return;
+        setCurrentSeason(data.current ?? null);
+        setSeasons(Array.isArray(data.seasons) ? data.seasons : []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 1000);
@@ -252,6 +273,7 @@ export default function AdminKampePage() {
       result: m.result ?? "",
       status: m.status ?? "scheduled",
       gruppe: m.gruppe ?? "regular",
+      match_type: m.match_type ?? "league",
     });
   }
 
@@ -273,11 +295,11 @@ export default function AdminKampePage() {
         <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label className={labelCls}>Dato</label>
-            <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={inputCls} required />
+            <input type="date" lang="en-GB" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={inputCls} required />
           </div>
           <div>
             <label className={labelCls}>Tidspunkt</label>
-            <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className={inputCls} step={60} />
+            <input type="time" lang="en-GB" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className={inputCls} step={60} />
           </div>
           <div>
             <label className={labelCls}>Hjemmehold</label>
@@ -311,6 +333,13 @@ export default function AdminKampePage() {
             <select value={form.is_upcoming ? "1" : "0"} onChange={(e) => setForm({ ...form, is_upcoming: e.target.value === "1" })} className={`${inputCls} bg-white`}>
               <option value="1">Kommende</option>
               <option value="0">Spillet</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Kamptype</label>
+            <select value={form.match_type} onChange={(e) => setForm({ ...form, match_type: e.target.value })} className={`${inputCls} bg-white`}>
+              <option value="league">Liga</option>
+              <option value="cup">Pokalkamp</option>
             </select>
           </div>
           <div>
@@ -360,14 +389,34 @@ export default function AdminKampePage() {
 
       <div className="bg-white border border-gray-200 mb-8">
         <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 space-y-3">
-          <label className={labelCls}>Find kamp</label>
-          <input
-            type="text"
-            value={matchFilter}
-            onChange={(e) => setMatchFilter(e.target.value)}
-            className={inputCls}
-            placeholder="Søg på hold, bane eller dato..."
-          />
+          <div>
+            <label className={labelCls}>Sæson</label>
+            <select
+              value={seasonView}
+              onChange={(e) => setSeasonView(e.target.value)}
+              className={`${inputCls} bg-white`}
+            >
+              <option value="">Nuværende sæson{currentSeason ? ` (${currentSeason})` : ""}</option>
+              {seasons
+                .filter((s) => s !== currentSeason)
+                .map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              <option value="all">Alle sæsoner</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Find kamp</label>
+            <input
+              type="text"
+              value={matchFilter}
+              onChange={(e) => setMatchFilter(e.target.value)}
+              className={inputCls}
+              placeholder="Søg på hold, bane eller dato..."
+            />
+          </div>
         </div>
         <div className="hidden md:grid grid-cols-12 text-[9px] font-bold tracking-widest uppercase text-gray-400 px-4 py-3 border-b border-gray-200 bg-gray-50">
           <span className="col-span-2">Dato</span>
@@ -382,7 +431,14 @@ export default function AdminKampePage() {
             <div className="md:hidden px-4 py-3 space-y-1.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
+                  <p className="text-xs font-bold uppercase truncate">
+                    {m.home} — {m.away}
+                    {m.match_type === "cup" && (
+                      <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase bg-accent-soft text-accent align-middle">
+                        Pokal
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[10px] text-gray-400">{formatMatchDateTime(m)}</p>
                 </div>
                 <span className={`text-[10px] font-bold uppercase shrink-0 ${m.status === "live" ? "text-red-500" : m.status === "finished" ? "text-gray-500" : "text-blue-500"}`}>
@@ -405,6 +461,11 @@ export default function AdminKampePage() {
                 <p className="text-xs font-bold uppercase truncate">{m.home} — {m.away}</p>
                 <p className="text-[10px] text-gray-400 truncate">
                   {m.venue || "Bane mangler"}
+                  {m.match_type === "cup" && (
+                    <span className="ml-2 inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase bg-accent-soft text-accent">
+                      Pokal
+                    </span>
+                  )}
                   {m.gruppe && m.gruppe !== "regular" && (
                     <span className={`ml-2 inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase ${m.gruppe === "oprykning" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {m.gruppe === "oprykning" ? "Oprykning" : "Nedrykning"}

@@ -2,14 +2,17 @@ import Footer from "@/components/Footer";
 import SiteShell from "@/components/SiteShell";
 import { supabase, type Match } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
+import { getCurrentSeason } from "@/lib/season";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const today = new Date().toISOString().split("T")[0];
+  const currentSeason = await getCurrentSeason();
 
   const { data: matchData } = await supabase
     .from("matches")
     .select("*")
-    .in("status", ["scheduled", "live"]);
+    .in("status", ["scheduled", "live"])
+    .or(`season.eq.${currentSeason},season.is.null`);
 
   const matches = (matchData ?? []) as Match[];
 

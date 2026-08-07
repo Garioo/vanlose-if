@@ -38,7 +38,7 @@ export default async function News() {
           <Link
             key={article.id}
             href={`/nyheder/${article.slug}`}
-            className={`card-accent card-lift group block border border-[#e0dbd3] hover:border-black transition-colors duration-200 reveal reveal-delay-${i + 1}`}
+            className={`card-accent card-lift group block border border-[#e0dbd3] hover:border-accent transition-colors duration-200 reveal reveal-delay-${i + 1}`}
           >
             <div className="aspect-video bg-[#edeae3] relative overflow-hidden">
               {article.image_url ? (

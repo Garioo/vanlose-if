@@ -194,7 +194,7 @@ export default async function DashboardPage() {
             <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-gray-500 mb-0.5 flex items-center">
               {s.label}
               {"badge" in s && s.badge != null && s.badge > 0 && (
-                <span className="inline-block bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 ml-2 leading-none">
+                <span className="inline-block bg-accent text-white text-[9px] font-bold px-1.5 py-0.5 ml-2 leading-none">
                   {s.badge} NY
                 </span>
               )}
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2.5"
-                className="text-gray-400 group-hover:text-red-600 transition-colors shrink-0"
+                className="text-gray-400 group-hover:text-accent transition-colors shrink-0"
               >
                 <path d="M5 12h14m-7-7 7 7-7 7" />
               </svg>

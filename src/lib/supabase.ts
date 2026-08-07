@@ -55,9 +55,12 @@ export interface Match {
   result: "win" | "draw" | "loss" | null;
   is_upcoming: boolean;
   gruppe: string; // 'regular' | 'oprykning' | 'nedrykning'
+  season: string | null; // e.g. '2025/26'; null on rows created before multi-season
+  match_type: MatchType; // 'league' (default) | 'cup' (Pokalkamp)
 }
 
 export type MatchStatus = "scheduled" | "live" | "finished";
+export type MatchType = "league" | "cup";
 export type LivePhase = "pre_match" | "first_half" | "halftime" | "second_half" | "fulltime";
 
 export type MatchEventType =
@@ -120,6 +123,7 @@ export interface Standing {
   pts: number;
   highlight: boolean;
   gruppe: string; // 'regular' | 'oprykning' | 'nedrykning'
+  season: string | null; // e.g. '2025/26'; null on rows created before multi-season
 }
 
 export interface Team {

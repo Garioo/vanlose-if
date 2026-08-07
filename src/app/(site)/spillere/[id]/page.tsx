@@ -87,7 +87,7 @@ export default async function SpillereProfilePage({ params }: Props) {
             </svg>
             Truppen
           </Link>
-          <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#dc2626] mb-2">
+          <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-accent mb-2">
             {positionLabel[player.position] ?? player.position}
           </p>
           <h1 className="font-display text-5xl md:text-7xl leading-[0.9] tracking-tight mb-1">

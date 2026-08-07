@@ -3,6 +3,7 @@ import KampeContent from "@/components/KampeContent";
 import { supabase } from "@/lib/supabase";
 import type { Match, Standing } from "@/lib/supabase";
 import { buildPageMetadata } from "@/lib/metadata";
+import { getCurrentSeason } from "@/lib/season";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Kampprogram — Vanløse IF",
@@ -11,24 +12,23 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function KampePage() {
-  const [{ data: matchData }, { data: standingsData }, { data: settingsData }, { data: teamsData }] = await Promise.all([
-    supabase.from("matches").select("*").order("kickoff_at", { ascending: true, nullsFirst: false }),
-    supabase.from("standings").select("*").order("pos", { ascending: true }),
-    supabase.from("site_settings").select("key, value"),
+  const currentSeason = await getCurrentSeason();
+  // Legacy rows created before multi-season have a null season — show them under the current season.
+  const seasonFilter = `season.eq.${currentSeason},season.is.null`;
+  const [{ data: matchData }, { data: standingsData }, { data: teamsData }] = await Promise.all([
+    supabase.from("matches").select("*").or(seasonFilter).order("kickoff_at", { ascending: true, nullsFirst: false }),
+    supabase.from("standings").select("*").or(seasonFilter).order("pos", { ascending: true }),
     supabase.from("teams").select("id, logo_url, abbreviation"),
   ]);
 
   const matches: Match[] = matchData ?? [];
   const standings: Standing[] = standingsData ?? [];
-  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
   const teamLogoMap = Object.fromEntries(
     (teamsData ?? []).map((team) => [team.id, team.logo_url as string | null]),
   );
   const teamAbbreviationMap = Object.fromEntries(
     (teamsData ?? []).map((team) => [team.id, (team as { abbreviation?: string | null }).abbreviation ?? null]),
   );
-  const currentSeason = settingsMap["current_season"] ?? "2025/26";
-
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">
       {/* Page header */}

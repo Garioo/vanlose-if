@@ -73,7 +73,7 @@ export default async function ArticlePage({ params }: Props) {
           {article.title}
         </h1>
 
-        <p className="text-base text-[#6b6560] leading-relaxed border-l-2 border-[#dc2626] pl-4">
+        <p className="text-base text-[#6b6560] leading-relaxed border-l-2 border-accent pl-4">
           {article.excerpt}
         </p>
       </section>
@@ -102,7 +102,7 @@ export default async function ArticlePage({ params }: Props) {
       {related && related.length > 0 && (
         <section className="px-4 md:px-8 py-16 border-t border-[#e0dbd3] bg-[#f0ece4]">
           <div className="max-w-5xl mx-auto">
-            <h2 className="font-display text-4xl md:text-5xl leading-[0.9] border-l-4 border-[#dc2626] pl-4 mb-8">LÆS OGSÅ</h2>
+            <h2 className="font-display text-4xl md:text-5xl leading-[0.9] border-l-4 border-accent pl-4 mb-8">LÆS OGSÅ</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {related.map((a: Article) => (
                 <Link

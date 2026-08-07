@@ -27,6 +27,10 @@ function normalizeMatchStatus(value: unknown): "scheduled" | "live" | "finished"
   return "scheduled";
 }
 
+function normalizeMatchType(value: unknown): "league" | "cup" {
+  return normalizeText(value).toLowerCase() === "cup" ? "cup" : "league";
+}
+
 export async function buildMatchWritePayload(body: unknown) {
   const input = (body ?? {}) as Record<string, unknown>;
   const date = normalizeText(input.date);
@@ -81,5 +85,6 @@ export async function buildMatchWritePayload(body: unknown) {
     period_label: periodLabel,
     matchday_notes: matchdayNotes,
     gruppe: normalizeText(input.gruppe) || "regular",
+    match_type: normalizeMatchType(input.match_type),
   };
 }

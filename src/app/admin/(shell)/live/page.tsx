@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Match, MatchEvent, MatchLineup, Player, LineupPlayerSlot } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
@@ -218,6 +218,12 @@ export default function AdminLivePage() {
   const [matchdayNotes, setMatchdayNotes] = useState("");
   const [matchFilter, setMatchFilter] = useState("");
 
+  // Season scoping: "" means the current season (default). A specific season or
+  // "all" lets the admin reach the archive of past seasons.
+  const [seasonView, setSeasonView] = useState("");
+  const [seasons, setSeasons] = useState<string[]>([]);
+  const [currentSeason, setCurrentSeason] = useState<string | null>(null);
+
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const selectedMatch = useMemo(
@@ -254,8 +260,9 @@ export default function AdminLivePage() {
   }, []);
 
   const load = useCallback(async () => {
+    const matchesUrl = seasonView ? `/api/matches?season=${encodeURIComponent(seasonView)}` : "/api/matches";
     const [matchesRes, playersRes] = await Promise.all([
-      fetch("/api/matches"),
+      fetch(matchesUrl),
       fetch("/api/players"),
     ]);
 
@@ -283,7 +290,7 @@ export default function AdminLivePage() {
       }
       return nextMatches[0]?.id ?? null;
     });
-  }, [requestedMatchId]);
+  }, [requestedMatchId, seasonView]);
 
   const loadMatchday = useCallback(async (matchId: string, teamSide: "home" | "away") => {
     const opponentSide = teamSide === "home" ? "away" : "home";
@@ -334,12 +341,32 @@ export default function AdminLivePage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/seasons")
+      .then((res) => res.json())
+      .then((data: { current?: string; seasons?: string[] }) => {
+        if (cancelled) return;
+        setCurrentSeason(data.current ?? null);
+        setSeasons(Array.isArray(data.seasons) ? data.seasons : []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     void load();
   }, [load]);
 
+  // Apply the ?match= deep-link exactly once, so live actions (which mutate
+  // `matches`) can never snap the selection back to the deep-linked match.
+  const appliedRequestedRef = useRef(false);
   useEffect(() => {
+    if (appliedRequestedRef.current) return;
     if (!requestedMatchId) return;
     if (!matches.some((m) => m.id === requestedMatchId)) return;
+    appliedRequestedRef.current = true;
     setSelectedMatchId(requestedMatchId);
   }, [requestedMatchId, matches]);
 
@@ -690,6 +717,24 @@ export default function AdminLivePage() {
 
       <div className="bg-white border border-gray-200 mb-8">
         <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 space-y-3">
+          <div>
+            <label className={labelCls}>Sæson</label>
+            <select
+              value={seasonView}
+              onChange={(e) => setSeasonView(e.target.value)}
+              className={`${inputCls} bg-white`}
+            >
+              <option value="">Nuværende sæson{currentSeason ? ` (${currentSeason})` : ""}</option>
+              {seasons
+                .filter((s) => s !== currentSeason)
+                .map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              <option value="all">Alle sæsoner</option>
+            </select>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Find kamp</label>

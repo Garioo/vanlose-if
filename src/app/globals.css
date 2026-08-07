@@ -3,22 +3,33 @@
 :root {
   --background:    #f7f4ef;
   --foreground:    #0d0d0b;
-  --color-accent:  #dc2626;
+  /* Brand accent — deep navy */
+  --accent:        #1e3a5f;
+  --accent-strong: #16304d;
+  --accent-soft:   #eaf0f7;
+  --accent-fg:     #ffffff;
+  /* Brighter variant for legibility on dark/navy backgrounds */
+  --accent-bright: #5b8dd6;
   --surface:       #edeae3;
   --border:        #e0dbd3;
   --muted:         #8a847c;
-  --footer-bg:     #141412;
-  --newsletter-bg: #1a1816;
+  --footer-bg:     #0d1a2b;
+  --newsletter-bg: #0f2137;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface:    var(--surface);
-  --color-border:     var(--border);
-  --color-muted:      var(--muted);
-  --font-sans:        var(--font-outfit);
-  --font-display:     var(--font-bebas);
+  --color-background:     var(--background);
+  --color-foreground:     var(--foreground);
+  --color-accent:         var(--accent);
+  --color-accent-strong:  var(--accent-strong);
+  --color-accent-soft:    var(--accent-soft);
+  --color-accent-fg:      var(--accent-fg);
+  --color-accent-bright:  var(--accent-bright);
+  --color-surface:        var(--surface);
+  --color-border:         var(--border);
+  --color-muted:          var(--muted);
+  --font-sans:            var(--font-outfit);
+  --font-display:         var(--font-bebas);
 }
 
 html { scroll-behavior: smooth; background: var(--background); }
@@ -32,7 +43,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection { background: var(--color-accent); color: #fff; }
+::selection { background: var(--accent); color: var(--accent-fg); }
 
 :focus-visible { outline: 2px solid #111; outline-offset: 2px; }
 
@@ -81,8 +92,8 @@ body {
 }
 @keyframes vif-score-flash {
   0%, 100% { background: transparent; color: inherit; }
-  20%       { background: #dc2626; color: #fff; }
-  60%       { background: #dc2626; color: #fff; }
+  20%       { background: var(--accent); color: var(--accent-fg); }
+  60%       { background: var(--accent); color: var(--accent-fg); }
 }
 @keyframes vif-digit-flip {
   0%   { transform: translateY(0);     opacity: 1; }
@@ -136,7 +147,7 @@ body {
 .card-accent::after {
   content: "";
   position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: #dc2626;
+  background: var(--accent);
   transform: scaleX(0); transform-origin: left;
   transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
 }
@@ -187,10 +198,10 @@ body {
 }
 .prose-vif a {
   color: #0d0d0b; text-decoration: underline;
-  text-decoration-color: #dc2626; text-underline-offset: 3px;
+  text-decoration-color: var(--accent); text-underline-offset: 3px;
 }
 .prose-vif blockquote {
-  border-left: 3px solid #dc2626; padding-left: 1.25rem;
+  border-left: 3px solid var(--accent); padding-left: 1.25rem;
   font-style: italic; color: #4a4540; margin: 1.75em 0;
 }
 .prose-vif img { width: 100%; height: auto; margin: 2em 0; }

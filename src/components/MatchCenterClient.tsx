@@ -6,6 +6,7 @@ import type { Match, MatchEvent, MatchLineup } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
 import { isVanlose } from "@/lib/match-result";
 import { formatLiveClock } from "@/lib/live-clock";
+import { formatMatchDate } from "@/lib/matchDate";
 import LineupPitch, { type PlayerEventSummary } from "@/components/LineupPitch";
 
 type Props = {
@@ -275,17 +276,17 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
         <div
           className="relative overflow-hidden"
           style={{
-            background: "linear-gradient(160deg, #0d0d0b 0%, #1a1a17 60%, #0d0d0b 100%)",
+            background: "linear-gradient(160deg, #0a1523 0%, #12283f 60%, #0a1523 100%)",
           }}
         >
-          {/* Red top accent bar */}
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#e63329]" />
+          {/* Navy top accent bar */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[var(--accent-bright)]" />
 
           <div className="relative px-6 md:px-10 py-8 md:py-10">
             {/* Status row */}
             <div className="flex items-center gap-3 mb-4">
               {isLive ? (
-                <span className="inline-flex items-center gap-2 bg-[#e63329] text-white px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
+                <span className="inline-flex items-center gap-2 bg-[var(--accent-bright)] text-white px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
                   <span className="inline-block w-[7px] h-[7px] rounded-full bg-white animate-pulse" />
                   LIVE
                 </span>
@@ -295,7 +296,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 </span>
               )}
               {isLive && (
-                <span className="font-display text-3xl md:text-4xl tracking-widest" style={{ color: "#e63329" }}>
+                <span className="font-display text-3xl md:text-4xl tracking-widest" style={{ color: "var(--accent-bright)" }}>
                   {liveClock}
                 </span>
               )}
@@ -375,7 +376,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           <div className="border-t border-white/10 px-6 md:px-10 py-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-6 text-[11px] text-white/50">
               <span>
-                {match.date}{match.time ? ` · Kl. ${match.time}` : ""}
+                {formatMatchDate(match.date)}{match.time ? ` · Kl. ${match.time}` : ""}
               </span>
               {match.venue && (
                 <>
@@ -386,7 +387,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
             </div>
             <a
               href="#tidslinje"
-              className="text-[10px] font-bold tracking-widest uppercase text-[#e63329] hover:text-white transition-colors"
+              className="text-[10px] font-bold tracking-widest uppercase text-[var(--accent-bright)] hover:text-white transition-colors"
             >
               Følg kampen ↓
             </a>
@@ -404,8 +405,8 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display text-3xl tracking-tight">LIVE TIDSLINJE</h2>
             {isLive && (
-              <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase text-[#e63329]">
-                <span className="inline-block w-[6px] h-[6px] rounded-full bg-[#e63329] animate-pulse" />
+              <span className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase text-accent">
+                <span className="inline-block w-[6px] h-[6px] rounded-full bg-accent animate-pulse" />
                 Opdateres live
               </span>
             )}
@@ -422,14 +423,14 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
               {/* Team header */}
               <div className="grid grid-cols-[1fr_44px_1fr] border-b border-[#e0dbd3] bg-[#f7f4ef]">
                 <div className="px-3 py-2 text-right">
-                  <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${isHome ? "text-[#dc2626]" : "text-[#6b7280]"}`}>
+                  <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${isHome ? "text-accent" : "text-[#6b7280]"}`}>
                     {match.home}
                   </p>
                   <p className="text-[8px] text-[#c0bab3] uppercase tracking-widest">Hjemme</p>
                 </div>
                 <div className="border-x border-[#e0dbd3]" />
                 <div className="px-3 py-2">
-                  <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${!isHome ? "text-[#dc2626]" : "text-[#6b7280]"}`}>
+                  <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${!isHome ? "text-accent" : "text-[#6b7280]"}`}>
                     {match.away}
                   </p>
                   <p className="text-[8px] text-[#c0bab3] uppercase tracking-widest">Ude</p>
@@ -608,7 +609,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
       {/* Matchday note */}
       {match.matchday_notes && (
         <section className="max-w-7xl mx-auto px-4 md:px-8 pb-16">
-          <div className="border-l-[3px] border-[#e63329] bg-white/60 border border-[#e0dbd3] px-6 py-5">
+          <div className="border-l-[3px] border-accent bg-white/60 border border-[#e0dbd3] px-6 py-5">
             <p className="text-[9px] font-bold tracking-widest uppercase text-[#8a847c] mb-2">Kampnote</p>
             <p className="text-sm text-[#0d0d0b] leading-relaxed">{match.matchday_notes}</p>
           </div>

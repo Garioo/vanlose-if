@@ -3,7 +3,7 @@ import TruppenFilter from "@/components/TruppenFilter";
 import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { supabase } from "@/lib/supabase";
 import type { Player, Match, Standing, PlayerStats, Staff } from "@/lib/supabase";
-import { sortMatchesByKickoff } from "@/lib/matchDate";
+import { sortMatchesByKickoff, formatMatchDate } from "@/lib/matchDate";
 import { buildPageMetadata } from "@/lib/metadata";
 import { getTeamOutcome, isVanlose } from "@/lib/match-result";
 import { sortPlayersByNumber } from "@/lib/playerSort";
@@ -27,8 +27,8 @@ export default async function ForsteholdetPage() {
 
   const [{ data: playerData }, { data: matchData }, { data: standingsData }, { data: statsData }, { data: staffData }] = await Promise.all([
     supabase.from("players").select("*"),
-    supabase.from("matches").select("*").eq("is_upcoming", false),
-    supabase.from("standings").select("*").order("pos", { ascending: true }),
+    supabase.from("matches").select("*").eq("is_upcoming", false).or(`season.eq.${currentSeason},season.is.null`),
+    supabase.from("standings").select("*").or(`season.eq.${currentSeason},season.is.null`).order("pos", { ascending: true }),
     supabase.from("player_stats").select("*, players(id, name, number, position)").eq("season", currentSeason).order("goals", { ascending: false }),
     supabase.from("staff").select("*").order("display_order", { ascending: true }),
   ]);
@@ -99,7 +99,7 @@ export default async function ForsteholdetPage() {
             <div className="space-y-2">
               {results.map((r) => (
                 <div key={r.id} className="flex items-center justify-between bg-[#f7f4ef] border border-[#e0dbd3] p-4 gap-4">
-                  <span className="text-[10px] font-bold text-[#8a847c] w-14 shrink-0">{r.date}</span>
+                  <span className="text-[10px] font-bold text-[#8a847c] w-14 shrink-0">{formatMatchDate(r.date)}</span>
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-1 justify-end">
                       <span className="text-xs font-bold uppercase truncate">{r.home}</span>

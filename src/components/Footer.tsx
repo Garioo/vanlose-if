@@ -58,7 +58,7 @@ export default async function Footer() {
   ].filter(({ href }) => href);
 
   return (
-    <footer className="noise-overlay bg-[#141412] text-white pt-16 pb-8 px-4 md:px-8 border-t border-[#2a2825]">
+    <footer className="noise-overlay bg-[#0d1a2b] text-white pt-16 pb-8 px-4 md:px-8 border-t border-[#1c3049]">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Logo & Address */}
@@ -131,7 +131,7 @@ export default async function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-[#2a2825] pt-6 flex flex-col md:flex-row justify-between items-center gap-2">
+        <div className="border-t border-[#1c3049] pt-6 flex flex-col md:flex-row justify-between items-center gap-2">
           <p className="text-[10px] text-[#5a5550] uppercase tracking-wider">
             &copy; 2026 Vanløse Idræts Forening. Alle rettigheder forbeholdes.
           </p>

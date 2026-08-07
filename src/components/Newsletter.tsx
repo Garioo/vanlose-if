@@ -11,7 +11,7 @@ export default function Newsletter() {
   const [error, setError] = useState("");
 
   return (
-    <section className="noise-overlay py-16 md:py-24 bg-[#1a1816]">
+    <section className="noise-overlay py-16 md:py-24 bg-[#0f2137]">
       <div className="max-w-2xl mx-auto px-4 md:px-8 text-center">
         <h2 className="font-display text-3xl md:text-5xl lg:text-6xl leading-[0.9] mb-8 text-white">
           Gå aldrig glip af en kamp
@@ -64,12 +64,12 @@ export default function Newsletter() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Din e-mail adresse"
             required
-            className="flex-1 px-4 py-3 bg-[#f7f4ef] border border-[#3a3733] text-sm placeholder:text-[#8a847c] focus:outline-none focus:border-[#f7f4ef] transition-colors"
+            className="flex-1 px-4 py-3 bg-[#f7f4ef] border border-[#2f4a66] text-sm placeholder:text-[#8a847c] focus:outline-none focus:border-[#f7f4ef] transition-colors"
           />
           <button
             type="submit"
             disabled={loading}
-            className="bg-[#dc2626] text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-red-700 transition-colors"
+            className="bg-accent text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-accent-strong transition-colors"
           >
             {loading ? "..." : "Tilmeld"}
           </button>

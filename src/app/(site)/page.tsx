@@ -9,6 +9,7 @@ import { buildPageMetadata } from "@/lib/metadata";
 import { supabase, type Match, type Player, type VolunteerRole } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
+import { getCurrentSeason } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,10 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function Home() {
+  const currentSeason = await getCurrentSeason();
   const [{ data: matchData }, { data: playerData }, { data: settingsData }, { data: rolesData }, { data: teamsData }] =
     await Promise.all([
-      supabase.from("matches").select("*").eq("is_upcoming", true),
+      supabase.from("matches").select("*").eq("is_upcoming", true).or(`season.eq.${currentSeason},season.is.null`),
       supabase.from("players").select("*"),
       supabase.from("site_settings").select("key, value").in("key", ["hero_image_url", "volunteer_image", "youth_image"]),
       supabase.from("volunteer_roles").select("*").order("display_order", { ascending: true }),

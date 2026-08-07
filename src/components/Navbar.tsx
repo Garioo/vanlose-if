@@ -7,6 +7,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import SearchOverlay from "@/components/SearchOverlay";
 import type { Match } from "@/lib/supabase";
+import { formatMatchDate } from "@/lib/matchDate";
 
 const VIF_LOGO_URL = "/uploads/b479f1c8-7804-4e16-81a1-039a647b1628.png";
 
@@ -29,13 +30,13 @@ function MatchPill({ match, compact = false }: { match: Match; compact?: boolean
   return (
     <Link
       href={`/kampe/${match.id}`}
-      className={`flex items-center gap-2 border border-red-600 text-[10px] font-bold uppercase tracking-widest text-red-600 transition-colors hover:bg-red-600 hover:text-white ${
+      className={`flex items-center gap-2 border border-accent text-[10px] font-bold uppercase tracking-widest text-accent transition-colors hover:bg-accent hover:text-white ${
         compact ? "px-3 py-2" : "px-4 py-3"
       }`}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
       <span className="truncate">
-        {match.date}
+        {formatMatchDate(match.date)}
         {match.time ? ` · ${match.time}` : ""}
       </span>
     </Link>
@@ -100,7 +101,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
                 onClick={() => setMobileOpen(false)}
                 className={`block rounded px-3 py-2.5 text-sm font-bold uppercase leading-relaxed tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 focus-visible:ring-offset-2 ${
                   pathname === href || pathname.startsWith(href + "/")
-                    ? "bg-red-600 text-white"
+                    ? "bg-accent text-white"
                     : "text-[#4a4540] hover:bg-[#e0dbd3] hover:text-black"
                 }`}
               >
@@ -110,7 +111,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
           </div>
         )}
 
-        <div className="hidden h-16 items-center gap-5 border-b border-[#d8d2c8] bg-white px-6 lg:flex">
+        <div className="hidden h-16 items-center gap-5 border-t-2 border-t-accent border-b border-b-[#d8d2c8] bg-white px-6 lg:flex">
           {/* Logo */}
           <Link
             href="/"
@@ -141,7 +142,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
                   href={href}
                   className={`whitespace-nowrap border-b-2 px-3 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 ${
                     active
-                      ? "border-[#dc2626] text-[#111111]"
+                      ? "border-accent text-[#111111]"
                       : "border-transparent text-[#4a4540] hover:text-[#111111]"
                   }`}
                 >

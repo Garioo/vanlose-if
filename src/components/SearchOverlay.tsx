@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import type { Article, Player, Match } from "@/lib/supabase";
+import { formatMatchDate } from "@/lib/matchDate";
 
 interface SearchOverlayProps {
   onClose: () => void;
@@ -184,7 +185,7 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
                       {match.home} vs {match.away}
                     </h3>
                     <p className="text-[10px] text-[#8a847c] mt-0.5 uppercase tracking-widest">
-                      {match.date}{match.time ? ` · ${match.time}` : ""} · {match.status === "live" ? "LIVE" : match.status === "finished" ? "SLUT" : "KOMMENDE"}
+                      {formatMatchDate(match.date)}{match.time ? ` · ${match.time}` : ""} · {match.status === "live" ? "LIVE" : match.status === "finished" ? "SLUT" : "KOMMENDE"}
                     </p>
                   </div>
                   <ArrowIcon />

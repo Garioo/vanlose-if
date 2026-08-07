@@ -73,6 +73,10 @@ ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS matchday_notes text;
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS home_team_id uuid;
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS away_team_id uuid;
 ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS gruppe text NOT NULL DEFAULT 'regular';
+ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS season text;
+CREATE INDEX IF NOT EXISTS matches_season_idx ON public.matches (season);
+-- Competition type: 'league' (default) or 'cup' (Pokalkamp).
+ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS match_type text NOT NULL DEFAULT 'league';
 
 DO $$
 BEGIN
@@ -110,6 +114,8 @@ ALTER TABLE public.standings ADD COLUMN IF NOT EXISTS team_id uuid;
 ALTER TABLE public.standings ADD COLUMN IF NOT EXISTS goals_scored integer NOT NULL DEFAULT 0;
 ALTER TABLE public.standings ADD COLUMN IF NOT EXISTS goals_conceded integer NOT NULL DEFAULT 0;
 ALTER TABLE public.standings ADD COLUMN IF NOT EXISTS highlight boolean NOT NULL DEFAULT false;
+ALTER TABLE public.standings ADD COLUMN IF NOT EXISTS season text;
+CREATE INDEX IF NOT EXISTS standings_season_idx ON public.standings (season);
 
 -- 6. Submission inbox tables
 CREATE TABLE IF NOT EXISTS public.contact_submissions (
@@ -545,3 +551,14 @@ INSERT INTO public.site_settings (key, value, label) VALUES
   ('social_facebook', '', 'Facebook URL'),
   ('social_youtube', '', 'YouTube URL')
 ON CONFLICT (key) DO NOTHING;
+
+-- Multi-season backfill: tag any pre-existing matches / standings (created
+-- before the season column existed) with the current season so they stay
+-- visible under the active season. New rows are tagged on insert by the app.
+UPDATE public.matches
+  SET season = (SELECT value FROM public.site_settings WHERE key = 'current_season')
+  WHERE season IS NULL;
+
+UPDATE public.standings
+  SET season = (SELECT value FROM public.site_settings WHERE key = 'current_season')
+  WHERE season IS NULL;

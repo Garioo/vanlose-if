@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Match } from "@/lib/supabase";
-import { getMatchSortTimestamp } from "@/lib/matchDate";
+import { getMatchSortTimestamp, formatMatchDate } from "@/lib/matchDate";
 
 type HeroProps = {
   nextMatch: Match | null;
@@ -100,7 +100,7 @@ export default function Hero({
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-gray-800 via-gray-900 to-black" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/50 to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f2137]/50 via-[#0d1a2b]/55 to-[#0a1523]/85" />
       </div>
 
       <div className={`relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 md:flex-row md:items-end md:justify-between md:px-8 md:pb-20${mounted ? " hero-enter" : ""}`}>
@@ -112,7 +112,7 @@ export default function Hero({
           <div className="hero-cta flex flex-wrap gap-3">
             <Link
               href="/bliv-medlem"
-              className="inline-block bg-red-600 px-6 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="inline-block bg-accent px-6 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-sm transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               Bliv Medlem
             </Link>
@@ -125,11 +125,11 @@ export default function Hero({
           </div>
         </div>
 
-        <div className="hero-card w-full flex-shrink-0 border border-gray-300/85 bg-white p-5 text-black shadow-xl md:w-[22rem] md:p-6">
+        <div className="hero-card w-full flex-shrink-0 border-t-2 border-t-accent border-x border-b border-x-gray-300/85 border-b-gray-300/85 bg-white p-5 text-black shadow-xl md:w-[22rem] md:p-6">
           {nextMatch && nextMatch.status === "live" ? (
             <>
               <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
+                <span className="inline-flex items-center gap-1.5 bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
                   <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                   LIVE
                 </span>
@@ -161,7 +161,7 @@ export default function Hero({
               </div>
               <Link
                 href={`/kampe/${nextMatch.id}`}
-                className="block w-full bg-red-600 py-3 text-center text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                className="block w-full bg-accent py-3 text-center text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
               >
                 Se Live
               </Link>
@@ -174,7 +174,7 @@ export default function Hero({
                 </p>
                 <div className="mb-7 text-center">
                   <div className="text-2xl font-bold leading-tight text-black md:text-[2rem]">
-                    {nextMatch.date}
+                    {formatMatchDate(nextMatch.date)}
                   </div>
                   {nextMatch.time && (
                     <div className="mt-1 text-lg font-semibold leading-none text-[#3f3a35]">
@@ -204,7 +204,7 @@ export default function Hero({
 
                 <Link
                   href={`/kampe/${nextMatch.id}`}
-                  className="block text-center text-sm font-bold text-red-600 underline decoration-red-600/60 underline-offset-4 transition-colors hover:text-red-700"
+                  className="block text-center text-sm font-bold text-accent underline decoration-accent/60 underline-offset-4 transition-colors hover:text-accent-strong"
                 >
                   Se Match Center
                 </Link>

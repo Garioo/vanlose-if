@@ -36,30 +36,37 @@ export default function AdminStillingPage() {
   const [newSeason, setNewSeason] = useState("");
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [seasonMsg, setSeasonMsg] = useState<string | null>(null);
+  // Season scoping: "" = current season (default); a specific season reaches the archive.
+  const [seasonView, setSeasonView] = useState("");
+  const [seasons, setSeasons] = useState<string[]>([]);
+  const [currentSeason, setCurrentSeason] = useState<string | null>(null);
+  const viewingPastSeason = seasonView !== "" && seasonView !== currentSeason;
 
   const load = useCallback(async () => {
+    const standingsUrl = seasonView ? `/api/standings?season=${encodeURIComponent(seasonView)}` : "/api/standings";
     const [standingsRes, teamsRes] = await Promise.all([
-      fetch("/api/standings"),
+      fetch(standingsUrl),
       fetch("/api/teams")
     ]);
-    
+
     const standingsData = await standingsRes.json();
     const teamsData = await teamsRes.json();
-    
+
     setRows(Array.isArray(standingsData) ? standingsData : []);
     setTeams(Array.isArray(teamsData) ? teamsData : []);
-  }, []);
+  }, [seasonView]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  // Prefill a suggested next season from the current one
+  // Load available seasons (archive) + current season, and prefill the suggested next season.
   useEffect(() => {
     (async () => {
-      const res = await fetch("/api/settings");
-      const data = await res.json().catch(() => []);
-      if (!Array.isArray(data)) return;
-      const current = data.find((s) => s.key === "current_season")?.value ?? "";
+      const res = await fetch("/api/seasons");
+      const data = await res.json().catch(() => ({}));
+      const current: string = data?.current ?? "";
+      setCurrentSeason(current || null);
+      setSeasons(Array.isArray(data?.seasons) ? data.seasons : []);
       const next = suggestNextSeason(current);
       if (next) setNewSeason(next);
     })();
@@ -68,7 +75,7 @@ export default function AdminStillingPage() {
   async function handleStartSeason() {
     const season = newSeason.trim();
     if (!season) { setError("Angiv en sæson (f.eks. 2025/26)."); return; }
-    if (!confirm(`Start ny sæson ${season}? Dette nulstiller stillingen til 0 og opretter tomme spillerstatistikker. Kampe bevares.`)) return;
+    if (!confirm(`Start ny sæson ${season}? Den nuværende sæson arkiveres, og der oprettes en ny, tom stilling og tomme spillerstatistikker. Tidligere sæsoners kampe og stilling bevares.`)) return;
     setSeasonLoading(true);
     setError(null);
     setSeasonMsg(null);
@@ -81,7 +88,8 @@ export default function AdminStillingPage() {
     if (!res.ok) {
       setError(data.error ?? "Kunne ikke starte ny sæson.");
     } else {
-      setSeasonMsg(`Ny sæson ${data.season} startet. Stilling nulstillet, ${data.statsSeeded} spillerstatistikker oprettet.`);
+      setSeasonMsg(`Ny sæson ${data.season} startet. Forrige sæson arkiveret, ${data.standingsReset} hold oprettet i ny stilling, ${data.statsSeeded} spillerstatistikker oprettet.`);
+      setSeasonView("");
       load();
     }
     setSeasonLoading(false);
@@ -119,7 +127,13 @@ export default function AdminStillingPage() {
     e.preventDefault();
     setError(null);
     const selectedTeam = teams.find((t) => t.id === form.team_id);
-    const payload = { ...form, team: selectedTeam?.name ?? form.team };
+    // When viewing a specific (past) season, new rows belong to that season;
+    // otherwise the API defaults them to the current season.
+    const payload = {
+      ...form,
+      team: selectedTeam?.name ?? form.team,
+      ...(seasonView && seasonView !== "all" ? { season: seasonView } : {}),
+    };
 
     if (editId) {
       const res = await fetch(`/api/standings/${editId}`, {
@@ -189,6 +203,30 @@ export default function AdminStillingPage() {
       <div className="mb-8">
         <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1">Admin</p>
         <h1 className="font-display text-3xl">STILLING</h1>
+      </div>
+
+      {/* Season selector */}
+      <div className="bg-white border border-gray-200 p-6 mb-8">
+        <label className={labelCls}>Sæson</label>
+        <select
+          value={seasonView}
+          onChange={(e) => setSeasonView(e.target.value)}
+          className={`${inputCls} bg-white max-w-xs`}
+        >
+          <option value="">Nuværende sæson{currentSeason ? ` (${currentSeason})` : ""}</option>
+          {seasons
+            .filter((s) => s !== currentSeason)
+            .map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+        </select>
+        {viewingPastSeason && (
+          <p className="mt-2 text-[11px] text-gray-500">
+            Du ser en arkiveret sæson. Split/nulstil-playoff gælder altid den nuværende sæson.
+          </p>
+        )}
       </div>
 
       {/* Form */}

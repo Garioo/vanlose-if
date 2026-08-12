@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-100 border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-gray-900 transition-colors"
+              className="w-full bg-gray-100 border border-gray-200 px-4 py-3 text-base md:text-sm focus:outline-none focus:border-gray-900 transition-colors"
               placeholder="••••••••"
               required
               autoFocus

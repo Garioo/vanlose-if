@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAdminSidebar } from "@/components/admin/AdminSidebarContext";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 // All routes verified against src/app/admin/(shell)/ directories
 const groups = [
@@ -39,6 +40,8 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { open, close } = useAdminSidebar();
 
+  useScrollLock(open);
+
   return (
     <>
       {/* Backdrop — mobile only */}
@@ -50,6 +53,7 @@ export default function AdminSidebar() {
       )}
 
       <aside
+        id="admin-sidebar"
         className={[
           "w-52 bg-white border-r border-gray-200 fixed inset-y-0 left-0 flex flex-col z-50",
           "transition-transform duration-200",
@@ -72,7 +76,7 @@ export default function AdminSidebar() {
           </Link>
           {/* Close button — mobile only */}
           <button
-            className="md:hidden p-1 text-gray-400 hover:text-gray-600"
+            className="btn-press md:hidden -mr-2 flex h-11 w-11 items-center justify-center text-gray-400 hover:text-gray-600"
             onClick={close}
             aria-label="Luk menu"
           >
@@ -87,7 +91,7 @@ export default function AdminSidebar() {
           <Link
             href="/admin/live"
             onClick={close}
-            className="flex items-center justify-center gap-2 w-full bg-accent text-white text-[10px] font-black tracking-[0.2em] uppercase px-3 py-2.5 hover:bg-accent-strong transition-colors"
+            className="btn-press flex min-h-11 items-center justify-center gap-2 w-full bg-accent text-white text-[10px] font-black tracking-[0.2em] uppercase px-3 py-2.5 hover:bg-accent-strong transition-colors"
           >
             <span className="inline-block h-2 w-2 rounded-full bg-white" />
             Live Nu
@@ -109,7 +113,7 @@ export default function AdminSidebar() {
                     href={href}
                     onClick={close}
                     className={[
-                      "flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase px-3 py-2 transition-all",
+                      "flex min-h-11 items-center gap-2 text-[11px] font-bold tracking-wider uppercase px-3 py-2 transition-all md:min-h-0",
                       isActive
                         ? "border-l-2 border-accent bg-accent-soft text-gray-900 pl-2.5"
                         : "border-l-2 border-transparent text-gray-400 hover:text-gray-500 hover:bg-gray-50 pl-2.5",

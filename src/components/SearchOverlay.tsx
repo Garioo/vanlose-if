@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import type { Article, Player, Match } from "@/lib/supabase";
 import { formatMatchDate } from "@/lib/matchDate";
 
@@ -57,6 +58,8 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
 
   const hasResults = articleHits.length > 0 || playerHits.length > 0 || matchHits.length > 0;
 
+  useScrollLock(true);
+
   useEffect(() => {
     inputRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
@@ -86,11 +89,12 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Søg i nyheder, spillere og kampe..."
-          className="flex-1 text-sm md:text-base font-bold uppercase tracking-wide bg-transparent focus:outline-none placeholder:text-[#8a847c] placeholder:normal-case placeholder:font-normal"
+          /* 16px minimum — anything smaller makes iOS Safari zoom the page on focus. */
+          className="flex-1 min-w-0 text-base font-bold uppercase tracking-wide bg-transparent focus:outline-none placeholder:text-[#8a847c] placeholder:normal-case placeholder:font-normal"
         />
         <button
           onClick={onClose}
-          className="p-2 hover:bg-[#edeae3] rounded transition-colors"
+          className="btn-press flex h-11 w-11 shrink-0 items-center justify-center hover:bg-[#edeae3] rounded transition-colors"
           aria-label="Luk søgning"
         >
           <X size={18} />
@@ -98,7 +102,7 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-8 max-w-7xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 md:px-8 py-8 max-w-7xl mx-auto w-full">
         {q.length === 0 && (
           <p className="text-xs text-[#8a847c] uppercase tracking-widest">
             Søg i nyheder, spillere og kampe

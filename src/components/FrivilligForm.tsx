@@ -59,7 +59,7 @@ export default function FrivilligForm() {
           type="text"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+          className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
           placeholder="Dit fulde navn"
           required
         />
@@ -72,7 +72,7 @@ export default function FrivilligForm() {
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+          className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
           placeholder="din@email.dk"
           required
         />
@@ -84,7 +84,7 @@ export default function FrivilligForm() {
         <select
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
-          className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
+          className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
           required
         >
           <option value="" disabled>Vælg en rolle</option>

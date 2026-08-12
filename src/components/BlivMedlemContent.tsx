@@ -126,7 +126,7 @@ export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+                  className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
                   placeholder="Dit fulde navn"
                   required
                 />
@@ -137,7 +137,7 @@ export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+                  className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
                   placeholder="+45 00 00 00 00"
                 />
               </div>
@@ -148,7 +148,7 @@ export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+                className="w-full border border-gray-300 px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
                 placeholder="din@email.dk"
                 required
               />
@@ -158,7 +158,7 @@ export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }
               <select
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
-                className="w-full border border-[#d4cfc7] px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
+                className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
                 required
               >
                 {tiers.map((t) => (

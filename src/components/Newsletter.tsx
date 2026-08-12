@@ -64,7 +64,7 @@ export default function Newsletter() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Din e-mail adresse"
             required
-            className="flex-1 px-4 py-3 bg-[#f7f4ef] border border-[#2f4a66] text-sm placeholder:text-[#8a847c] focus:outline-none focus:border-[#f7f4ef] transition-colors"
+            className="flex-1 min-w-0 px-4 py-3 bg-[#f7f4ef] border border-[#2f4a66] text-base md:text-sm placeholder:text-[#8a847c] focus:outline-none focus:border-[#f7f4ef] transition-colors"
           />
           <button
             type="submit"

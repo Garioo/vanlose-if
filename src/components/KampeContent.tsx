@@ -103,14 +103,16 @@ export default function KampeContent({
   return (
     <>
       {/* Toggle */}
-      <div className="mx-auto flex max-w-7xl justify-end border-b border-[#e0dbd3] px-4 pb-6 md:px-8">
-        <div className="flex gap-1 border border-[#e0dbd3] bg-[#edeae3] p-1">
+      <div className="mx-auto flex max-w-7xl justify-stretch border-b border-[#e0dbd3] px-4 pb-6 md:justify-end md:px-8">
+        <div className="flex w-full gap-1 border border-[#e0dbd3] bg-[#edeae3] p-1 md:w-auto">
           {(["KOMMENDE", "RESULTATER"] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 ${
-                view === v ? "bg-black text-white" : "text-[#4a4540] hover:bg-[#ddd8d0] hover:text-black"
+              className={`btn-press flex min-h-11 flex-1 items-center justify-center px-5 text-[10px] font-bold uppercase tracking-widest transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 md:flex-none ${
+                view === v
+                  ? "bg-black text-white"
+                  : "text-[#4a4540] hover:bg-[#ddd8d0] hover:text-black active:bg-[#ddd8d0] active:text-black"
               }`}
             >
               {v}
@@ -201,9 +203,9 @@ export default function KampeContent({
                   <Link
                     key={r.id}
                     href={`/kampe/${r.id}`}
-                    className="card-lift flex items-center gap-4 border border-[#e0dbd3] px-4 py-3 transition-colors hover:bg-[#edeae3]"
+                    className="card-lift flex min-h-11 items-center gap-2 border border-[#e0dbd3] px-3 py-3 transition-colors hover:bg-[#edeae3] sm:gap-4 sm:px-4"
                   >
-                    <span className="w-16 shrink-0 text-[10px] font-bold text-[#6b6560]">
+                    <span className="w-15 shrink-0 text-[10px] font-bold text-[#6b6560] sm:w-16">
                       {formatMatchDate(r.date)}
                       {r.gruppe && r.gruppe !== "regular" && (
                         <span className={`ml-1 inline-block px-1 py-0.5 text-[8px] font-bold uppercase ${r.gruppe === "oprykning" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
@@ -211,7 +213,7 @@ export default function KampeContent({
                         </span>
                       )}
                     </span>
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
                       {(() => {
                         const homeOutcome = getTeamOutcome(r, "home");
                         const awayOutcome = getTeamOutcome(r, "away");
@@ -230,7 +232,7 @@ export default function KampeContent({
                             >
                               {r.home}
                             </span>
-                            <span className="shrink-0 border border-[#e0dbd3] bg-[#edeae3] px-3 py-1 text-sm font-bold">
+                            <span className="shrink-0 whitespace-nowrap border border-[#e0dbd3] bg-[#edeae3] px-2 py-1 text-sm font-bold tabular-nums sm:px-3">
                               {r.home_score} — {r.away_score}
                             </span>
                             <span
@@ -296,7 +298,7 @@ export default function KampeContent({
                     <div key={key} className="mb-8 last:mb-0">
                       <h2 className="font-display text-2xl mb-6">{label}</h2>
                       <div className="border border-[#e0dbd3] bg-[#f7f4ef]">
-                        <div className="grid grid-cols-[24px_1fr_32px_40px_36px] border-b border-[#e0dbd3] bg-[#edeae3] px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-[#6b6560]">
+                        <div className="grid grid-cols-[20px_1fr_26px_34px_30px] border-b border-[#e0dbd3] bg-[#edeae3] px-2 py-2 text-[9px] font-bold uppercase tracking-widest text-[#6b6560] sm:grid-cols-[24px_1fr_32px_40px_36px] sm:px-3">
                           <span>#</span>
                           <span>Hold</span>
                           <span className="text-center">K</span>
@@ -306,7 +308,7 @@ export default function KampeContent({
                         {rows.map((row) => (
                           <div
                             key={row.id}
-                            className={`grid grid-cols-[24px_1fr_32px_40px_36px] items-center border-b border-[#e0dbd3] px-3 py-3 text-xs font-bold last:border-0 ${
+                            className={`grid grid-cols-[20px_1fr_26px_34px_30px] items-center border-b border-[#e0dbd3] px-2 py-3 text-xs font-bold last:border-0 sm:grid-cols-[24px_1fr_32px_40px_36px] sm:px-3 ${
                               row.highlight ? "bg-black text-white" : "even:bg-[#edeae3]/40"
                             }`}
                           >

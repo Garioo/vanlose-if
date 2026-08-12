@@ -421,15 +421,15 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
           ) : (
             <div className="border border-[#e0dbd3] overflow-hidden">
               {/* Team header */}
-              <div className="grid grid-cols-[1fr_44px_1fr] border-b border-[#e0dbd3] bg-[#f7f4ef]">
-                <div className="px-3 py-2 text-right">
+              <div className="grid grid-cols-[1fr_34px_1fr] border-b border-[#e0dbd3] bg-[#f7f4ef] sm:grid-cols-[1fr_44px_1fr]">
+                <div className="px-2 py-2 text-right sm:px-3">
                   <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${isHome ? "text-accent" : "text-[#6b7280]"}`}>
                     {match.home}
                   </p>
                   <p className="text-[8px] text-[#c0bab3] uppercase tracking-widest">Hjemme</p>
                 </div>
                 <div className="border-x border-[#e0dbd3]" />
-                <div className="px-3 py-2">
+                <div className="px-2 py-2 sm:px-3">
                   <p className={`text-[10px] font-bold tracking-widest uppercase truncate ${!isHome ? "text-accent" : "text-[#6b7280]"}`}>
                     {match.away}
                   </p>
@@ -461,11 +461,11 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                     <p className="text-[9px] font-bold tracking-widest uppercase mb-0.5" style={{ color }}>
                       {eventLabel(event.event_type)}
                     </p>
-                    <p className={`font-bold text-[#0d0d0b] leading-tight truncate ${isGoal ? "text-sm" : "text-xs"}`}>
+                    <p className={`font-bold text-[#0d0d0b] leading-tight break-words ${isGoal ? "text-sm" : "text-xs"}`}>
                       {event.player_name ?? "—"}
                     </p>
                     {(event.assist_name || event.note) && (
-                      <p className="text-[10px] text-[#8a847c] mt-0.5 truncate">
+                      <p className="text-[10px] text-[#8a847c] mt-0.5 break-words">
                         {[
                           event.assist_name
                             ? `${event.event_type === "substitution" ? "Ud" : "Assist"}: ${event.assist_name}`
@@ -480,12 +480,12 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                 return (
                   <div
                     key={event.id}
-                    className={`grid grid-cols-[1fr_44px_1fr] border-b border-[#e0dbd3] last:border-b-0${isNew ? " event-enter" : ""}${isGoal ? " bg-[#fff8f7]" : " bg-white"}`}
+                    className={`grid grid-cols-[1fr_34px_1fr] border-b border-[#e0dbd3] last:border-b-0 sm:grid-cols-[1fr_44px_1fr]${isNew ? " event-enter" : ""}${isGoal ? " bg-[#fff8f7]" : " bg-white"}`}
                   >
                     {/* Home side */}
-                    <div className={`px-3 py-3 flex justify-end border-r border-[#e0dbd3]${isHomeEvent && isGoal ? " border-l-[3px]" : ""}`}
+                    <div className={`min-w-0 px-2 py-3 flex justify-end border-r border-[#e0dbd3] sm:px-3${isHomeEvent && isGoal ? " border-l-[3px]" : ""}`}
                       style={isHomeEvent && isGoal ? { borderLeftColor: color } : {}}>
-                      {isHomeEvent && <div className="text-right">{content}</div>}
+                      {isHomeEvent && <div className="min-w-0 text-right">{content}</div>}
                     </div>
 
                     {/* Center: icon + minute */}
@@ -497,9 +497,9 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
                     </div>
 
                     {/* Away side */}
-                    <div className={`px-3 py-3${!isHomeEvent && isGoal ? " border-r-[3px]" : ""}`}
+                    <div className={`min-w-0 px-2 py-3 sm:px-3${!isHomeEvent && isGoal ? " border-r-[3px]" : ""}`}
                       style={!isHomeEvent && isGoal ? { borderRightColor: color } : {}}>
-                      {!isHomeEvent && <div>{content}</div>}
+                      {!isHomeEvent && <div className="min-w-0">{content}</div>}
                     </div>
                   </div>
                 );
@@ -525,17 +525,17 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
 
           {/* Tab toggle — only shown if both lineups exist */}
           {homeLineup && awayLineup && (
-            <div className="flex border border-[#e0dbd3] mb-5 w-fit">
+            <div className="flex w-full border border-[#e0dbd3] mb-5 sm:w-fit">
               {(["home", "away"] as const).map((side) => (
                 <button
                   key={side}
                   type="button"
                   onClick={() => setLineupTab(side)}
                   className={[
-                    "px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-colors",
+                    "btn-press flex min-h-11 flex-1 items-center justify-center px-4 text-[10px] font-bold tracking-widest uppercase transition-colors sm:flex-none",
                     lineupTab === side
                       ? "bg-[#0d0d0b] text-white"
-                      : "bg-white text-[#8a847c] hover:text-[#0d0d0b]",
+                      : "bg-white text-[#8a847c] hover:text-[#0d0d0b] active:text-[#0d0d0b]",
                   ].join(" ")}
                 >
                   {side === "home" ? match.home : match.away}

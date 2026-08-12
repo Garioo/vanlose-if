@@ -47,6 +47,13 @@ body {
 
 :focus-visible { outline: 2px solid #111; outline-offset: 2px; }
 
+/* Removes the residual tap delay on touch devices */
+button, a, [role="button"], summary { touch-action: manipulation; }
+
+/* Horizontal scrollers (filter tab rows) — scroll without a visible bar */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Bebas Neue is a single-weight condensed face — font-weight MUST be 400 */
 .font-display {
   font-family: var(--font-bebas), "Arial Black", sans-serif;
@@ -151,7 +158,17 @@ body {
   transform: scaleX(0); transform-origin: left;
   transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
 }
-.card-accent:hover::after { transform: scaleX(1); }
+
+/* Hover affordances only where a real pointer exists — on touch these would
+   otherwise stick to the last-tapped element until something else is tapped. */
+@media (hover: hover) and (pointer: fine) {
+  .card-accent:hover::after { transform: scaleX(1); }
+}
+
+/* Touch equivalent: the card responds to the tap itself */
+@media (hover: none) {
+  .card-accent:active::after { transform: scaleX(1); }
+}
 
 /* ─── Button press feedback ──────────────────────────────────────────── */
 
@@ -182,7 +199,15 @@ body {
 /* ─── Card lift effect ───────────────────────────────────────────────── */
 
 .card-lift { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease; }
-.card-lift:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(13,13,11,0.10); }
+
+@media (hover: hover) and (pointer: fine) {
+  .card-lift:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(13,13,11,0.10); }
+}
+
+/* Touch: press-in rather than lift, so a tap reads as a tap */
+@media (hover: none) {
+  .card-lift:active { transform: scale(0.985); box-shadow: 0 2px 10px rgba(13,13,11,0.08); }
+}
 
 /* ─── Article prose typography ───────────────────────────────────────── */
 
@@ -229,4 +254,35 @@ body {
 .prose-vif h1 {
   font-family: var(--font-bebas), sans-serif; font-weight: 400;
   font-size: 2.5rem; letter-spacing: -0.02em; margin: 2em 0 0.6em; text-transform: uppercase;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────
+   Entrance animations resolve to their final state instead of being skipped,
+   so nothing is left invisible. Looping/attention animations stop entirely. */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal { animation: none; opacity: 1; transform: none; }
+
+  .hero-enter .hero-badge,
+  .hero-enter .hero-title,
+  .hero-enter .hero-body,
+  .hero-enter .hero-cta,
+  .hero-enter .hero-card { animation: none; opacity: 1; transform: none; }
+
+  .live-pulse,
+  .digit-flip.flipping,
+  .score-flash,
+  .event-enter { animation: none; }
+
+  .card-lift:hover, .card-lift:active { transform: none; }
+  .btn-press:active { transform: none; }
 }

@@ -18,13 +18,15 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-1 mb-10">
+      <div className="no-scrollbar flex gap-1 mb-10 overflow-x-auto overscroll-x-contain snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`text-[10px] font-bold tracking-widest uppercase px-4 py-2 transition-colors ${
-              activeTab === tab ? "bg-black text-white" : "text-[#8a847c] hover:text-black"
+            className={`btn-press snap-start shrink-0 flex min-h-11 items-center text-[10px] font-bold tracking-widest uppercase px-4 transition-colors ${
+              activeTab === tab
+                ? "bg-black text-white"
+                : "text-[#8a847c] hover:text-black active:text-black"
             }`}
           >
             {tab}

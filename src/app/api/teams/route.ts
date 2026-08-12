@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdminApi } from "@/lib/api-auth";
+import { pick } from "@/lib/pick";
 
 export async function GET() {
   const { data, error } = await supabase.from("teams").select("*").order("name");
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const payload = {
-    ...body,
+    ...pick(body, ["name", "logo_url", "home_turf", "abbreviation"]),
     name: typeof body?.name === "string" ? body.name.trim() : body?.name,
     abbreviation:
       typeof body?.abbreviation === "string"

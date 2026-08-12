@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdminApi } from "@/lib/api-auth";
+import { pick } from "@/lib/pick";
 import { deleteUploadedImage } from "@/lib/storage";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,7 +10,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await req.json();
-  const { data, error } = await supabaseAdmin.from("players").update(body).eq("id", id).select().single();
+  const { data, error } = await supabaseAdmin
+    .from("players")
+    .update(pick(body, ["number", "name", "position", "image_url"]))
+    .eq("id", id)
+    .select()
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdminApi } from "@/lib/api-auth";
+import { pick } from "@/lib/pick";
 
 export async function GET() {
   const { data, error } = await supabase
@@ -18,7 +19,11 @@ export async function POST(req: NextRequest) {
   if (unauthorized) return unauthorized;
 
   const body = await req.json();
-  const { data, error } = await supabaseAdmin.from("articles").insert(body).select().single();
+  const { data, error } = await supabaseAdmin
+    .from("articles")
+    .insert(pick(body, ["slug", "category", "date", "title", "excerpt", "content", "image_url", "latest"]))
+    .select()
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }

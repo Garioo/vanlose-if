@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdminApi } from "@/lib/api-auth";
+import { pick } from "@/lib/pick";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdminApi(req);
@@ -18,7 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (existingTeamError) return NextResponse.json({ error: existingTeamError.message }, { status: 500 });
 
   const payload = {
-    ...body,
+    ...pick(body, ["name", "logo_url", "home_turf", "abbreviation"]),
     name: typeof body?.name === "string" ? body.name.trim() : body?.name,
     abbreviation:
       typeof body?.abbreviation === "string"

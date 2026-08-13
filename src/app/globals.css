@@ -54,6 +54,20 @@ button, a, [role="button"], summary { touch-action: manipulation; }
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
+/* Admin form controls on mobile.
+   iOS Safari zooms the page whenever a focused field is under 16px and never
+   zooms back, so every control needs at least 16px on small screens. The admin
+   pages set their own text-xs/text-sm sizes across ~16 files; this one rule
+   covers them all below `md` and keeps future controls correct by default.
+   Public-site forms handle this inline with `text-base md:text-sm`. */
+@media (max-width: 767px) {
+  .admin-shell input:not([type="checkbox"]):not([type="radio"]),
+  .admin-shell textarea,
+  .admin-shell select {
+    font-size: 16px;
+  }
+}
+
 /* Bebas Neue is a single-weight condensed face — font-weight MUST be 400 */
 .font-display {
   font-family: var(--font-bebas), "Arial Black", sans-serif;

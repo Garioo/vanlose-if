@@ -8,7 +8,8 @@ import HamburgerButton from "@/components/admin/HamburgerButton";
 export default function AdminShellLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminSidebarProvider>
-      <div className="min-h-screen bg-white flex">
+      {/* `admin-shell` drives the mobile form-control sizing rule in globals.css */}
+      <div className="admin-shell min-h-screen bg-white flex">
         <AdminSidebar />
 
         {/* Main */}

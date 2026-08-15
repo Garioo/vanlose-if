@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import FolderCreator from "@/components/admin/FolderCreator";
+import TagFilterDropdown from "@/components/admin/TagFilterDropdown";
 
 const CldUploadWidget = dynamic(
   () => import("next-cloudinary").then((m) => m.CldUploadWidget),
@@ -27,7 +28,8 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   // Folder state
   const [folders, setFolders] = useState<string[]>([]);
@@ -48,10 +50,10 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
     uniqueFilename: false,
   };
 
-  const load = useCallback(async (tag?: string | null, folder?: string) => {
+  const load = useCallback(async (tags?: string[], folder?: string) => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (tag) params.set("tag", tag);
+    for (const tag of tags ?? []) params.append("tag", tag);
     if (folder) params.set("folder", folder);
     const res = await fetch(`/api/media?${params}`);
     const data = await res.json().catch(() => []);
@@ -65,16 +67,25 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
     setFolders(Array.isArray(data) ? data : []);
   }, []);
 
+  // Full vocabulary, independent of the active folder/tag selection — otherwise
+  // picking a folder hides every tag that has no media inside it.
+  const loadTags = useCallback(async () => {
+    const res = await fetch("/api/media/tags");
+    const data = await res.json().catch(() => []);
+    setAllTags(Array.isArray(data) ? data : []);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
     const timeoutId = window.setTimeout(() => {
-      void load(activeTag, selectedFolder);
+      void load(activeTags, selectedFolder);
       void loadFolders();
+      void loadTags();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [open, activeTag, selectedFolder, load, loadFolders]);
+  }, [open, activeTags, selectedFolder, load, loadFolders, loadTags]);
 
   // Close on Escape
   useEffect(() => {
@@ -102,7 +113,12 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
     }
   }
 
-  const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).sort();
+  // Counts describe the media currently loaded, so a tag showing 0 means
+  // "not in this folder" rather than disappearing from the list entirely.
+  const tagCounts = items.reduce<Record<string, number>>((acc, item) => {
+    for (const tag of item.tags) acc[tag] = (acc[tag] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <>
@@ -175,7 +191,7 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                       if (info?.secure_url) {
                         select(info.secure_url);
                       } else {
-                        load(activeTag);
+                        load(activeTags, selectedFolder);
                       }
                     }}
                   >
@@ -201,30 +217,13 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
 
               {/* Tag filter */}
               {allTags.length > 0 && (
-                <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-gray-100 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTag(null)}
-                    className={[
-                      "text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 border transition-colors",
-                      activeTag === null ? "bg-black text-white border-black" : "border-gray-300 text-gray-500 hover:border-black",
-                    ].join(" ")}
-                  >
-                    Alle
-                  </button>
-                  {allTags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                      className={[
-                        "text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 border transition-colors",
-                        activeTag === tag ? "bg-black text-white border-black" : "border-gray-300 text-gray-500 hover:border-black",
-                      ].join(" ")}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                <div className="px-5 pt-3 border-b border-gray-100 shrink-0">
+                  <TagFilterDropdown
+                    allTags={allTags}
+                    selected={activeTags}
+                    onChange={setActiveTags}
+                    counts={tagCounts}
+                  />
                 </div>
               )}
 

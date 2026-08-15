@@ -2,21 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 
 export async function GET(req: NextRequest) {
-  const tag = req.nextUrl.searchParams.get("tag");
+  // Repeated `?tag=` params narrow the result to media carrying *every* tag.
+  const tags = req.nextUrl.searchParams.getAll("tag").filter(Boolean);
   const folder = req.nextUrl.searchParams.get("folder"); // subfolder name, e.g. "spillere"
   const prefix = folder ? `vanlose-if/${folder}/` : "vanlose-if/";
 
   try {
     let resources;
 
-    if (tag) {
+    if (tags.length > 0) {
+      // Cloudinary filters by a single tag per call, so fetch the first one and
+      // intersect locally — one round trip no matter how many tags are selected.
+      const [primaryTag, ...remainingTags] = tags;
+
       const [imageResult, videoResult] = await Promise.all([
-        cloudinary.api.resources_by_tag(tag, {
+        cloudinary.api.resources_by_tag(primaryTag, {
           resource_type: "image",
           tags: true,
           max_results: 200,
         }),
-        cloudinary.api.resources_by_tag(tag, {
+        cloudinary.api.resources_by_tag(primaryTag, {
           resource_type: "video",
           tags: true,
           max_results: 200,
@@ -24,6 +29,12 @@ export async function GET(req: NextRequest) {
       ]);
 
       resources = [...imageResult.resources, ...videoResult.resources];
+
+      if (remainingTags.length > 0) {
+        resources = resources.filter((r: { tags?: string[] }) =>
+          remainingTags.every((t) => (r.tags ?? []).includes(t))
+        );
+      }
 
       // Filter by folder when both tag and folder are specified
       resources = folder

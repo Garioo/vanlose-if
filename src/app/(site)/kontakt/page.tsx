@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import KontaktForm from "@/components/KontaktForm";
 import { buildPageMetadata } from "@/lib/metadata";
-import { supabase } from "@/lib/supabase";
+import { getSiteContact, mailtoUrl, telUrl } from "@/lib/site-contact";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Kontakt — Vanløse IF",
@@ -10,13 +9,7 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function KontaktPage() {
-  const { data: settingsData } = await supabase.from("site_settings").select("key, value");
-  const settingsMap: Record<string, string> = {};
-  for (const row of settingsData ?? []) settingsMap[row.key] = row.value;
-
-  const address = settingsMap["contact_address"] ?? "Klitmøllervej 20, 2720 Vanløse";
-  const email = settingsMap["contact_email"] ?? "vanloeseif@gmail.com";
-  const phone = settingsMap["contact_phone"] ?? "+45 38 74 12 12";
+  const { address, email, phone } = await getSiteContact();
 
   const mapQuery = encodeURIComponent(address);
   const mapEmbedUrl = `https://www.google.com/maps?q=${mapQuery}&output=embed`;
@@ -41,22 +34,35 @@ export default async function KontaktPage() {
             <div className="space-y-6">
               {[
                 { label: "Adresse", lines: address.split(",").map((s) => s.trim()) },
-                { label: "E-mail", lines: [email] },
-                { label: "Telefon", lines: [phone] },
+                { label: "E-mail", lines: [email], href: mailtoUrl(email, "Henvendelse via vanlose-if.dk") },
+                { label: "Telefon", lines: [phone], href: telUrl(phone) },
                 { label: "Åbningstider", lines: ["Mandag – torsdag: 16:00 – 19:00", "Lørdag: 10:00 – 13:00"] },
               ].map((item) => (
                 <div key={item.label}>
                   <p className="text-[10px] font-bold tracking-widest uppercase text-[#8a847c] mb-1">
                     {item.label}
                   </p>
-                  {item.lines.map((line) => (
-                    <p key={line} className="text-sm text-[#2e2b27]">{line}</p>
-                  ))}
+                  {item.lines.map((line) =>
+                    item.href ? (
+                      <a
+                        key={line}
+                        href={item.href}
+                        className="block text-sm text-[#2e2b27] underline underline-offset-4 decoration-[#c9c3ba] hover:decoration-black transition-colors"
+                      >
+                        {line}
+                      </a>
+                    ) : (
+                      <p key={line} className="text-sm text-[#2e2b27]">{line}</p>
+                    )
+                  )}
                 </div>
               ))}
             </div>
+          </div>
 
-            <div className="mt-10 overflow-hidden border border-[#e0dbd3]">
+          {/* Map */}
+          <div>
+            <div className="overflow-hidden border border-[#e0dbd3]">
               <iframe
                 title="Vanløse IF på kort"
                 src={mapEmbedUrl}
@@ -77,9 +83,6 @@ export default async function KontaktPage() {
               </svg>
             </a>
           </div>
-
-          {/* Contact form */}
-          <KontaktForm />
         </div>
       </section>
     </div>

@@ -12,7 +12,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json();
   const { data, error } = await supabaseAdmin
     .from("players")
-    .update(pick(body, ["number", "name", "position", "image_url"]))
+    .update(pick(body, ["number", "name", "position", "image_url", "status", "new_club", "left_at"]))
     .eq("id", id)
     .select()
     .single();

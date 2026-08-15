@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import BlivMedlemContent from "@/components/BlivMedlemContent";
 import { buildPageMetadata } from "@/lib/metadata";
+import { getSiteContact } from "@/lib/site-contact";
 import { supabase } from "@/lib/supabase";
 import type { MembershipTier } from "@/lib/supabase";
 
@@ -11,10 +12,10 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function BlivMedlemPage() {
-  const { data } = await supabase
-    .from("membership_tiers")
-    .select("*")
-    .order("display_order", { ascending: true });
+  const [{ data }, contact] = await Promise.all([
+    supabase.from("membership_tiers").select("*").order("display_order", { ascending: true }),
+    getSiteContact(),
+  ]);
 
   const tiers: MembershipTier[] = data ?? [];
 
@@ -35,7 +36,7 @@ export default async function BlivMedlemPage() {
           </p>
         </div>
       </section>
-      <BlivMedlemContent tiers={tiers} />
+      <BlivMedlemContent tiers={tiers} email={contact.email} phone={contact.phone} />
     </div>
   );
 }

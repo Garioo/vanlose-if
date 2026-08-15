@@ -5,6 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import type { Player } from "@/lib/supabase";
 import FolderCreator from "@/components/admin/FolderCreator";
+import TagFilterDropdown from "@/components/admin/TagFilterDropdown";
 
 const CldUploadWidget = dynamic(
   () => import("next-cloudinary").then((m) => m.CldUploadWidget),
@@ -42,7 +43,8 @@ function sameTags(a: string[], b: string[]) {
 
 export default function AdminMedierPage() {
   const [items, setItems] = useState<MediaItem[]>([]);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -80,29 +82,36 @@ export default function AdminMedierPage() {
     setFolders(Array.isArray(data) ? data : []);
   }, []);
 
+  const loadTags = useCallback(async () => {
+    const res = await fetch("/api/media/tags");
+    const data = await res.json().catch(() => []);
+    setAllTags(Array.isArray(data) ? data : []);
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (activeTag) params.set("tag", activeTag);
+    for (const tag of activeTags) params.append("tag", tag);
     if (selectedFolder) params.set("folder", selectedFolder);
     const res = await fetch(`/api/media?${params}`);
     const data = await res.json().catch(() => []);
     setItems(Array.isArray(data) ? data : []);
     setLoading(false);
-  }, [activeTag, selectedFolder]);
+  }, [activeTags, selectedFolder]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void load();
       void loadFolders();
-      void fetch("/api/players")
+      void loadTags();
+      void fetch("/api/players?status=all")
         .then((r) => r.json())
         .then((data: Player[]) => setPlayers(Array.isArray(data) ? data : []))
         .catch(() => {});
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [load, loadFolders]);
+  }, [load, loadFolders, loadTags]);
 
   useEffect(() => {
     setSelectedIds((prev) => prev.filter((id) => items.some((item) => item.public_id === id)));
@@ -121,7 +130,16 @@ export default function AdminMedierPage() {
     }
   }, [selectedIds, activeQueueId]);
 
-  const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).sort();
+  // Counts reflect the media currently loaded; the tag list itself comes from
+  // /api/media/tags so filtering never removes tags from the picker.
+  const tagCounts = items.reduce<Record<string, number>>((acc, item) => {
+    for (const tag of item.tags) acc[tag] = (acc[tag] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  function toggleActiveTag(tag: string) {
+    setActiveTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  }
 
   async function handleCreateFolder(name: string) {
     const res = await fetch("/api/media/folders", {
@@ -256,6 +274,8 @@ export default function AdminMedierPage() {
       updateItemsAfterSave(id, draftTags);
       setDraftTagsById((prev) => ({ ...prev, [id]: draftTags }));
       setSaveStateById((prev) => ({ ...prev, [id]: "saved" }));
+      // A save can introduce a brand-new tag, so refresh the filter vocabulary.
+      void loadTags();
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Kunne ikke gemme tags";
@@ -344,26 +364,13 @@ export default function AdminMedierPage() {
         </div>
       </div>
 
-      {/* Tag filter bar */}
-      {allTags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => setActiveTag(null)}
-            className={["text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 border transition-colors", activeTag === null ? "bg-black text-white border-black" : "border-gray-300 text-gray-500 hover:border-black hover:text-black"].join(" ")}
-          >
-            Alle
-          </button>
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-              className={["text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 border transition-colors", activeTag === tag ? "bg-black text-white border-black" : "border-gray-300 text-gray-500 hover:border-black hover:text-black"].join(" ")}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Tag filter */}
+      <TagFilterDropdown
+        allTags={allTags}
+        selected={activeTags}
+        onChange={setActiveTags}
+        counts={tagCounts}
+      />
 
       {items.length > 0 && (
         <div className="mb-4 bg-white border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
@@ -418,7 +425,9 @@ export default function AdminMedierPage() {
         <div className="text-xs text-gray-400 py-12 text-center">Henter medier...</div>
       ) : items.length === 0 ? (
         <div className="bg-white border border-gray-200 px-6 py-12 text-center text-xs text-gray-400">
-          {activeTag ? `Ingen medier med tagget "${activeTag}".` : "Ingen medier endnu. Upload det første ovenfor."}
+          {activeTags.length > 0
+            ? `Ingen medier med ${activeTags.length === 1 ? "tagget" : "alle tags"} "${activeTags.join('", "')}".`
+            : "Ingen medier endnu. Upload det første ovenfor."}
         </div>
       ) : (
         <div className={isTagPanelOpen ? "grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]" : ""}>
@@ -467,8 +476,13 @@ export default function AdminMedierPage() {
                         <button
                           key={tag}
                           type="button"
-                          onClick={() => setActiveTag(tag)}
-                          className="text-[9px] font-bold tracking-widest uppercase bg-gray-100 text-gray-500 px-1.5 py-0.5 hover:bg-gray-200 transition-colors"
+                          onClick={() => toggleActiveTag(tag)}
+                          title={activeTags.includes(tag) ? `Fjern filter: ${tag}` : `Filtrér efter: ${tag}`}
+                          className={`text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 transition-colors ${
+                            activeTags.includes(tag)
+                              ? "bg-black text-white"
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          }`}
                         >
                           {tag}
                         </button>

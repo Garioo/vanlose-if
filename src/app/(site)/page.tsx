@@ -4,7 +4,6 @@ import News from "@/components/News";
 import FirstTeam from "@/components/FirstTeam";
 import YouthFootball from "@/components/YouthFootball";
 import Volunteer from "@/components/Volunteer";
-import Newsletter from "@/components/Newsletter";
 import { buildPageMetadata } from "@/lib/metadata";
 import { supabase, type Match, type Player, type VolunteerRole } from "@/lib/supabase";
 import { sortMatchesByKickoff } from "@/lib/matchDate";
@@ -25,7 +24,7 @@ export default async function Home() {
   const [{ data: matchData }, { data: playerData }, { data: settingsData }, { data: rolesData }, { data: teamsData }] =
     await Promise.all([
       supabase.from("matches").select("*").eq("is_upcoming", true).or(`season.eq.${currentSeason},season.is.null`),
-      supabase.from("players").select("*"),
+      supabase.from("players").select("*").eq("status", "active"),
       supabase.from("site_settings").select("key, value").in("key", ["hero_image_url", "volunteer_image", "youth_image"]),
       supabase.from("volunteer_roles").select("*").order("display_order", { ascending: true }),
       supabase.from("teams").select("id, logo_url, abbreviation"),
@@ -57,7 +56,6 @@ export default async function Home() {
       <FirstTeam players={featuredPlayers} />
       <YouthFootball imageUrl={youthImageUrl} />
       <Volunteer roles={volunteerRoles} imageUrl={volunteerImageUrl} />
-      <Newsletter />
     </main>
   );
 }

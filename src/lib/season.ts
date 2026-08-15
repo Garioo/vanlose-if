@@ -114,10 +114,12 @@ export async function startNewSeason(season: string): Promise<StartSeasonResult>
     );
   if (settingError) throw new Error(settingError.message);
 
-  // 5. Seed blank player_stats for every player for the new season
+  // 5. Seed blank player_stats for the active squad for the new season.
+  //    Players who have left keep their historical rows but get no new ones.
   const { data: players, error: playersError } = await supabaseAdmin
     .from("players")
-    .select("id");
+    .select("id")
+    .eq("status", "active");
   if (playersError) throw new Error(playersError.message);
 
   let statsSeeded = 0;

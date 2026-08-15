@@ -21,7 +21,6 @@ const groups = [
   {
     label: "Klub",
     links: [
-      { href: "/admin/henvendelser", label: "Henvendelser" },
       { href: "/admin/medier", label: "Mediebibliotek" },
       { href: "/admin/sponsorer", label: "Sponsorer" },
       { href: "/admin/ungdom", label: "Ungdom" },

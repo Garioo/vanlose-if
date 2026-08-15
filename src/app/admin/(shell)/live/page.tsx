@@ -263,7 +263,7 @@ export default function AdminLivePage() {
     const matchesUrl = seasonView ? `/api/matches?season=${encodeURIComponent(seasonView)}` : "/api/matches";
     const [matchesRes, playersRes] = await Promise.all([
       fetch(matchesUrl),
-      fetch("/api/players"),
+      fetch("/api/players?status=all"),
     ]);
 
     const [matchesData, playersData] = await Promise.all([

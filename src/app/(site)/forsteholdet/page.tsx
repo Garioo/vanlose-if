@@ -26,7 +26,7 @@ export default async function ForsteholdetPage() {
   const currentSeason = settingsMap["current_season"] ?? "2024/25";
 
   const [{ data: playerData }, { data: matchData }, { data: standingsData }, { data: statsData }, { data: staffData }] = await Promise.all([
-    supabase.from("players").select("*"),
+    supabase.from("players").select("*").eq("status", "active"),
     supabase.from("matches").select("*").eq("is_upcoming", false).or(`season.eq.${currentSeason},season.is.null`),
     supabase.from("standings").select("*").or(`season.eq.${currentSeason},season.is.null`).order("pos", { ascending: true }),
     supabase.from("player_stats").select("*, players(id, name, number, position)").eq("season", currentSeason).order("goals", { ascending: false }),

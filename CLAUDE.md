@@ -53,7 +53,10 @@ Key tables in Supabase (full schema in `supabase-schema.sql`):
 - `match_lineups` — Starting XI and bench (stored as JSONB)
 - `players` — First team roster (position: MÅLMÆND|FORSVAR|MIDTBANE|ANGREB)
 - `standings` — League table
-- `contact_submissions`, `volunteer_submissions`, `membership_submissions` — Form inboxes (status: new|handled)
+
+The site has no public intake forms. Visitors contact the club by email or phone, using the
+details in `site_settings` (`contact_email`, `contact_phone`, `contact_address`) surfaced via
+`src/lib/site-contact.ts`.
 
 ### Path Alias
 

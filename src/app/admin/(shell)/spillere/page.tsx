@@ -1,14 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Player, PlayerStats } from "@/lib/supabase";
+import type { Player, PlayerStats, PlayerStatus } from "@/lib/supabase";
 import { sortPlayersByNumber } from "@/lib/playerSort";
+import { PLAYER_STATUSES, PLAYER_STATUS_LABELS, describePlayerDeparture } from "@/lib/player-status";
 import MediaPicker from "@/components/admin/MediaPicker";
 
 const POSITIONS = ["MÅLMÆND", "FORSVAR", "MIDTBANE", "ANGREB"] as const;
 const FALLBACK_SEASON = "2024/25";
 
-const empty = { number: "", name: "", position: "FORSVAR" as Player["position"], image_url: "" };
+const empty = {
+  number: "",
+  name: "",
+  position: "FORSVAR" as Player["position"],
+  image_url: "",
+  status: "active" as PlayerStatus,
+  new_club: "",
+  left_at: "",
+};
 
 type PlayerStatsWithPlayer = PlayerStats & { players?: { id: string; name: string; number: string; position: string } };
 
@@ -29,7 +38,7 @@ export default function AdminSpillerePage() {
   const [syncSeason, setSyncSeason] = useState(FALLBACK_SEASON);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/players");
+    const res = await fetch("/api/players?status=all");
     const data = await res.json().catch(() => []);
     setPlayers(Array.isArray(data) ? sortPlayersByNumber(data as Player[], "asc") : []);
   }, []);
@@ -60,11 +69,20 @@ export default function AdminSpillerePage() {
     e.preventDefault();
     setSaving(true);
     try {
+      // Empty strings would fail against a date column, and departure details
+      // only make sense for someone who has actually left.
+      const isActive = form.status === "active";
+      const payload = {
+        ...form,
+        new_club: isActive || !form.new_club.trim() ? null : form.new_club.trim(),
+        left_at: isActive || !form.left_at ? null : form.left_at,
+      };
+
       if (editId) {
         const res = await fetch(`/api/players/${editId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
         setEditId(null);
@@ -72,7 +90,7 @@ export default function AdminSpillerePage() {
         const res = await fetch("/api/players", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) { alert("Noget gik galt. Prøv igen."); return; }
       }
@@ -92,7 +110,15 @@ export default function AdminSpillerePage() {
 
   function startEdit(player: Player) {
     setEditId(player.id);
-    setForm({ number: player.number, name: player.name, position: player.position, image_url: player.image_url ?? "" });
+    setForm({
+      number: player.number,
+      name: player.name,
+      position: player.position,
+      image_url: player.image_url ?? "",
+      status: player.status ?? "active",
+      new_club: player.new_club ?? "",
+      left_at: player.left_at ?? "",
+    });
   }
 
   function toggleStats(playerId: string) {
@@ -178,6 +204,14 @@ export default function AdminSpillerePage() {
   const labelCls = "block text-[10px] font-bold tracking-widest uppercase mb-1 text-gray-600";
   const numInputCls = "w-16 border border-gray-300 px-2 py-1.5 text-sm text-center focus:outline-none focus:border-black transition-colors";
 
+  // Current squad first, then everyone who has left. Players saved before the
+  // status column existed have no status and count as active.
+  const safePlayers = Array.isArray(players) ? players : [];
+  const activePlayers = safePlayers.filter((p) => !p.status || p.status === "active");
+  const formerPlayers = safePlayers.filter((p) => p.status && p.status !== "active");
+  const orderedPlayers = [...activePlayers, ...formerPlayers];
+  const firstFormerId = formerPlayers[0]?.id ?? null;
+
   return (
     <div>
       <div className="mb-8">
@@ -212,6 +246,51 @@ export default function AdminSpillerePage() {
               <MediaPicker onSelect={(url) => setForm((f) => ({ ...f, image_url: url }))} label="↑" />
             </div>
           </div>
+          <div>
+            <label className={labelCls}>Status</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as PlayerStatus })}
+              className={`${inputCls} bg-white appearance-none`}
+            >
+              {PLAYER_STATUSES.map((s) => (
+                <option key={s} value={s}>{PLAYER_STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+          </div>
+
+          {form.status !== "active" && (
+            <>
+              {form.status === "transferred" && (
+                <div>
+                  <label className={labelCls}>Ny klub</label>
+                  <input
+                    type="text"
+                    value={form.new_club}
+                    onChange={(e) => setForm({ ...form, new_club: e.target.value })}
+                    className={inputCls}
+                    placeholder="Fremad Amager"
+                  />
+                </div>
+              )}
+              <div>
+                <label className={labelCls}>Dato for exit</label>
+                <input
+                  type="date"
+                  value={form.left_at}
+                  onChange={(e) => setForm({ ...form, left_at: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+            </>
+          )}
+
+          {form.status !== "active" && (
+            <p className="col-span-2 md:col-span-4 text-[10px] text-gray-500 -mt-1">
+              Spilleren fjernes fra truppen og søgningen på sitet. Profilside, billede og statistik bevares.
+            </p>
+          )}
+
           <div className="col-span-2 md:col-span-4 flex gap-2">
             <button type="submit" disabled={saving} className="text-xs font-bold tracking-widest uppercase bg-black text-white px-6 py-2.5 hover:bg-gray-900 transition-colors disabled:opacity-50">
               {saving ? "GEMMER..." : editId ? "GEM" : "TILFØJ"}
@@ -252,9 +331,16 @@ export default function AdminSpillerePage() {
           <span className="col-span-3">Position</span>
           <span className="col-span-4 text-right">Handlinger</span>
         </div>
-        {Array.isArray(players) && players.map((p) => (
+        {orderedPlayers.map((p) => (
           <div key={p.id}>
-            <div className="border-b border-gray-100 hover:bg-gray-50">
+            {p.id === firstFormerId && (
+              <div className="px-4 py-2 bg-gray-50 border-y border-gray-200">
+                <p className="text-[9px] font-bold tracking-widest uppercase text-gray-400">
+                  Tidligere spillere — vises ikke i truppen
+                </p>
+              </div>
+            )}
+            <div className={`border-b border-gray-100 hover:bg-gray-50 ${p.status && p.status !== "active" ? "bg-gray-50/50" : ""}`}>
               {/* Mobile card */}
               <div className="md:hidden px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
@@ -262,7 +348,9 @@ export default function AdminSpillerePage() {
                     <span className="font-display text-lg text-gray-300 shrink-0 w-6">{p.number}</span>
                     <div className="min-w-0">
                       <p className="text-xs font-bold uppercase tracking-wide truncate">{p.name}</p>
-                      <p className="text-[10px] text-gray-400 uppercase">{p.position}</p>
+                      <p className="text-[10px] text-gray-400 uppercase">
+                        {describePlayerDeparture(p) ?? p.position}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -278,7 +366,14 @@ export default function AdminSpillerePage() {
               <div className="hidden md:grid grid-cols-12 items-center px-4 py-3">
                 <span className="col-span-1 font-display text-lg text-gray-300">{p.number}</span>
                 <span className="col-span-4 text-xs font-bold uppercase tracking-wide">{p.name}</span>
-                <span className="col-span-3 text-[10px] text-gray-400 uppercase">{p.position}</span>
+                <span className="col-span-3 text-[10px] text-gray-400 uppercase">
+                  {p.position}
+                  {describePlayerDeparture(p) && (
+                    <span className="block normal-case tracking-normal text-gray-400 mt-0.5">
+                      {describePlayerDeparture(p)}
+                    </span>
+                  )}
+                </span>
                 <div className="col-span-4 flex items-center justify-end gap-2">
                   <button
                     onClick={() => toggleStats(p.id)}

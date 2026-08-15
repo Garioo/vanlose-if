@@ -30,35 +30,33 @@ export default function PrivatlivspolitikPage() {
         <div>
           <h2 className="font-display text-2xl mb-3">2. Hvilke data vi indsamler</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            Vi indsamler oplysninger, du selv indtaster i formularer: navn, e-mail, emne/besked og
-            frivilligrolle. Ved nyhedsbrev gemmer vi e-mail. Vi gemmer ikke følsomme persondata via
-            de offentlige formularer.
+            Websitet har ingen kontaktformularer, og vi indsamler derfor ingen personoplysninger
+            gennem selve siden. Skriver eller ringer du til os, behandler vi alene de oplysninger,
+            du selv giver os — typisk navn, e-mail, telefonnummer og indholdet af din henvendelse.
           </p>
         </div>
 
         <div>
           <h2 className="font-display text-2xl mb-3">3. Formål og retsgrundlag</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            Oplysninger behandles for at besvare henvendelser, håndtere frivilligtilmeldinger og
-            administrere nyhedsbrev. Retsgrundlaget er legitim interesse og/eller samtykke afhængigt
-            af henvendelsestype.
+            Oplysningerne behandles udelukkende for at besvare din henvendelse og følge op på den.
+            Retsgrundlaget er vores legitime interesse i at kunne svare dig.
           </p>
         </div>
 
         <div>
           <h2 className="font-display text-2xl mb-3">4. Opbevaring og sletning</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            Vi opbevarer data så længe det er nødvendigt for formålet. Henvendelser og
-            frivilligtilmeldinger gennemgås løbende og slettes, når de ikke længere er relevante.
-            Nyhedsbrev kan til enhver tid afmeldes.
+            Vi opbevarer korrespondance så længe det er nødvendigt for formålet, og sletter den, når
+            den ikke længere er relevant.
           </p>
         </div>
 
         <div>
           <h2 className="font-display text-2xl mb-3">5. Databehandlere</h2>
           <p className="text-sm text-gray-700 leading-relaxed">
-            Website og formularoplysninger hostes via Supabase som databehandler. Vi anvender også
-            tekniske leverandører til drift, fejlsøgning og statistik.
+            Websitets indhold hostes via Supabase som databehandler. Vi anvender også tekniske
+            leverandører til drift, fejlsøgning og statistik.
           </p>
         </div>
 

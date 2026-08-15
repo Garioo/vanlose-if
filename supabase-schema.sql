@@ -21,8 +21,19 @@ CREATE TABLE IF NOT EXISTS public.players (
   number text NOT NULL,
   name text NOT NULL,
   position text NOT NULL,
-  image_url text
+  image_url text,
+  -- 'active' | 'transferred' | 'retired'. Only active players appear in the
+  -- public squad; the rest are kept for the record (profile page, stats,
+  -- historical lineups). See supabase-migration-player-status.sql.
+  status text NOT NULL DEFAULT 'active',
+  new_club text,
+  left_at date
 );
+
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS new_club text;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS left_at date;
+CREATE INDEX IF NOT EXISTS players_status_idx ON public.players (status);
 
 -- 3. Create 'teams' table
 CREATE TABLE IF NOT EXISTS public.teams (

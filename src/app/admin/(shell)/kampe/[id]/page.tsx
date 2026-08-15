@@ -158,7 +158,7 @@ export default function MatchEditorPage({ params }: { params: Promise<{ id: stri
     const [matchRes, eventsRes, playersRes, homeLineupRes, awayLineupRes] = await Promise.all([
       fetch(`/api/matches/${id}`),
       fetch(`/api/matches/${id}/events`),
-      fetch("/api/players"),
+      fetch("/api/players?status=all"),
       fetch(`/api/matches/${id}/lineup?team_side=home`),
       fetch(`/api/matches/${id}/lineup?team_side=away`),
     ]);

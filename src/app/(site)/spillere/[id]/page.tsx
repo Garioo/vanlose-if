@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { supabase } from "@/lib/supabase";
 import type { Player, PlayerStats } from "@/lib/supabase";
 import { buildPageMetadata } from "@/lib/metadata";
+import { describePlayerDeparture } from "@/lib/player-status";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export default async function SpillereProfilePage({ params }: Props) {
   const allStats = (statsData ?? []) as PlayerStats[];
   const currentSeason = (settingsData as { key: string; value: string } | null)?.value ?? "2024/25";
   const currentStats = allStats.find((s) => s.season === currentSeason) ?? null;
+  const departure = describePlayerDeparture(player);
 
   const statBoxes = [
     { label: "Kampe", value: currentStats?.appearances ?? 0 },
@@ -87,13 +89,24 @@ export default async function SpillereProfilePage({ params }: Props) {
             </svg>
             Truppen
           </Link>
-          <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-accent mb-2">
-            {positionLabel[player.position] ?? player.position}
-          </p>
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-accent">
+              {positionLabel[player.position] ?? player.position}
+            </p>
+            {departure && (
+              <span className="text-[10px] font-bold tracking-[0.2em] uppercase border border-white/40 text-white/70 px-2 py-1">
+                Tidligere spiller
+              </span>
+            )}
+          </div>
           <h1 className="font-display text-5xl md:text-7xl leading-[0.9] tracking-tight mb-1">
             {player.name}
           </h1>
-          <p className="text-[#5a5550] text-sm mt-2">{currentSeason}</p>
+          {departure ? (
+            <p className="text-[#8a847c] text-sm mt-2">{departure}</p>
+          ) : (
+            <p className="text-[#5a5550] text-sm mt-2">{currentSeason}</p>
+          )}
         </div>
       </section>
 

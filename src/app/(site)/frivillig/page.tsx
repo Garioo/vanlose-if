@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import FrivilligForm from "@/components/FrivilligForm";
 import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { buildPageMetadata } from "@/lib/metadata";
+import { getSiteContact, mailtoUrl, telUrl } from "@/lib/site-contact";
 import { supabase } from "@/lib/supabase";
 import type { VolunteerRole } from "@/lib/supabase";
 
@@ -42,9 +42,10 @@ const fallbackRoles: VolunteerRole[] = [
 ];
 
 export default async function FrivilligPage() {
-  const [{ data }, { data: heroSetting }] = await Promise.all([
+  const [{ data }, { data: heroSetting }, contact] = await Promise.all([
     supabase.from("volunteer_roles").select("*").order("display_order", { ascending: true }),
     supabase.from("site_settings").select("value").eq("key", "frivillig_hero_image").single(),
+    getSiteContact(),
   ]);
 
   const frivilligHeroImage = heroSetting?.value || null;
@@ -170,11 +171,32 @@ export default async function FrivilligPage() {
               TILMELD DIG
             </h2>
             <p className="text-sm text-[#4a4540] leading-relaxed max-w-sm">
-              Udfyld formularen, og vi kontakter dig inden for et par dage for at finde den bedste
-              rolle til dig.
+              Skriv til os, og fortæl kort hvad du brænder for. Vi vender tilbage inden for et par
+              dage for at finde den bedste rolle til dig.
             </p>
           </div>
-          <FrivilligForm />
+          <div className="md:w-1/2">
+            <a
+              href={mailtoUrl(contact.email, "Jeg vil gerne være frivillig i Vanløse IF")}
+              className="inline-flex items-center gap-2 bg-black text-white text-xs font-bold tracking-widest uppercase px-8 py-4 hover:bg-[#2e2b27] transition-colors"
+            >
+              SKRIV TIL OS
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14m-7-7 7 7-7 7" />
+              </svg>
+            </a>
+            <p className="mt-6 text-sm text-[#2e2b27]">{contact.email}</p>
+            <p className="mt-1 text-xs text-[#6b6560]">
+              Du kan også ringe på{" "}
+              <a
+                href={telUrl(contact.phone)}
+                className="underline underline-offset-4 decoration-[#c9c3ba] hover:decoration-black"
+              >
+                {contact.phone}
+              </a>
+              .
+            </p>
+          </div>
         </div>
       </section>
     </div>

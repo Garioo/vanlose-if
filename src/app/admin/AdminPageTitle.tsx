@@ -10,7 +10,6 @@ const titleMap: Record<string, string> = {
   "/admin/kampe": "Kampe & Resultater",
   "/admin/live": "Livekontrol",
   "/admin/stilling": "Stilling",
-  "/admin/henvendelser": "Henvendelser",
   "/admin/sponsorer": "Sponsorer",
   "/admin/ungdom": "Ungdom",
   "/admin/medlemskaber": "Medlemskaber",

@@ -24,12 +24,20 @@ export interface Article {
 
 export type PlayerPosition = "MÅLMÆND" | "FORSVAR" | "MIDTBANE" | "ANGREB";
 
+/** 'active' players appear in the public squad; the others are kept for the record only. */
+export type PlayerStatus = "active" | "transferred" | "retired";
+
 export interface Player {
   id: string;
   number: string;
   name: string;
   position: PlayerPosition;
   image_url: string | null;
+  status: PlayerStatus;
+  /** Club they moved to. Only meaningful when status is 'transferred'. */
+  new_club: string | null;
+  /** Date they left the club. ISO date string. */
+  left_at: string | null;
 }
 
 export interface Match {
@@ -132,41 +140,6 @@ export interface Team {
   abbreviation: string | null;
   logo_url: string | null;
   home_turf: string | null;
-}
-
-export interface ContactSubmission {
-  id: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  status: "new" | "handled";
-  created_at: string;
-}
-
-export interface VolunteerSubmission {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: "new" | "handled";
-  created_at: string;
-}
-
-export interface NewsletterSubscription {
-  id: string;
-  email: string;
-  created_at: string;
-}
-
-export interface MembershipSubmission {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  membership_tier: string;
-  status: "new" | "handled";
-  created_at: string;
 }
 
 export type SponsorTier = "guld" | "sølv" | "bronze";

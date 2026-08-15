@@ -1,17 +1,13 @@
-"use client";
-
-import { useState } from "react";
-import { trackEvent } from "@/lib/analytics";
+import { mailtoUrl, telUrl } from "@/lib/site-contact";
 import type { MembershipTier } from "@/lib/supabase";
 
-export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }) {
-  const defaultSelected = tiers.find((t) => t.featured)?.name ?? tiers[0]?.name ?? "";
-  const [form, setForm] = useState({ name: "", email: "", phone: "", website: "" });
-  const [selected, setSelected] = useState(defaultSelected);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+interface Props {
+  tiers: MembershipTier[];
+  email: string;
+  phone: string;
+}
 
+export default function BlivMedlemContent({ tiers, email, phone }: Props) {
   return (
     <section className="py-16 md:py-24 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
@@ -51,140 +47,44 @@ export default function BlivMedlemContent({ tiers }: { tiers: MembershipTier[] }
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={() => setSelected(tier.name)}
-                className={`text-xs font-bold tracking-widest uppercase py-3 transition-colors ${
+              <a
+                href={mailtoUrl(email, `Medlemskab — ${tier.name}`)}
+                className={`text-xs font-bold tracking-widest uppercase py-3 text-center transition-colors ${
                   tier.featured
                     ? "bg-white text-black hover:bg-gray-100"
-                    : selected === tier.name
-                    ? "bg-black text-white"
                     : "border border-black hover:bg-black hover:text-white"
                 }`}
               >
-                {selected === tier.name ? "Valgt ✓" : "Vælg"}
-              </button>
+                Vælg {tier.name}
+              </a>
             </div>
           ))}
         </div>
 
-        {/* Signup form */}
+        {/* Sådan bliver du medlem */}
         <div id="tilmeld" className="max-w-2xl mx-auto border-t border-[#e0dbd3] pt-12">
-          <h2 className="font-display text-3xl mb-6">TILMELD DIG</h2>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setLoading(true);
-              setSuccess(false);
-              setError("");
-              trackEvent("membership_submit_started", { tier: selected });
-
-              try {
-                const res = await fetch("/api/membership", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
-                    phone: form.phone,
-                    website: form.website,
-                    membershipTier: selected,
-                  }),
-                });
-
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                  setError(data.error ?? "Kunne ikke sende medlemsanmodning.");
-                  trackEvent("membership_submit_failed", { status: res.status });
-                  return;
-                }
-
-                setForm({ name: "", email: "", phone: "", website: "" });
-                setSuccess(true);
-                trackEvent("membership_submit_success", { tier: selected });
-              } catch {
-                setError("Kunne ikke sende medlemsanmodning.");
-                trackEvent("membership_submit_failed", { status: 0 });
-              } finally {
-                setLoading(false);
-              }
-            }}
-            className="space-y-4"
+          <h2 className="font-display text-3xl mb-4">SÅDAN BLIVER DU MEDLEM</h2>
+          <p className="text-sm text-[#4a4540] leading-relaxed mb-8">
+            Skriv til os med dit navn, telefonnummer og hvilket medlemskab du ønsker — så sender vi
+            dig det videre forløb. Vi svarer inden for 1-2 hverdage.
+          </p>
+          <a
+            href={mailtoUrl(email, "Jeg vil gerne være medlem af Vanløse IF")}
+            className="inline-flex items-center gap-2 bg-black text-white text-xs font-bold tracking-widest uppercase px-8 py-4 hover:bg-[#2e2b27] transition-colors"
           >
-            <input
-              type="text"
-              value={form.website}
-              onChange={(e) => setForm({ ...form, website: e.target.value })}
-              tabIndex={-1}
-              autoComplete="off"
-              className="hidden"
-              aria-hidden="true"
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold tracking-widest uppercase mb-1">Navn</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
-                  placeholder="Dit fulde navn"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold tracking-widest uppercase mb-1">Telefon</label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
-                  placeholder="+45 00 00 00 00"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold tracking-widest uppercase mb-1">E-mail</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-gray-300 px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors"
-                placeholder="din@email.dk"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold tracking-widest uppercase mb-1">Medlemskab</label>
-              <select
-                value={selected}
-                onChange={(e) => setSelected(e.target.value)}
-                className="w-full border border-[#d4cfc7] px-4 py-3 text-base md:text-sm focus:outline-none focus:border-black transition-colors bg-[#f7f4ef] appearance-none"
-                required
-              >
-                {tiers.map((t) => (
-                  <option key={t.name}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-black text-white text-xs font-bold tracking-widest uppercase py-4 hover:bg-gray-900 transition-colors"
-            >
-              {loading ? "SENDER..." : "TILMELD MIG SOM MEDLEM"}
-            </button>
-            {success && (
-              <p className="text-xs text-green-700 text-center">
-                Tak. Din medlemsanmodning er modtaget, og vi vender tilbage hurtigst muligt.
-              </p>
-            )}
-            {error && (
-              <p className="text-xs text-red-500 text-center">{error}</p>
-            )}
-            <p className="text-[10px] text-[#8a847c] text-center">
-              Vi bruger dine oplysninger til at følge op på medlemsanmodningen.
-            </p>
-          </form>
+            SKRIV TIL OS
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14m-7-7 7 7-7 7" />
+            </svg>
+          </a>
+          <p className="mt-6 text-sm text-[#2e2b27]">{email}</p>
+          <p className="mt-1 text-xs text-[#6b6560]">
+            Eller ring på{" "}
+            <a href={telUrl(phone)} className="underline underline-offset-4 decoration-[#c9c3ba] hover:decoration-black">
+              {phone}
+            </a>
+            .
+          </p>
         </div>
       </div>
     </section>

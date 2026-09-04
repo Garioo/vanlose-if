@@ -175,7 +175,7 @@ export default function AdminHoldPage() {
                   <div className="h-8 w-8 shrink-0 bg-gray-50 flex items-center justify-center p-1 border border-gray-100">
                     {t.logo_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.logo_url} alt="" className="max-h-full max-w-full object-contain" />
+                      <img src={t.logo_url} alt={`${t.name} logo`} className="max-h-full max-w-full object-contain" />
                     ) : (
                       <span className="text-[10px] text-gray-300 font-bold">{t.name.substring(0, 1)}</span>
                     )}

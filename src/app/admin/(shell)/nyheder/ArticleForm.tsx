@@ -132,7 +132,11 @@ export default function ArticleForm({ article }: Props) {
         </div>
         {form.image_url && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={form.image_url} alt="" className="mt-2 h-32 w-auto object-cover border border-gray-200" />
+          <img
+            src={form.image_url}
+            alt={form.title ? `Forhåndsvisning af billede til "${form.title}"` : "Forhåndsvisning af artikelbillede"}
+            className="mt-2 h-32 w-auto object-cover border border-gray-200"
+          />
         )}
       </div>
 

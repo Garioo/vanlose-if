@@ -34,7 +34,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full">
+          <main id="main-content" className="flex-1 p-4 md:p-6 max-w-7xl w-full">
             {children}
           </main>
         </div>

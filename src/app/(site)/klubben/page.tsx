@@ -69,7 +69,7 @@ export default async function KlubbenPage() {
           <div className="flex flex-col gap-2 w-full md:w-64 flex-shrink-0">
             {heroImages.map((url, i) => (
               <div key={i} className={`h-24 w-full overflow-hidden ${!url ? heroBgs[i] : ""}`}>
-                {url && <img src={url} alt="" className="w-full h-full object-cover" />}
+                {url && <img src={url} alt="" aria-hidden className="w-full h-full object-cover" />}
               </div>
             ))}
           </div>

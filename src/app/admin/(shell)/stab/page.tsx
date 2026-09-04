@@ -99,7 +99,11 @@ export default function AdminStabPage() {
             </div>
             {form.image_url && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.image_url} alt="" className="mt-2 h-20 w-auto object-cover border border-gray-200" />
+              <img
+                src={form.image_url}
+                alt={form.name ? `Forhåndsvisning af billede af ${form.name}` : "Forhåndsvisning af portrætbillede"}
+                className="mt-2 h-20 w-auto object-cover border border-gray-200"
+              />
             )}
           </div>
           <div className="col-span-2 md:col-span-3">

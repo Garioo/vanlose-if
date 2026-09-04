@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center px-4">
+    <main id="main-content" className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-10 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-900 text-white text-lg font-black mx-auto mb-4">
@@ -70,6 +70,6 @@ export default function AdminLoginPage() {
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

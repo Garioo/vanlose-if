@@ -85,7 +85,7 @@ export default function AdminIndstillingerPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={values[s.key]}
-                        alt=""
+                        alt={`Forhåndsvisning: ${s.label ?? s.key}`}
                         className="h-8 w-8 object-cover border border-gray-200 shrink-0"
                       />
                     )}

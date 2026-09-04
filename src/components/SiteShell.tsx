@@ -33,7 +33,7 @@ export default function SiteShell({
       {/* Spacer to offset the fixed bar below the desktop breakpoint */}
       <div className={hasBanner ? "h-[6.5rem] lg:hidden" : "h-16 lg:hidden"} />
 
-      <div className="md:min-h-screen">{children}</div>
+      <main id="main-content" className="md:min-h-screen">{children}</main>
     </>
   );
 }

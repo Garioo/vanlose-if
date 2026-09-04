@@ -450,6 +450,47 @@ CREATE TABLE IF NOT EXISTS public.player_stats (
   UNIQUE(player_id, season)
 );
 
+-- Media library mirror
+-- Metadata copy of the Cloudinary library so the admin media grid can list,
+-- filter and search with one indexed query instead of several rate-limited
+-- Cloudinary Admin API calls. Cloudinary still stores the files themselves.
+CREATE TABLE IF NOT EXISTS public.media_assets (
+  public_id text PRIMARY KEY,
+  url text NOT NULL,
+  resource_type text NOT NULL DEFAULT 'image',
+  format text,
+  folder text,
+  tags text[] NOT NULL DEFAULT '{}',
+  bytes bigint NOT NULL DEFAULT 0,
+  width integer,
+  height integer,
+  created_at timestamptz NOT NULL,
+  synced_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Multi-tag filtering is `tags @> ARRAY[...]`, which needs a GIN index.
+CREATE INDEX IF NOT EXISTS media_assets_tags_idx ON public.media_assets USING GIN (tags);
+CREATE INDEX IF NOT EXISTS media_assets_folder_idx ON public.media_assets (folder);
+CREATE INDEX IF NOT EXISTS media_assets_created_at_idx ON public.media_assets (created_at DESC);
+
+-- Proposed media tags awaiting admin review (see scripts/face_tagger).
+-- Holds no biometric data: only a tag name and a confidence score. Face
+-- embeddings stay in a local gitignored file on the machine running the script.
+CREATE TABLE IF NOT EXISTS public.media_tag_suggestions (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  public_id text NOT NULL REFERENCES public.media_assets(public_id) ON DELETE CASCADE,
+  tag text NOT NULL,
+  confidence real NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  source text NOT NULL DEFAULT 'face',
+  created_at timestamptz NOT NULL DEFAULT timezone('utc'::text, now()),
+  reviewed_at timestamptz,
+  UNIQUE (public_id, tag)
+);
+
+CREATE INDEX IF NOT EXISTS media_tag_suggestions_status_idx ON public.media_tag_suggestions (status);
+CREATE INDEX IF NOT EXISTS media_tag_suggestions_public_id_idx ON public.media_tag_suggestions (public_id);
+
 -- ==========================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
@@ -469,6 +510,11 @@ ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.youth_teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.player_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff ENABLE ROW LEVEL SECURITY;
+-- Deliberately no SELECT policy: the media library is admin-only, so with RLS
+-- on and no policy the anon key can read nothing and only the service role
+-- (used by the API routes) has access.
+ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_tag_suggestions ENABLE ROW LEVEL SECURITY;
 
 -- Public read access to site-facing tables
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.articles;

@@ -5,6 +5,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import FolderCreator from "@/components/admin/FolderCreator";
 import TagFilterDropdown from "@/components/admin/TagFilterDropdown";
+import { thumbnailUrl, videoPosterUrl, syncUploadedAsset } from "@/lib/media-url";
 
 const CldUploadWidget = dynamic(
   () => import("next-cloudinary").then((m) => m.CldUploadWidget),
@@ -186,7 +187,8 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                     key={cloudinaryFolder}
                     signatureEndpoint="/api/media/sign"
                     options={uploadWidgetOptions}
-                    onSuccess={(result) => {
+                    onSuccess={async (result) => {
+                      await syncUploadedAsset(result.info);
                       const info = result.info as { secure_url?: string } | undefined;
                       if (info?.secure_url) {
                         select(info.secure_url);
@@ -246,16 +248,18 @@ export default function MediaPicker({ onSelect, label = "Vælg billede" }: Props
                         {item.resource_type === "video" ? (
                           <video
                             src={item.url}
+                            poster={videoPosterUrl(item.url, 300)}
                             className="h-full w-full object-cover group-hover:opacity-90 transition-opacity"
                             muted
                             playsInline
-                            preload="metadata"
+                            preload="none"
                           />
                         ) : (
                           <Image
-                            src={item.url}
+                            src={thumbnailUrl(item.url, 300)}
                             alt={item.filename}
                             fill
+                            unoptimized
                             className="object-cover group-hover:opacity-90 transition-opacity"
                             sizes="(max-width: 768px) 33vw, 20vw"
                           />

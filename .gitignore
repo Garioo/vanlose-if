@@ -44,3 +44,8 @@ next-env.d.ts
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Face embeddings are biometric data — never commit them
+scripts/face_tagger/player_faces.json
+scripts/face_tagger/kit_colours.json
+.venv-face/

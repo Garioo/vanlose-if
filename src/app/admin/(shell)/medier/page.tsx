@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import type { Player } from "@/lib/supabase";
 import FolderCreator from "@/components/admin/FolderCreator";
 import TagFilterDropdown from "@/components/admin/TagFilterDropdown";
+import { thumbnailUrl, videoPosterUrl, syncUploadedAsset } from "@/lib/media-url";
 
 const CldUploadWidget = dynamic(
   () => import("next-cloudinary").then((m) => m.CldUploadWidget),
@@ -26,6 +27,21 @@ interface MediaItem {
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+/** A player tag proposed by the tagger, pending review. */
+interface Suggestion {
+  tag: string;
+  confidence: number;
+  /** 'face', 'number', or 'face+number' when both signals agreed. */
+  source: string;
+}
+
+/** Short label so the reviewer can see what a proposal is based on. */
+function sourceLabel(source: string) {
+  if (source === "face+number") return "ansigt + nummer";
+  if (source === "number") return "nummer";
+  return "ansigt";
+}
 
 function normalizeTag(tag: string) {
   return tag.toLowerCase().trim();
@@ -50,6 +66,11 @@ export default function AdminMedierPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [suggestionsByAsset, setSuggestionsByAsset] = useState<Record<string, Suggestion[]>>({});
+  const [tagging, setTagging] = useState(false);
+  const [taggingMessage, setTaggingMessage] = useState<string | null>(null);
   const [activeQueueId, setActiveQueueId] = useState<string | null>(null);
   const [tagSearch, setTagSearch] = useState("");
   const [draftTagsById, setDraftTagsById] = useState<Record<string, string[]>>({});
@@ -88,6 +109,12 @@ export default function AdminMedierPage() {
     setAllTags(Array.isArray(data) ? data : []);
   }, []);
 
+  const loadSuggestions = useCallback(async () => {
+    const res = await fetch("/api/media/suggestions");
+    const data = await res.json().catch(() => ({}));
+    setSuggestionsByAsset(data && typeof data === "object" ? data : {});
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
@@ -99,19 +126,22 @@ export default function AdminMedierPage() {
     setLoading(false);
   }, [activeTags, selectedFolder]);
 
+  // Folders, the tag vocabulary and the player list are the same whatever the
+  // active filter is, so they load once. Bundling them with the media fetch
+  // meant every filter chip toggle re-requested all four.
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void load();
-      void loadFolders();
-      void loadTags();
-      void fetch("/api/players?status=all")
-        .then((r) => r.json())
-        .then((data: Player[]) => setPlayers(Array.isArray(data) ? data : []))
-        .catch(() => {});
-    }, 0);
+    void loadFolders();
+    void loadTags();
+    void loadSuggestions();
+    void fetch("/api/players?status=all")
+      .then((r) => r.json())
+      .then((data: Player[]) => setPlayers(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [loadFolders, loadTags, loadSuggestions]);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [load, loadFolders, loadTags]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     setSelectedIds((prev) => prev.filter((id) => items.some((item) => item.public_id === id)));
@@ -154,6 +184,57 @@ export default function AdminMedierPage() {
     }
   }
 
+  /**
+   * Rebuilds the Supabase mirror from Cloudinary. Needed once to backfill, and
+   * afterwards only to pick up changes made straight in the Cloudinary console
+   * — every edit made here already writes through.
+   */
+  async function handleSync() {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch("/api/media/sync", { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Synkronisering fejlede");
+      setSyncMessage(`${data.synced} medier synkroniseret${data.removed ? `, ${data.removed} fjernet` : ""}.`);
+      await Promise.all([load(), loadTags(), loadFolders()]);
+    } catch (error) {
+      setSyncMessage(error instanceof Error ? error.message : "Synkronisering fejlede");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  /**
+   * Runs face recognition over the folder currently in view and reloads the
+   * proposals it produced. Only works when the admin runs locally — the API
+   * route says so explicitly otherwise.
+   */
+  async function handleTagFaces() {
+    setTagging(true);
+    setTaggingMessage(null);
+    try {
+      const res = await fetch("/api/media/tag-faces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: selectedFolder || null, onlyUntagged: true }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Ansigtsgenkendelse fejlede");
+
+      await loadSuggestions();
+      setTaggingMessage(
+        data.suggestions > 0
+          ? `${data.suggestions} forslag fundet i ${data.scanned} medier. Åbn "Rediger tags" for at godkende dem.`
+          : `Ingen nye forslag i ${data.scanned} utaggede medier.`
+      );
+    } catch (error) {
+      setTaggingMessage(error instanceof Error ? error.message : "Ansigtsgenkendelse fejlede");
+    } finally {
+      setTagging(false);
+    }
+  }
+
   async function handleCopy(item: MediaItem) {
     await navigator.clipboard.writeText(item.url);
     setCopiedId(item.public_id);
@@ -163,9 +244,9 @@ export default function AdminMedierPage() {
   async function handleBulkDelete() {
     if (!confirm(`Slet ${selectedIds.length} medier permanent?`)) return;
     setDeleting(true);
-    for (const id of selectedIds) {
-      await fetch(`/api/media/${encodeURIComponent(id)}`, { method: "DELETE" });
-    }
+    await Promise.all(
+      selectedIds.map((id) => fetch(`/api/media/${encodeURIComponent(id)}`, { method: "DELETE" }))
+    );
     setSelectedIds([]);
     closeTagPanel();
     await load();
@@ -253,6 +334,39 @@ export default function AdminMedierPage() {
     );
   }
 
+  /** Dismisses a proposal so a later face-tagger run will not repeat it. */
+  async function rejectSuggestion(id: string, tag: string) {
+    setSuggestionsByAsset((prev) => ({
+      ...prev,
+      [id]: (prev[id] ?? []).filter((s) => s.tag !== tag),
+    }));
+    await fetch("/api/media/suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publicId: id, tags: [tag], status: "rejected" }),
+    }).catch(() => {});
+  }
+
+  /**
+   * Marks proposals as accepted only once their tag has actually been written
+   * to Cloudinary, so an abandoned draft does not silently clear the queue.
+   */
+  async function confirmAcceptedSuggestions(id: string, savedTags: string[]) {
+    const pending = suggestionsByAsset[id] ?? [];
+    const accepted = pending.filter((s) => savedTags.includes(s.tag)).map((s) => s.tag);
+    if (accepted.length === 0) return;
+
+    setSuggestionsByAsset((prev) => ({
+      ...prev,
+      [id]: (prev[id] ?? []).filter((s) => !accepted.includes(s.tag)),
+    }));
+    await fetch("/api/media/suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publicId: id, tags: accepted, status: "accepted" }),
+    }).catch(() => {});
+  }
+
   async function saveTags(id: string) {
     const draftTags = sortTags(draftTagsById[id] ?? items.find((item) => item.public_id === id)?.tags ?? []);
 
@@ -274,6 +388,7 @@ export default function AdminMedierPage() {
       updateItemsAfterSave(id, draftTags);
       setDraftTagsById((prev) => ({ ...prev, [id]: draftTags }));
       setSaveStateById((prev) => ({ ...prev, [id]: "saved" }));
+      void confirmAcceptedSuggestions(id, draftTags);
       // A save can introduce a brand-new tag, so refresh the filter vocabulary.
       void loadTags();
       return true;
@@ -320,6 +435,10 @@ export default function AdminMedierPage() {
   const activeItem = selectedItems.find((item) => item.public_id === activeQueueId) ?? null;
   const activeDraftTags = activeItem ? draftTagsById[activeItem.public_id] ?? activeItem.tags : [];
   const activeIndex = activeItem ? selectedIds.indexOf(activeItem.public_id) : -1;
+  // Proposals the admin has not yet taken into the draft.
+  const activeSuggestions = activeItem
+    ? (suggestionsByAsset[activeItem.public_id] ?? []).filter((s) => !activeDraftTags.includes(s.tag))
+    : [];
   const activeSearch = normalizeTag(tagSearch);
   const matchingCommonTags = activeSearch
     ? COMMON_TAGS.filter((tag) => normalizeTag(tag).includes(activeSearch))
@@ -350,7 +469,10 @@ export default function AdminMedierPage() {
             key={cloudinaryFolder}
             signatureEndpoint="/api/media/sign"
             options={uploadWidgetOptions}
-            onSuccess={() => load()}
+            onSuccess={async (result) => {
+              await syncUploadedAsset(result.info);
+              await load();
+            }}
           >
             {({ open }) => (
               <button
@@ -361,6 +483,34 @@ export default function AdminMedierPage() {
               </button>
             )}
           </CldUploadWidget>
+          <button
+            type="button"
+            onClick={() => void handleSync()}
+            disabled={syncing}
+            title="Hent ændringer fra Cloudinary ind i mediebiblioteket"
+            className="text-[10px] font-bold tracking-widest uppercase border border-gray-300 px-4 py-2.5 hover:border-black disabled:text-gray-300 disabled:border-gray-200 transition-colors mb-5"
+          >
+            {syncing ? "Synkroniserer..." : "↻ Synkronisér"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleTagFaces()}
+            disabled={tagging}
+            title={
+              selectedFolder
+                ? `Find spillere i utaggede medier i "${selectedFolder}"`
+                : "Find spillere i alle utaggede medier"
+            }
+            className="text-[10px] font-bold tracking-widest uppercase border border-gray-300 px-4 py-2.5 hover:border-black disabled:text-gray-300 disabled:border-gray-200 transition-colors mb-5"
+          >
+            {tagging ? "Genkender ansigter..." : "☺ Find spillere"}
+          </button>
+          {syncMessage && (
+            <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-5">{syncMessage}</p>
+          )}
+          {taggingMessage && (
+            <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-5 max-w-md">{taggingMessage}</p>
+          )}
         </div>
       </div>
 
@@ -454,14 +604,15 @@ export default function AdminMedierPage() {
                     {item.resource_type === "video" ? (
                       <video
                         src={item.url}
+                        poster={videoPosterUrl(item.url, 400)}
                         className="h-full w-full object-cover"
                         controls
                         muted
                         playsInline
-                        preload="metadata"
+                        preload="none"
                       />
                     ) : (
-                      <Image src={item.url} alt={item.filename} fill className="object-cover" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" />
+                      <Image src={thumbnailUrl(item.url, 400)} alt={item.filename} fill unoptimized className="object-cover" sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw" />
                     )}
                   </div>
 
@@ -490,6 +641,36 @@ export default function AdminMedierPage() {
                         <span className="text-[9px] text-gray-300">ingen tags</span>
                       )}
                     </div>
+
+                    {/* Pending face-recognition proposals, surfaced on the tile
+                        itself — otherwise the only place they appear is inside
+                        the tag panel, and an untagged grid looks like the
+                        tagger simply did nothing. */}
+                    {(suggestionsByAsset[item.public_id]?.length ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openTagPanelForIds([item.public_id])}
+                        title="Åbn tagpanelet og godkend forslagene"
+                        className="w-full text-left border border-dashed border-black/30 bg-gray-50 px-1.5 py-1 mb-2 hover:border-black hover:bg-white transition-colors"
+                      >
+                        <span className="block text-[8px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+                          {suggestionsByAsset[item.public_id].length} forslag
+                        </span>
+                        <span className="flex flex-wrap gap-1">
+                          {suggestionsByAsset[item.public_id].slice(0, 3).map((suggestion) => (
+                            <span
+                              key={suggestion.tag}
+                              className="text-[9px] font-bold tracking-widest uppercase text-gray-600"
+                            >
+                              {suggestion.tag}
+                              <span className="ml-0.5 font-normal text-gray-400">
+                                {Math.round(suggestion.confidence * 100)}%
+                              </span>
+                            </span>
+                          ))}
+                        </span>
+                      </button>
+                    )}
 
                     <div className="flex gap-3 pt-1 border-t border-gray-100">
                       <button onClick={() => handleCopy(item)} className="text-[9px] font-bold tracking-widest uppercase text-gray-500 hover:text-black transition-colors">
@@ -545,9 +726,9 @@ export default function AdminMedierPage() {
                     >
                       <div className="relative h-14 w-full overflow-hidden bg-gray-100 mb-1">
                         {item.resource_type === "video" ? (
-                          <video src={item.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                          <video src={item.url} poster={videoPosterUrl(item.url, 96)} className="h-full w-full object-cover" muted playsInline preload="none" />
                         ) : (
-                          <Image src={item.url} alt={item.filename} fill className="object-cover" sizes="74px" />
+                          <Image src={thumbnailUrl(item.url, 96)} alt={item.filename} fill unoptimized className="object-cover" sizes="74px" />
                         )}
                       </div>
                       <p className="text-[8px] font-bold uppercase tracking-widest text-gray-600 truncate">
@@ -593,11 +774,45 @@ export default function AdminMedierPage() {
 
                 <div className="relative aspect-4/3 overflow-hidden bg-gray-100 border border-gray-200 mb-3">
                   {activeItem.resource_type === "video" ? (
-                    <video src={activeItem.url} className="h-full w-full object-cover" controls muted playsInline preload="metadata" />
+                    <video src={activeItem.url} poster={videoPosterUrl(activeItem.url, 800)} className="h-full w-full object-cover" controls muted playsInline preload="none" />
                   ) : (
-                    <Image src={activeItem.url} alt={activeItem.filename} fill className="object-cover" sizes="352px" />
+                    <Image src={thumbnailUrl(activeItem.url, 800)} alt={activeItem.filename} fill unoptimized className="object-cover" sizes="352px" />
                   )}
                 </div>
+
+                {activeSuggestions.length > 0 && (
+                  <div className="mb-3 border border-dashed border-black/30 bg-gray-50 p-2">
+                    <p className="text-[9px] uppercase tracking-widest text-gray-500 mb-1">
+                      Forslag fra genkendelse
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {activeSuggestions.map((suggestion) => (
+                        <span key={suggestion.tag} className="inline-flex items-stretch border border-gray-300 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => toggleDraftTag(activeItem.public_id, suggestion.tag)}
+                            title={`Tilføj "${suggestion.tag}" til tags`}
+                            className="text-[9px] font-bold tracking-widest uppercase px-2 py-1 hover:bg-black hover:text-white transition-colors"
+                          >
+                            + {suggestion.tag}
+                            <span className="ml-1 font-normal text-gray-400">
+                              {Math.round(suggestion.confidence * 100)}% · {sourceLabel(suggestion.source)}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void rejectSuggestion(activeItem.public_id, suggestion.tag)}
+                            title={`Afvis "${suggestion.tag}"`}
+                            aria-label={`Afvis ${suggestion.tag}`}
+                            className="border-l border-gray-300 px-1.5 text-[9px] text-gray-400 hover:bg-red-500 hover:text-white transition-colors"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mb-3">
                   <p className="text-[9px] uppercase tracking-widest text-gray-400 mb-1">Valgte tags</p>

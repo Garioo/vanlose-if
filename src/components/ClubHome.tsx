@@ -44,7 +44,7 @@ export default function ClubHome({ nextMatch, latestMatch, heroImage, youthImage
       <div className="home-hero-heading"><p>Fodbold i Vanløse. Siden 1921.</p><h1 id="home-title">Vores klub.<br className="mobile-break" /> Vores Vanløse.</h1></div>
       <div className="home-hero-photo">
         {heroImage && <SiteImage src={heroImage} alt="Vanløse IFs spillere på vej på banen" width={1600} sizes="100vw" priority className="home-photo" />}
-        <div className="hero-photo-content"><span>Vanløse Idrætsforening</span><Link href="/forsteholdet">Mød førsteholdet <ArrowUpRight size={19} aria-hidden="true" /></Link></div>
+        <div className="hero-photo-content"><span> </span><Link href="/forsteholdet">Mød førsteholdet <ArrowUpRight size={19} aria-hidden="true" /></Link></div>
       </div>
     </section>
 

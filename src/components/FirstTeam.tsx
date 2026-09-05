@@ -15,7 +15,7 @@ export default function FirstTeam({ players }: FirstTeamProps) {
             Førsteholdet
           </h2>
           <p className="text-sm text-[#4a4540] max-w-md">
-            Vores flagskib kæmper for oprykning. Mød profilerne og se de nyeste resultater fra 3. Division.
+            Vores førestehold kæmper for oprykning. Mød spillerne og se de nyeste resultater fra 3. Division.
           </p>
         </div>
         <Link

@@ -92,8 +92,8 @@ export default function BlivMedlemContent({ tiers, email, phone }: Props) {
         <div id="tilmeld" className="max-w-2xl mx-auto border-t border-[#e0dbd3] pt-12">
           <h2 className="font-display text-3xl mb-4">SÅDAN BLIVER DU MEDLEM</h2>
           <p className="text-sm text-[#4a4540] leading-relaxed mb-8">
-            Skriv til os med dit navn, telefonnummer og hvilket medlemskab du ønsker — så sender vi
-            dig det videre forløb. Vi svarer inden for 1-2 hverdage.
+            Skriv til os med dit navn, telefonnummer og hvilket medlemskab du ønsker så sender vi
+            dig det videre forløb. Vi svarer inden for X hverdage.
           </p>
           <a
             href={mailtoUrl(email, "Jeg vil gerne være medlem af Vanløse IF")}

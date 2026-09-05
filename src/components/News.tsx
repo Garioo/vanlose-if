@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase, type Article } from "@/lib/supabase";
 import { readingTime } from "@/lib/readingTime";
+import SiteImage from "@/components/SiteImage";
 
 export default async function News() {
   const { data } = await supabase
@@ -42,8 +43,13 @@ export default async function News() {
           >
             <div className="aspect-video bg-[#edeae3] relative overflow-hidden">
               {article.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <SiteImage
+                  src={article.image_url}
+                  alt={article.title}
+                  width={600}
+                  sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
               ) : (
                 <div className="absolute inset-0 bg-linear-to-br from-[#ddd8d0] to-[#ccc6bc] group-hover:from-[#ccc6bc] group-hover:to-[#bbb5ab] transition-colors duration-300" />
               )}

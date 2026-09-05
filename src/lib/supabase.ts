@@ -22,6 +22,17 @@ export interface Article {
   created_at: string;
 }
 
+/**
+ * An article stripped of its `content` body, plus a precomputed reading time.
+ *
+ * List views only need the card fields, and shipping every article's full HTML
+ * to a client component makes the page payload grow with the whole archive.
+ */
+export type ArticleSummary = Omit<Article, "content" | "created_at"> & {
+  /** Reading time in minutes, computed on the server from the body. */
+  minutes: number;
+};
+
 export type PlayerPosition = "MÅLMÆND" | "FORSVAR" | "MIDTBANE" | "ANGREB";
 
 /** 'active' players appear in the public squad; the others are kept for the record only. */

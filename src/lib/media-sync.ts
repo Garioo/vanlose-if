@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const MEDIA_ROOT = "vanlose-if";
 
-/** Shape the media library API hands to the admin UI. */
+/** What the media API returns to the admin UI. */
 export interface MediaAsset {
   public_id: string;
   url: string;
@@ -40,10 +40,7 @@ export interface MediaAssetRow {
   synced_at: string;
 }
 
-/**
- * Subfolder path below the club root, or null at the root itself.
- * "vanlose-if/2026-05-02 Naesby/IMG_1.jpg" -> "2026-05-02 Naesby".
- */
+/** "vanlose-if/2026-05-02 Naesby/IMG_1.jpg" -> "2026-05-02 Naesby"; null at the root. */
 export function folderOf(publicId: string): string | null {
   const prefix = `${MEDIA_ROOT}/`;
   if (!publicId.startsWith(prefix)) return null;
@@ -85,10 +82,8 @@ export function rowToAsset(row: MediaAssetRow): MediaAsset {
 }
 
 /**
- * Every asset under the club root, following Cloudinary's cursor to the end.
- *
- * The old listing stopped at the first 200 results, so anything past that was
- * invisible in the admin UI. A sync has to see all of it to be correct.
+ * Every asset under the club root. Pages to the end of the cursor — the old
+ * listing stopped at 200, hiding everything past it.
  */
 async function fetchAllResources(): Promise<CloudinaryResource[]> {
   const all: CloudinaryResource[] = [];
@@ -112,10 +107,7 @@ async function fetchAllResources(): Promise<CloudinaryResource[]> {
   return all;
 }
 
-/**
- * Rebuilds the mirror from Cloudinary. Used for the initial backfill and as a
- * repair for anything a missed webhook left behind; safe to re-run.
- */
+/** Rebuilds the mirror: initial backfill, and repair after a missed webhook. */
 export async function syncAllMedia(): Promise<{ synced: number; removed: number }> {
   const resources = await fetchAllResources();
   const rows = resources.map(toRow);
@@ -131,8 +123,7 @@ export async function syncAllMedia(): Promise<{ synced: number; removed: number 
     if (error) throw new Error(`Kunne ikke gemme medier: ${error.message}`);
   }
 
-  // Anything the mirror still holds that Cloudinary no longer lists was
-  // deleted elsewhere (the Cloudinary console, say) and has to go.
+  // Rows Cloudinary no longer lists were deleted elsewhere, e.g. its console.
   const keep = new Set(rows.map((r) => r.public_id));
   const { data: existing, error: readError } = await supabaseAdmin
     .from("media_assets")
@@ -151,7 +142,7 @@ export async function syncAllMedia(): Promise<{ synced: number; removed: number 
   return { synced: rows.length, removed: stale.length };
 }
 
-/** Mirrors a single asset, e.g. straight after an upload. */
+/** Mirrors one asset, e.g. after an upload. */
 export async function syncOne(publicId: string, resourceType: "image" | "video" = "image") {
   const resource = (await cloudinary.api.resource(publicId, {
     resource_type: resourceType,
@@ -170,10 +161,7 @@ export async function syncOne(publicId: string, resourceType: "image" | "video" 
   if (error) throw new Error(`Kunne ikke gemme medie: ${error.message}`);
 }
 
-/**
- * Write-through after a tag edit, so the grid reflects the change immediately
- * rather than waiting for Cloudinary's webhook to arrive.
- */
+/** Write-through after a tag edit, so the grid updates without waiting for the webhook. */
 export async function updateMirrorTags(publicId: string, tags: string[]) {
   const { error } = await supabaseAdmin
     .from("media_assets")

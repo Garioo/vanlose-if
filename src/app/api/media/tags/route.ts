@@ -1,18 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/api-auth";
 import cloudinary from "@/lib/cloudinary";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
- * Full tag vocabulary, independent of any active filter.
+ * Full tag vocabulary, independent of any active filter — deriving it from the
+ * already-filtered grid made non-co-occurring tags vanish from the filter bar.
  *
- * The media grid used to derive its tag list from the (already filtered)
- * resources it had loaded, so selecting a tag made every non-co-occurring tag
- * vanish from the filter bar. This endpoint is the stable source instead.
- *
- * It reads the Supabase mirror: one query over a few hundred rows, rather
- * than paging Cloudinary's rate-limited tag listing on every admin page load.
+ * Reads the mirror rather than paging Cloudinary's rate-limited tag listing.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireAdminApi(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const { data, error } = await supabaseAdmin.from("media_assets").select("tags");
     if (error) throw new Error(error.message);

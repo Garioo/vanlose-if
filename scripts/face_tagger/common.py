@@ -1,8 +1,4 @@
-"""Shared helpers for the face tagging scripts.
-
-Reads configuration from the project's .env.local so there is a single place
-where Cloudinary and Supabase credentials live.
-"""
+"""Shared helpers for the face tagging scripts. Config comes from .env.local."""
 
 from __future__ import annotations
 
@@ -23,10 +19,9 @@ KIT_PATH = Path(__file__).resolve().parent / "kit_colours.json"
 
 MEDIA_ROOT = "vanlose-if"
 
-# Youth media is deliberately out of scope: the reference gallery is built from
-# the first-team roster only, and any asset whose path looks like youth content
-# is skipped outright. Widening this needs a consent decision first, not just a
-# code change — see README.md.
+# Youth media is out of scope: the gallery is built from the first-team roster
+# only, and youth-looking paths are skipped. Widening this needs a consent
+# decision first, not just a code change. See README.md.
 YOUTH_PATTERN = re.compile(r"(^|/)(ungdom|u\d{1,2})(/|$)", re.IGNORECASE)
 
 
@@ -158,16 +153,15 @@ def normalize_tag(value: str) -> str:
 
 
 def load_face_model(det_size: int = 1024):
-    """InsightFace buffalo_l: detection + a 512-d recognition embedding.
+    """InsightFace buffalo_l: detection plus a 512-d recognition embedding.
 
-    Chosen over dlib/face_recognition because match photography is mostly
-    side-on, motion-blurred and distant, where dlib's accuracy drops sharply —
-    and because it installs cleanly on Apple Silicon.
+    Chosen over dlib, which drops off sharply on the side-on, motion-blurred
+    and distant faces typical of match photography, and installs poorly on
+    Apple Silicon.
 
-    1024 rather than 640, paired with the 1920px source above: measured on
-    already-tagged photos, the larger size finds no extra faces but produces
-    cleaner embeddings from the same ones — false proposals dropped from 5 to 3
-    at an unchanged recall, which is the trade that matters for a review queue.
+    det_size 1024 rather than 640: measured on already-tagged photos it finds
+    no extra faces but gives cleaner embeddings, taking false proposals from 5
+    to 3 at unchanged recall.
     """
     from insightface.app import FaceAnalysis
 
@@ -177,7 +171,7 @@ def load_face_model(det_size: int = 1024):
 
 
 def embed_faces(app, image: np.ndarray, min_det_score: float = 0.5) -> list[np.ndarray]:
-    """L2-normalised embeddings for every confidently detected face."""
+    """L2-normalised embeddings for confidently detected faces."""
     faces = app.get(image)
     embeddings = []
     for face in faces:
@@ -195,10 +189,9 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
 def largest_cluster(embeddings: Iterable[np.ndarray], threshold: float) -> list[int]:
     """Indices of the biggest group of mutually similar faces.
 
-    A player appears in every photo tagged with their name; everyone else
-    varies. So the dominant cluster across those photos is the player, which is
-    what lets the gallery be built from existing tags without hand-labelling
-    individual faces.
+    A player is in every photo tagged with their name and everyone else varies,
+    so the dominant cluster is the player. That is what lets the gallery be
+    built from existing tags without hand-labelling faces.
     """
     vectors = list(embeddings)
     if not vectors:
@@ -219,11 +212,9 @@ def largest_cluster(embeddings: Iterable[np.ndarray], threshold: float) -> list[
 
 
 def torso_box(bbox, image_shape) -> tuple[int, int, int, int] | None:
-    """A patch of shirt below a face box.
+    """A patch of shirt below a face box, landing on the chest when upright.
 
-    Used both to learn the club's kit colours and to check the shirt a detected
-    number sits on. Roughly one face-height below the chin and one face-width
-    wide, which lands on the chest for an upright player.
+    Used to learn kit colours and to check the shirt a number sits on.
     """
     x1, y1, x2, y2 = [int(v) for v in bbox]
     fw, fh = x2 - x1, y2 - y1
@@ -243,8 +234,7 @@ def torso_box(bbox, image_shape) -> tuple[int, int, int, int] | None:
 def dominant_hsv(image: np.ndarray, box: tuple[int, int, int, int]) -> tuple[float, float, float] | None:
     """Median HSV of a patch, ignoring the darkest and lightest pixels.
 
-    The median resists shadow, grass showing through and sponsor print far
-    better than a mean would.
+    The median resists shadow, grass and sponsor print better than a mean.
     """
     x1, y1, x2, y2 = box
     patch = image[y1:y2, x1:x2]
@@ -262,10 +252,9 @@ def dominant_hsv(image: np.ndarray, box: tuple[int, int, int, int]) -> tuple[flo
 
 
 def hsv_distance(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
-    """Distance between two HSV colours, with hue wrapping at 180 (OpenCV).
+    """Distance between two HSV colours, hue wrapping at 180 (OpenCV).
 
-    Hue dominates, but a washed-out or near-black shirt has unstable hue, so
-    saturation and value carry weight too.
+    Hue dominates, but washed-out shirts have unstable hue, so S and V count.
     """
     dh = abs(a[0] - b[0])
     dh = min(dh, 180 - dh) / 90.0
@@ -275,7 +264,7 @@ def hsv_distance(a: tuple[float, float, float], b: tuple[float, float, float]) -
 
 
 def load_ocr():
-    """RapidOCR runs on the ONNX runtime already installed for InsightFace."""
+    """RapidOCR reuses the ONNX runtime already installed for InsightFace."""
     from rapidocr_onnxruntime import RapidOCR
 
     return RapidOCR()
@@ -284,8 +273,7 @@ def load_ocr():
 def read_numbers(ocr, image: np.ndarray) -> list[tuple[str, tuple[int, int, int, int], float]]:
     """Shirt-number candidates as (digits, box, score).
 
-    Only 1-2 digit runs are kept: squad numbers are at most two digits, and
-    longer strings are sponsor text or advertising hoardings.
+    Only 1-2 digit runs: longer strings are sponsor text or hoardings.
     """
     result, _ = ocr(image)
     found = []
@@ -301,7 +289,7 @@ def read_numbers(ocr, image: np.ndarray) -> list[tuple[str, tuple[int, int, int,
 
 
 def number_shirt_box(box: tuple[int, int, int, int], image_shape) -> tuple[int, int, int, int]:
-    """The shirt immediately around a number, for the kit colour check."""
+    """The shirt around a number, for the kit colour check."""
     x1, y1, x2, y2 = box
     w, h = x2 - x1, y2 - y1
     height, width = image_shape[:2]

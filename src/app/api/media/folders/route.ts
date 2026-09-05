@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/api-auth";
 import cloudinary from "@/lib/cloudinary";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireAdminApi(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const result = await cloudinary.api.sub_folders("vanlose-if");
     const folders: string[] = (result.folders as { name: string; path: string }[]).map((f) => f.name);

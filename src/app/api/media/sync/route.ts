@@ -5,10 +5,9 @@ import { syncAllMedia, syncOne } from "@/lib/media-sync";
 /**
  * Refreshes the Supabase mirror from Cloudinary.
  *
- * With a `publicId` it mirrors that one asset — the admin UI calls this right
- * after an upload so the new file appears without a full resync. Without one
- * it rebuilds the whole mirror, which doubles as the initial backfill and as
- * the repair for anything changed directly in the Cloudinary console.
+ * With a `publicId`, mirrors that one asset — used after an upload. Without
+ * one, rebuilds everything: the initial backfill, and the repair for changes
+ * made directly in the Cloudinary console.
  */
 export async function POST(req: NextRequest) {
   const unauthorized = await requireAdminApi(req);

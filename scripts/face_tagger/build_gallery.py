@@ -1,13 +1,12 @@
 """Builds a reference face for every first-team player.
 
-The media library already carries player-name tags applied by hand, so those
-tags are the training labels: for each player, every photo tagged with their
-name is embedded, the dominant face cluster across those photos is taken to be
-that player, and its centroid becomes the reference.
+The hand-applied player-name tags are the training labels: for each player,
+every photo tagged with their name is embedded, and the dominant face cluster
+across those photos is that player. Its centroid becomes the reference.
 
-The result is written to player_faces.json next to this script. That file is
-gitignored on purpose — face embeddings are biometric data under GDPR Art. 9,
-so they stay on the machine that generated them and never reach the database.
+Writes player_faces.json next to this script. That file is gitignored: face
+embeddings are biometric data under GDPR Art. 9, so they stay on the machine
+that generated them and never reach the database.
 
     python scripts/face_tagger/build_gallery.py
 """
@@ -74,8 +73,7 @@ def main() -> None:
     app = load_face_model()
     gallery: dict[str, dict] = {}
 
-    # A group photo is tagged with several players, so embed each photo once and
-    # reuse the result rather than re-downloading it per player.
+    # Group photos carry several player tags; embed each photo only once.
     face_cache: dict[str, list[np.ndarray]] = {}
 
     def faces_for(asset) -> list[np.ndarray]:
@@ -85,8 +83,7 @@ def main() -> None:
         return face_cache[asset.public_id]
 
     for tag in sorted(by_player):
-        # Photos tagged with exactly one player are the cleanest signal, so use
-        # those first and only top up with group shots when there are too few.
+        # Single-player photos are the cleanest signal; top up with group shots.
         photos = by_player[tag]
         solo = [a for a in photos if sum(1 for t in a.tags if normalize_tag(t) in tag_to_player) == 1]
         solo_ids = {a.public_id for a in solo}

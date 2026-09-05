@@ -5,9 +5,12 @@ import { getSiteContact } from "@/lib/site-contact";
 import { supabase } from "@/lib/supabase";
 import type { MembershipTier } from "@/lib/supabase";
 
+// Medlemskaber og priser ændrer sig sjældent.
+export const revalidate = 300;
+
 export const metadata: Metadata = buildPageMetadata({
   title: "Bliv Medlem — Vanløse IF",
-  description: "Bliv medlem af Vanløse IF. Vælg mellem passivt, aktivt eller familiemedlemskab.",
+  description: "Bliv medlem af Vanløse IF's Klub 1000.",
   path: "/bliv-medlem",
 });
 
@@ -31,8 +34,7 @@ export default async function BlivMedlemPage() {
             BLIV MEDLEM
           </h1>
           <p className="text-sm text-gray-300 max-w-md leading-relaxed">
-            Vanløse IF er båret af passionerede medlemmer. Uanset om du vil spille, støtte eller
-            engagere dig — der er plads til dig i sort og hvid.
+            Meld dig ind som aktiv spiller, passivt medlem eller hele familien.
           </p>
         </div>
       </section>

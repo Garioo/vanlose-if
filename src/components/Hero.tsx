@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Match } from "@/lib/supabase";
 import { getMatchSortTimestamp, formatMatchDate } from "@/lib/matchDate";
+import SiteImage from "@/components/SiteImage";
 
 type HeroProps = {
   nextMatch: Match | null;
@@ -27,8 +28,13 @@ function TeamBadge({ name, teamId, logoMap, darkBg }: { name: string; teamId: st
   if (logoUrl) {
     return (
       <div className="mb-1.5 flex h-12 w-16 items-center justify-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl} alt={name} className="max-h-12 max-w-[3.5rem] object-contain" />
+        <Image
+          src={logoUrl}
+          alt={name}
+          width={56}
+          height={48}
+          className="max-h-12 max-w-[3.5rem] w-auto h-auto object-contain"
+        />
       </div>
     );
   }
@@ -90,12 +96,13 @@ export default function Hero({
     <section className="noise-overlay relative flex h-screen min-h-[600px] items-end overflow-hidden bg-black text-white">
       <div className="absolute inset-0">
         {heroImageUrl ? (
-          <Image
+          <SiteImage
             src={heroImageUrl}
             alt="Vanløse IF"
-            fill
-            className="object-cover object-center"
+            width={1600}
+            sizes="100vw"
             priority
+            className="object-cover object-center"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-gray-800 via-gray-900 to-black" />

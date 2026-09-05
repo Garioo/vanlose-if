@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import NyhederFilter from "@/components/NyhederFilter";
-import { supabase } from "@/lib/supabase";
-import type { Article } from "@/lib/supabase";
+import { listArticleSummaries } from "@/lib/articles";
 import { buildPageMetadata } from "@/lib/metadata";
+
+// Nyhedslisten skal vise nye artikler hurtigt, men behøver ikke at ramme databasen ved hver anmodning.
+export const revalidate = 60;
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Nyheder — Vanløse IF",
@@ -11,12 +13,7 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default async function NyhederPage() {
-  const { data } = await supabase
-    .from("articles")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  const articles: Article[] = data ?? [];
+  const articles = await listArticleSummaries();
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen pt-14">

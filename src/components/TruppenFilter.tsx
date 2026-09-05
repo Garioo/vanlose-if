@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Player } from "@/lib/supabase";
 import { sortPlayersByNumber } from "@/lib/playerSort";
+import SiteImage from "@/components/SiteImage";
 
 type Position = "ALLE" | "MÅLMÆND" | "FORSVAR" | "MIDTBANE" | "ANGREB";
 const tabs: Position[] = ["ALLE", "MÅLMÆND", "FORSVAR", "MIDTBANE", "ANGREB"];
@@ -39,11 +40,21 @@ export default function TruppenFilter({ players }: { players: Player[] }) {
           <Link key={player.id} href={`/spillere/${player.id}`} className="group">
             <div className="aspect-3/4 bg-[#edeae3] mb-3 overflow-hidden relative">
               {player.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={player.image_url} alt={player.name} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300" />
+                <SiteImage
+                  src={player.image_url}
+                  alt={player.name}
+                  width={500}
+                  sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
+                  className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src="/images/player-placeholder.png" alt={player.name} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300 opacity-60" />
+                <SiteImage
+                  src="/images/player-placeholder.png"
+                  alt={player.name}
+                  width={500}
+                  sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
+                  className="object-cover object-top group-hover:scale-105 transition-transform duration-300 opacity-60"
+                />
               )}
             </div>
             <div className="flex items-baseline gap-2">

@@ -4,19 +4,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/api-auth";
 
 /**
- * Runs the face tagger over one folder and returns how many suggestions it
- * produced (see scripts/face_tagger).
+ * Runs scripts/face_tagger over one folder and reports how many suggestions it
+ * produced.
  *
- * Local-only by design. Recognition needs a Python runtime, a ~280 MB model and
- * minutes of CPU per batch, none of which fit in a serverless function — so the
- * admin runs this against the shared database from their own machine, and the
- * suggestions it writes are then visible to everyone in the deployed admin.
+ * Local-only: recognition needs Python, a ~280 MB model and minutes of CPU per
+ * batch, which do not fit in a serverless function. Run from your own machine
+ * against the shared database, and the suggestions are visible to everyone.
  */
 
-// Assembled from array segments rather than string literals: a literal path
-// here makes the bundler treat it as a static asset reference and try to follow
-// .venv-face/bin/python, a symlink pointing outside the project root, which
-// fails the build. FACE_TAGGER_PYTHON overrides the location of the venv.
+// Assembled from array segments, not literals: a literal path makes the bundler
+// treat it as a static asset reference and follow .venv-face/bin/python, a
+// symlink outside the project root, which fails the build.
 const segments = (...parts: string[]) => path.join(process.cwd(), ...parts);
 const PYTHON = process.env.FACE_TAGGER_PYTHON || segments(...[".venv-face", "bin", "python"]);
 const SCRIPT_DIR = segments(...["scripts", "face_tagger"]);
@@ -42,8 +40,7 @@ export async function POST(req: NextRequest) {
   const folder = typeof body?.folder === "string" && body.folder ? body.folder : null;
   const onlyUntagged = body?.onlyUntagged !== false;
 
-  // Passed as separate argv entries with no shell, so a folder name containing
-  // spaces or quotes cannot turn into anything executable.
+  // Separate argv entries with no shell, so a folder name cannot become code.
   const args = [path.join(SCRIPT_DIR, ...["tag_media.py"]), "--json"];
   if (folder) args.push("--folder", folder);
   if (onlyUntagged) args.push("--only-untagged");
@@ -73,8 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Ukendt fejl";
-    // The venv is created by hand (see scripts/face_tagger/README.md), so a
-    // missing interpreter is the most likely first-run failure.
+    // The venv is created by hand, so this is the likely first-run failure.
     if (message.includes("ENOENT")) {
       return NextResponse.json(
         { error: "Fandt ikke .venv-face. Følg opsætningen i scripts/face_tagger/README.md." },

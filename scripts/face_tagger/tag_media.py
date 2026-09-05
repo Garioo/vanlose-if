@@ -1,9 +1,8 @@
-"""Proposes player tags for media, by matching faces against the gallery.
+"""Proposes player tags by matching faces and shirt numbers against the squad.
 
-Nothing is applied automatically. Matches are written to
-public.media_tag_suggestions with a confidence score, and an admin accepts or
-rejects each one in the media library — a wrong player tag is worse than a
-missing one, so the threshold is deliberately set for precision over recall.
+Nothing is applied automatically: matches go to public.media_tag_suggestions
+with a confidence score, and an admin accepts or rejects each one. A wrong
+player tag is worse than a missing one, so thresholds favour precision.
 
     python scripts/face_tagger/tag_media.py --dry-run
     python scripts/face_tagger/tag_media.py --folder "2026-08-08 Naesby vs Vanlose"
@@ -55,9 +54,8 @@ def load_kit_profile():
 def numbers_to_tags(ocr, image, players_by_number, kit, min_score: float):
     """Player tags read off shirt numbers, keyed to the best OCR score.
 
-    Both teams appear in every match photo, so a number is only accepted when
-    the shirt it sits on matches one of the club's kit colours. Without that
-    check about half the numbers found would belong to the opposition.
+    A number is only accepted when the shirt it sits on matches a kit colour;
+    see calibrate_kit.py for why.
     """
     matches: dict[str, float] = {}
     for digits, box, score in read_numbers(ocr, image):
@@ -78,10 +76,8 @@ def numbers_to_tags(ocr, image, players_by_number, kit, min_score: float):
 def existing_suggestions() -> tuple[set[tuple[str, str]], dict[tuple[str, str], str]]:
     """Splits what is already on file into decided and still-pending.
 
-    A pair the admin has accepted or rejected is settled and must never come
-    back. A pair still pending is different: if a second signal now corroborates
-    it, refreshing it is exactly the point of running both detectors, so those
-    stay eligible for an upgrade rather than being skipped as duplicates.
+    Accepted or rejected pairs are settled and must never come back. Pending
+    ones stay eligible for an upgrade if a second signal corroborates them.
     """
     response = supabase_request("GET", "media_tag_suggestions?select=public_id,tag,status,source")
     decided: set[tuple[str, str]] = set()
@@ -123,10 +119,8 @@ def main() -> None:
     parser.add_argument(
         "--kit-tolerance",
         type=float,
-        # Separate from the clustering distance used to *find* the kit colours:
-        # that one decides which samples belong together, this one decides how
-        # far a shirt may sit from the result and still count as ours. Raising
-        # it admits more of our own players in shadow — and more opponents.
+        # Separate from the clustering distance used to find the kit colours.
+        # Raising it admits more of our players in shadow, and more opponents.
         default=None,
         help="Hvor langt en trøjefarve må ligge fra kitfarven (standard: fra kit_colours.json)",
     )
@@ -206,8 +200,7 @@ def main() -> None:
         for tag in set(by_face) | set(by_number):
             face_score, number_score = by_face.get(tag), by_number.get(tag)
             if face_score is not None and number_score is not None:
-                # Two independent signals agreeing is the strongest evidence
-                # available here, so it outranks either on its own.
+                # Two independent signals agreeing outranks either alone.
                 source = "face+number"
                 confidence = min(0.99, max(face_score, number_score) + 0.15)
             elif face_score is not None:
@@ -223,8 +216,7 @@ def main() -> None:
 
             note = ""
             if key in pending:
-                # Already queued. Only worth rewriting when a second signal has
-                # since confirmed it, which raises it up the reviewer's list.
+                # Already queued; only rewrite when a second signal confirms it.
                 if source != "face+number" or pending[key] == "face+number":
                     continue
                 note = " — bekræftet"
@@ -258,9 +250,8 @@ def main() -> None:
         supabase_request(
             "POST",
             "media_tag_suggestions?on_conflict=public_id,tag",
-            # merge rather than ignore: decided pairs are already filtered out
-            # above, so the only rows this can overwrite are pending ones being
-            # upgraded, which is intended.
+            # merge, not ignore: decided pairs are filtered out above, so this
+            # can only overwrite pending rows being upgraded.
             headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
             data=json.dumps(rows[start : start + 200]),
         )

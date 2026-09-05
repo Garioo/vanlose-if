@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { supabase } from "@/lib/supabase";
 
@@ -8,15 +9,18 @@ export const DEFAULT_SEASON = "2025/26";
  * Read the active season from `site_settings.current_season`.
  * Uses the anon client so it works in public Server Components and API routes alike
  * (site_settings is publicly readable).
+ *
+ * Wrapped in React's `cache` so the layout and the page it renders share a
+ * single query per request instead of each paying a round trip.
  */
-export async function getCurrentSeason(): Promise<string> {
+export const getCurrentSeason = cache(async function getCurrentSeason(): Promise<string> {
   const { data } = await supabase
     .from("site_settings")
     .select("value")
     .eq("key", "current_season")
     .maybeSingle<{ value: string }>();
   return data?.value?.trim() || DEFAULT_SEASON;
-}
+});
 
 export type StartSeasonResult = {
   season: string;

@@ -5,20 +5,23 @@ import { buildPageMetadata } from "@/lib/metadata";
 import { supabase } from "@/lib/supabase";
 import type { Sponsor, SponsorTier } from "@/lib/supabase";
 
+// Sponsorlisten ændrer sig sjældent.
+export const revalidate = 300;
+
 export const metadata: Metadata = buildPageMetadata({
   title: "Sponsorer — Vanløse IF",
-  description: "Vores partnere og sponsorer, der gør Vanløse IFs ambitioner mulige.",
+  description: "Vanløse IFs partnere og sponsorer, og hvordan man bliver en af dem.",
   path: "/sponsorer",
 });
 
 const partnershipThemes = [
   {
     title: "Synlighed på kampdage",
-    description: "Få en tydelig tilstedeværelse omkring klubbens hjemmekampe, events og lokale aktiviteter.",
+    description: "Synlighed til hjemmekampe, ved klubbens arrangementer og i lokalområdet.",
   },
   {
     title: "Aktivering i lokalmiljøet",
-    description: "Brug partnerskabet til at skabe relationer i Vanløse og resten af København.",
+    description: "Kontakt til andre virksomheder og foreninger i Vanløse og København.",
   },
   {
     title: "Fleksible samarbejder",

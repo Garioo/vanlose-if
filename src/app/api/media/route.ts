@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApi } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { rowToAsset, MEDIA_ROOT, type MediaAssetRow } from "@/lib/media-sync";
 import cloudinary from "@/lib/cloudinary";
 
 /**
- * Media listing, served from the Supabase mirror of Cloudinary
- * (see supabase/migrations/20260904000000_add_media_assets.sql).
+ * Media listing, served from the Supabase mirror of Cloudinary.
  *
- * Filtering happens in Postgres, so repeated `?tag=` params narrow to media
- * carrying *every* tag without the result cap the old Admin API path had.
+ * Repeated `?tag=` params narrow to media carrying *every* tag. Filtering in
+ * Postgres also drops the 200-result cap the old Admin API path had.
  */
 export async function GET(req: NextRequest) {
+  // Admin-only: the library holds unpublished media, so this must not be
+  // enumerable by anyone who guesses the URL.
+  const unauthorized = await requireAdminApi(req);
+  if (unauthorized) return unauthorized;
+
   const tags = req.nextUrl.searchParams.getAll("tag").filter(Boolean);
   const folder = req.nextUrl.searchParams.get("folder");
 
@@ -20,13 +25,11 @@ export async function GET(req: NextRequest) {
       .select("*")
       .order("created_at", { ascending: false });
 
-    // `contains` is `tags @> ARRAY[...]`, backed by the GIN index: an asset
-    // matches only when it carries all of the selected tags.
+    // `tags @> ARRAY[...]`, backed by the GIN index.
     if (tags.length > 0) query = query.contains("tags", tags);
 
-    // Match the folder itself and anything nested below it. Folder names are
-    // free text ("06-04-2026 Sundby Bk. vs Vanløse IF"), and an unquoted comma
-    // or period would be read as PostgREST filter syntax, so quote them.
+    // The folder itself and anything below it. Folder names are free text, and
+    // an unquoted comma or period would parse as PostgREST filter syntax.
     if (folder) {
       const quoted = quoteFilterValue(folder);
       const quotedPrefix = quoteFilterValue(`${folder}/%`);
@@ -38,9 +41,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(((data ?? []) as unknown as MediaAssetRow[]).map(rowToAsset));
   } catch (error) {
-    // Before the migration has been applied and backfilled there is no mirror
-    // to read, so fall back to Cloudinary rather than showing an empty
-    // library. Slower, but it keeps the admin usable during rollout.
+    // No mirror yet (migration not applied): fall back to Cloudinary rather
+    // than showing an empty library. Slower, but usable during rollout.
     console.warn("[media] mirror unavailable, falling back to Cloudinary:", error);
     try {
       return NextResponse.json(await listFromCloudinary(tags, folder));
@@ -51,7 +53,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** Wraps a PostgREST filter value in quotes so separators inside it are literal. */
+/** Quotes a PostgREST filter value so separators inside it stay literal. */
 function quoteFilterValue(value: string) {
   return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }

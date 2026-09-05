@@ -1,4 +1,4 @@
-import Image from "next/image";
+import SiteImage from "@/components/SiteImage";
 
 type Props = { imageUrl?: string | null };
 
@@ -9,10 +9,11 @@ export default function YouthFootball({ imageUrl }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
           {/* Left: Image */}
           <div className="reveal relative aspect-[4/3] bg-[#ddd8d0] overflow-hidden">
-            <Image
+            <SiteImage
               src={imageUrl || "/images/youth.svg"}
               alt="Ungdomsfodbold"
-              fill
+              width={800}
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
             />
           </div>
@@ -28,8 +29,7 @@ export default function YouthFootball({ imageUrl }: Props) {
               fodbold
             </h2>
             <p className="text-sm text-[#4a4540] mb-8 max-w-sm">
-              Vi skaber fremtidens stjerner. Vanløse IF er et af Danmarks stærkeste fundamenter for
-              talentudvikling og fællesskab — med hundredvis af aktive spillere fra U5 til U19.
+              Hundredvis af aktive spillere fra U5 til U19, fordelt på bredde- og elitehold.
             </p>
 
             <div className="flex gap-12 mb-8">

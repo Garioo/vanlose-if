@@ -36,7 +36,7 @@ interface Suggestion {
   source: string;
 }
 
-/** Short label so the reviewer can see what a proposal is based on. */
+/** What a proposal is based on. */
 function sourceLabel(source: string) {
   if (source === "face+number") return "ansigt + nummer";
   if (source === "number") return "nummer";
@@ -126,9 +126,8 @@ export default function AdminMedierPage() {
     setLoading(false);
   }, [activeTags, selectedFolder]);
 
-  // Folders, the tag vocabulary and the player list are the same whatever the
-  // active filter is, so they load once. Bundling them with the media fetch
-  // meant every filter chip toggle re-requested all four.
+  // Same whatever the active filter is, so they load once. Bundling them with
+  // the media fetch meant every filter toggle re-requested all four.
   useEffect(() => {
     void loadFolders();
     void loadTags();
@@ -185,9 +184,8 @@ export default function AdminMedierPage() {
   }
 
   /**
-   * Rebuilds the Supabase mirror from Cloudinary. Needed once to backfill, and
-   * afterwards only to pick up changes made straight in the Cloudinary console
-   * — every edit made here already writes through.
+   * Rebuilds the mirror from Cloudinary. Needed once to backfill, then only for
+   * changes made in the Cloudinary console — edits here already write through.
    */
   async function handleSync() {
     setSyncing(true);
@@ -205,11 +203,7 @@ export default function AdminMedierPage() {
     }
   }
 
-  /**
-   * Runs face recognition over the folder currently in view and reloads the
-   * proposals it produced. Only works when the admin runs locally — the API
-   * route says so explicitly otherwise.
-   */
+  /** Runs recognition over the folder in view. Local admin only; see the route. */
   async function handleTagFaces() {
     setTagging(true);
     setTaggingMessage(null);
@@ -334,7 +328,7 @@ export default function AdminMedierPage() {
     );
   }
 
-  /** Dismisses a proposal so a later face-tagger run will not repeat it. */
+  /** Dismisses a proposal so a later run will not repeat it. */
   async function rejectSuggestion(id: string, tag: string) {
     setSuggestionsByAsset((prev) => ({
       ...prev,
@@ -348,8 +342,8 @@ export default function AdminMedierPage() {
   }
 
   /**
-   * Marks proposals as accepted only once their tag has actually been written
-   * to Cloudinary, so an abandoned draft does not silently clear the queue.
+   * Accepts proposals only once their tag has reached Cloudinary, so an
+   * abandoned draft does not silently clear the queue.
    */
   async function confirmAcceptedSuggestions(id: string, savedTags: string[]) {
     const pending = suggestionsByAsset[id] ?? [];
@@ -435,7 +429,7 @@ export default function AdminMedierPage() {
   const activeItem = selectedItems.find((item) => item.public_id === activeQueueId) ?? null;
   const activeDraftTags = activeItem ? draftTagsById[activeItem.public_id] ?? activeItem.tags : [];
   const activeIndex = activeItem ? selectedIds.indexOf(activeItem.public_id) : -1;
-  // Proposals the admin has not yet taken into the draft.
+  // Proposals not yet taken into the draft.
   const activeSuggestions = activeItem
     ? (suggestionsByAsset[activeItem.public_id] ?? []).filter((s) => !activeDraftTags.includes(s.tag))
     : [];
@@ -642,10 +636,8 @@ export default function AdminMedierPage() {
                       )}
                     </div>
 
-                    {/* Pending face-recognition proposals, surfaced on the tile
-                        itself — otherwise the only place they appear is inside
-                        the tag panel, and an untagged grid looks like the
-                        tagger simply did nothing. */}
+                    {/* Shown on the tile, not just in the tag panel: otherwise
+                        an untagged grid looks like the tagger did nothing. */}
                     {(suggestionsByAsset[item.public_id]?.length ?? 0) > 0 && (
                       <button
                         type="button"

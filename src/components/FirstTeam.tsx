@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Player } from "@/lib/supabase";
+import SiteImage from "@/components/SiteImage";
 
 type FirstTeamProps = {
   players: Player[];
@@ -34,10 +34,11 @@ export default function FirstTeam({ players }: FirstTeamProps) {
           {players.map((player, i) => (
             <div key={player.id} className={`group cursor-pointer reveal reveal-delay-${Math.min(i + 1, 4)}`}>
               <div className="relative aspect-3/4 bg-[#edeae3] overflow-hidden mb-3">
-                <Image
+                <SiteImage
                   src={player.image_url || "/images/player-placeholder.png"}
                   alt={player.name}
-                  fill
+                  width={500}
+                  sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
                   className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
                 />
               </div>

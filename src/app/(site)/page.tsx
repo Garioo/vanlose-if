@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Hero from "@/components/Hero";
+import NewsSkeleton from "@/components/NewsSkeleton";
 import News from "@/components/News";
 import FirstTeam from "@/components/FirstTeam";
 import YouthFootball from "@/components/YouthFootball";
@@ -10,7 +12,10 @@ import { sortMatchesByKickoff } from "@/lib/matchDate";
 import { sortPlayersByNumber } from "@/lib/playerSort";
 import { getCurrentSeason } from "@/lib/season";
 
-export const dynamic = "force-dynamic";
+// Forsiden viser seneste nyheder og næste kamp. Siden genopbygges højst hvert 60. sekund i stedet for ved
+// hver eneste anmodning; live-resultater ligger i kampcenteret, som stadig
+// er dynamisk.
+export const revalidate = 60;
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Vanløse Idrætsforening",
@@ -52,7 +57,9 @@ export default async function Home() {
         teamLogoMap={teamLogoMap}
         teamAbbreviationMap={teamAbbreviationMap}
       />
-      <News />
+      <Suspense fallback={<NewsSkeleton />}>
+        <News />
+      </Suspense>
       <FirstTeam players={featuredPlayers} />
       <YouthFootball imageUrl={youthImageUrl} />
       <Volunteer roles={volunteerRoles} imageUrl={volunteerImageUrl} />

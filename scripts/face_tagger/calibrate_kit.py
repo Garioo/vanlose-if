@@ -1,14 +1,12 @@
-"""Learns the club's kit colours from photos, so shirt numbers can be trusted.
+"""Derives the club's kit colours from photos, so shirt numbers can be trusted.
 
-Every match photo contains both teams, and OCR reads an opponent's number just
-as clearly as one of ours. Without a way to tell the shirts apart, roughly half
-the numbers found would be mapped onto the wrong squad.
+Both teams appear in every match photo and OCR reads an opponent's number just
+as clearly as ours, so without a way to tell the shirts apart about half the
+numbers found would land on the wrong squad.
 
-Rather than asking for the colours, this derives them: a face that matches a
-gallery reference is definitely one of our players, so the shirt just below it
-is definitely our kit. Sampling those patches across the library and clustering
-them yields the kit colours actually seen in the photos — home and away both,
-without either being described by hand.
+A face matching a gallery reference is one of our players, so the shirt below
+it is our kit. Clustering those patches gives the colours actually seen in the
+photos, home and away, without either being described by hand.
 
     python scripts/face_tagger/calibrate_kit.py
 """
@@ -50,7 +48,7 @@ def main() -> None:
     refs = {t: np.asarray(v["embedding"], dtype=np.float32) for t, v in gallery.items()}
     print(f"Reference for {len(refs)} spillere")
 
-    # Only photos already tagged with one of our players are worth sampling.
+    # Only already-tagged photos are worth sampling.
     assets = [a for a in fetch_assets() if a.tags]
     assets = assets[: args.max_photos]
     print(f"Gennemgår {len(assets)} fotos")
@@ -79,8 +77,7 @@ def main() -> None:
     if len(samples) < args.min_samples:
         raise SystemExit("For få prøver til at udlede farver. Tag flere fotos i hånden og prøv igen.")
 
-    # Greedy clustering: a club normally has a home and an away kit, so a
-    # handful of loose groups is expected rather than a single colour.
+    # Greedy clustering: home and away kits mean more than one group is normal.
     clusters: list[list[tuple[float, float, float]]] = []
     for colour in samples:
         for cluster in clusters:

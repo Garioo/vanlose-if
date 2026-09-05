@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Article } from "@/lib/supabase";
-import { readingTime } from "@/lib/readingTime";
+import type { ArticleSummary } from "@/lib/supabase";
+import SiteImage from "@/components/SiteImage";
 
 type Tab = "ALLE" | "KAMP" | "KLUB" | "UNGDOM";
 const tabs: Tab[] = ["ALLE", "KAMP", "KLUB", "UNGDOM"];
 
-function HeroCard({ article }: { article: Article }) {
+function HeroCard({ article }: { article: ArticleSummary }) {
   return (
     <Link
       href={`/nyheder/${article.slug}`}
@@ -17,11 +17,12 @@ function HeroCard({ article }: { article: Article }) {
       {/* Image — 60% on desktop */}
       <div className="md:w-[60%] aspect-video md:aspect-auto md:min-h-80 bg-[#edeae3] relative overflow-hidden shrink-0">
         {article.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <SiteImage
             src={article.image_url}
             alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            width={900}
+            sizes="(max-width: 768px) 100vw, 60vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <div className="absolute inset-0 bg-linear-to-br from-[#edeae3] to-[#ddd8d0] group-hover:from-[#ddd8d0] group-hover:to-[#ccc6bc] transition-colors duration-300" />
@@ -42,7 +43,7 @@ function HeroCard({ article }: { article: Article }) {
           <span className="text-[#e0dbd3]">·</span>
           <span className="text-[10px] text-[#8a847c]">{article.date}</span>
           <span className="text-[#e0dbd3]">·</span>
-          <span className="text-[10px] text-[#8a847c]">{readingTime(article.content)} min</span>
+          <span className="text-[10px] text-[#8a847c]">{article.minutes} min</span>
         </div>
         <h2 className="font-display text-3xl md:text-5xl leading-[0.92] mb-4 group-hover:opacity-80 transition-opacity">
           {article.title}
@@ -59,7 +60,7 @@ function HeroCard({ article }: { article: Article }) {
   );
 }
 
-export default function NyhederFilter({ articles }: { articles: Article[] }) {
+export default function NyhederFilter({ articles }: { articles: ArticleSummary[] }) {
   const [activeTab, setActiveTab] = useState<Tab>("ALLE");
   const filtered = activeTab === "ALLE" ? articles : articles.filter((a) => a.category === activeTab);
   const [hero, ...rest] = filtered;
@@ -102,8 +103,13 @@ export default function NyhederFilter({ articles }: { articles: Article[] }) {
                 >
                   <div className="aspect-video bg-[#edeae3] relative overflow-hidden">
                     {article.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <SiteImage
+                        src={article.image_url}
+                        alt={article.title}
+                        width={600}
+                        sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     ) : (
                       <div className="absolute inset-0 bg-linear-to-br from-[#edeae3] to-[#ddd8d0] group-hover:from-[#ddd8d0] group-hover:to-[#ccc6bc] transition-colors duration-300" />
                     )}
@@ -121,7 +127,7 @@ export default function NyhederFilter({ articles }: { articles: Article[] }) {
                       <span className="text-[#e0dbd3]">·</span>
                       <span className="text-[10px] text-[#8a847c]">{article.date}</span>
                       <span className="text-[#e0dbd3]">·</span>
-                      <span className="text-[10px] text-[#8a847c]">{readingTime(article.content)} min</span>
+                      <span className="text-[10px] text-[#8a847c]">{article.minutes} min</span>
                     </div>
                     <h3 className="font-display text-2xl md:text-3xl leading-[0.92] mb-3 group-hover:opacity-80 transition-opacity">
                       {article.title}

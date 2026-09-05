@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import ReadingProgress from "@/components/ReadingProgress";
 import type { Metadata } from "next";
-import { supabase } from "@/lib/supabase";
-import type { Article } from "@/lib/supabase";
+import { supabase, type ArticleSummary } from "@/lib/supabase";
+import { getArticleBySlug, listRelatedArticles } from "@/lib/articles";
 import { buildArticleMetadata } from "@/lib/metadata";
 import { readingTime } from "@/lib/readingTime";
 
@@ -11,36 +11,38 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+// Artikler rettes sjældent efter udgivelse, men en rettelse skal slå igennem inden for et minut.
+export const revalidate = 60;
+
+/**
+ * Prerender every article at build time. New slugs published later are still
+ * served — they're rendered on first request and then cached like the rest.
+ */
+export async function generateStaticParams() {
+  const { data } = await supabase.from("articles").select("slug");
+  return (data ?? []).map(({ slug }: { slug: string }) => ({ slug }));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const { data } = await supabase.from("articles").select("*").eq("slug", slug).single();
-  if (!data) return {};
+  const article = await getArticleBySlug(slug);
+  if (!article) return {};
   return buildArticleMetadata({
-    title: `${data.title} — Vanløse IF`,
-    description: data.excerpt,
+    title: `${article.title} — Vanløse IF`,
+    description: article.excerpt,
     path: `/nyheder/${slug}`,
-    image: data.image_url,
-    publishedTime: data.created_at,
+    image: article.image_url,
+    publishedTime: article.created_at,
   });
 }
 
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
-  const { data: article } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("slug", slug)
-    .single<Article>();
+  const article = await getArticleBySlug(slug);
 
   if (!article) notFound();
 
-  const { data: related } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("category", article.category)
-    .neq("slug", slug)
-    .order("created_at", { ascending: false })
-    .limit(3);
+  const related = await listRelatedArticles(article);
 
   const mins = readingTime(article.content);
 
@@ -104,7 +106,7 @@ export default async function ArticlePage({ params }: Props) {
           <div className="max-w-5xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl leading-[0.9] border-l-4 border-accent pl-4 mb-8">LÆS OGSÅ</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {related.map((a: Article) => (
+              {related.map((a: ArticleSummary) => (
                 <Link
                   key={a.id}
                   href={`/nyheder/${a.slug}`}

@@ -3,6 +3,10 @@ import { buildPageMetadata } from "@/lib/metadata";
 import HeroEnterWrapper from "@/components/HeroEnterWrapper";
 import { supabase } from "@/lib/supabase";
 import type { YouthTeam } from "@/lib/supabase";
+import SiteImage from "@/components/SiteImage";
+
+// Ungdomsholdene ændrer sig sjældent.
+export const revalidate = 300;
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Ungdom — Vanløse IF",
@@ -24,8 +28,7 @@ export default async function UngdomPage() {
       {/* Hero */}
       <section className="pt-14 min-h-screen flex items-end relative overflow-hidden bg-black text-white">
         {settingsMap["ungdom_hero_image"] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={settingsMap["ungdom_hero_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
+          <SiteImage src={settingsMap["ungdom_hero_image"]} alt="" aria-hidden width={1600} sizes="100vw" priority className="object-cover" />
         )}
         <div className="absolute inset-0 bg-linear-to-b from-black/40 to-black" />
         <div className="absolute top-1/3 right-0 w-96 h-96 rounded-full bg-white/5 blur-3xl" />
@@ -35,7 +38,7 @@ export default async function UngdomPage() {
               FREMTIDENS STJERNER
             </h1>
             <p className="hero-body text-sm text-gray-300 mb-8 max-w-md leading-relaxed">
-              Vi bygger bro mellem fællesskab og sportslig udvikling i hjertet af Vanløse.
+              Hold for U5 til U19, med plads til både bredde og elite.
             </p>
             <a
               href="#tilmelding"
@@ -74,8 +77,7 @@ export default async function UngdomPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
           <div className="aspect-[4/3] bg-[#edeae3] overflow-hidden relative">
             {settingsMap["ungdom_bornefodbold_image"] && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={settingsMap["ungdom_bornefodbold_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <SiteImage src={settingsMap["ungdom_bornefodbold_image"]} alt="" width={800} sizes={"(max-width: 768px) 100vw, 50vw"} className="object-cover" />
             )}
             <div className="absolute bottom-4 left-4 bg-black text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1">
               Aldersgruppe U5-U12
@@ -84,9 +86,8 @@ export default async function UngdomPage() {
           <div>
             <h2 className="font-display text-4xl md:text-5xl leading-[0.9] mb-6">BØRNEFODBOLD</h2>
             <p className="text-sm text-[#4a4540] leading-relaxed mb-6">
-              Her starter drømmen. For de yngste årgange handler fodbold i Vanløse IF om leg,
-              bevægelse og nye venskaber. Vi følger DBU&apos;s retningslinjer for børnefodbold, hvor
-              sjovt altid kommer før resultater.
+              For de yngste årgange handler fodbold om leg, bevægelse og nye venskaber. Vi følger
+              DBU&apos;s retningslinjer for børnefodbold, hvor det sjove kommer før resultater.
             </p>
             <ul className="space-y-2 mb-8">
               {[
@@ -119,13 +120,12 @@ export default async function UngdomPage() {
           <div>
             <h2 className="font-display text-4xl md:text-5xl leading-[0.9] mb-6">ELITE UNGDOM</h2>
             <p className="text-sm text-[#4a4540] leading-relaxed mb-6">
-              For de spillere der vil have mere. Vores eliteprogram fokuserer på individuel teknisk
-              udvikling, taktisk forståelse og fysisk træning. Vi skaber rammerne for, at de
-              største talenter kan tage skridtet mod seniorfodbold på højt niveau.
+              For spillere der vil træne mere. Eliteprogrammet dækker teknisk udvikling, taktisk
+              forståelse og fysisk træning, og forbereder spillere på seniorfodbold.
             </p>
             <div className="grid grid-cols-2 gap-3 mb-8">
               {[
-                { label: "Licenstræning", sub: "Struktureret elite-setup" },
+                { label: "Licenstræning", sub: "Fast ugentligt program" },
                 { label: "Udvikling", sub: "Individuelle forløb" },
               ].map((box) => (
                 <div key={box.label} className="bg-[#f7f4ef] border border-[#e0dbd3] p-4">
@@ -148,8 +148,7 @@ export default async function UngdomPage() {
           </div>
           <div className="aspect-[4/3] bg-[#ddd8d0] overflow-hidden relative order-first md:order-last">
             {settingsMap["ungdom_elite_image"] && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={settingsMap["ungdom_elite_image"]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <SiteImage src={settingsMap["ungdom_elite_image"]} alt="" width={800} sizes={"(max-width: 768px) 100vw, 50vw"} className="object-cover" />
             )}
           </div>
         </div>
@@ -173,8 +172,7 @@ export default async function UngdomPage() {
                   <div key={team.id} className="bg-[#f7f4ef] border border-[#e0dbd3] overflow-hidden">
                     {team.image_url && (
                       <div className="aspect-4/3 relative overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={team.image_url} alt={team.age_group} className="absolute inset-0 w-full h-full object-cover" />
+                        <SiteImage src={team.image_url} alt={team.age_group} width={500} sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"} className="object-cover" />
                       </div>
                     )}
                     <div className="p-5">
@@ -237,7 +235,7 @@ export default async function UngdomPage() {
             KLAR TIL AT SPILLE?
           </h2>
           <p className="text-sm text-[#8a847c] italic mb-10">
-            &ldquo;I Vanløse IF er vi mere end bare en klub – vi er en familie.&rdquo;
+            &ldquo;I Vanløse IF er vi mere end bare en klub&rdquo;
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a

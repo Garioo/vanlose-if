@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/metadata";
 import { getSiteContact, mailtoUrl, telUrl } from "@/lib/site-contact";
 
+// Kontaktoplysninger ændrer sig sjældent.
+export const revalidate = 300;
+
 export const metadata: Metadata = buildPageMetadata({
   title: "Kontakt — Vanløse IF",
   description: "Kontakt Vanløse IF med spørgsmål om medlemskab, sponsorater eller andet.",

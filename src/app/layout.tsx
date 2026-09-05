@@ -31,21 +31,21 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "Vanløse IF - Stolthed & Passion. Oplev intensiteten på Vanløse Idrætspark. Siden 1921.",
+    "Vanløse IF. Fodbold på Vanløse Idrætspark siden 1921.",
   openGraph: {
     type: "website",
     locale: "da_DK",
     siteName: "Vanløse IF",
     title: "Vanløse IF - Københavns mest ambitiøse klub",
     description:
-      "Vanløse IF - Stolthed & Passion. Oplev intensiteten på Vanløse Idrætspark. Siden 1921.",
+      "Vanløse IF. Fodbold på Vanløse Idrætspark siden 1921.",
     url: siteUrl ?? undefined,
   },
   twitter: {
     card: "summary_large_image",
     title: "Vanløse IF - Københavns mest ambitiøse klub",
     description:
-      "Vanløse IF - Stolthed & Passion. Oplev intensiteten på Vanløse Idrætspark. Siden 1921.",
+      "Vanløse IF. Fodbold på Vanløse Idrætspark siden 1921.",
   },
 };
 

@@ -6,9 +6,18 @@ import type { Player, PlayerStats } from "@/lib/supabase";
 import { buildPageMetadata } from "@/lib/metadata";
 import { describePlayerDeparture } from "@/lib/player-status";
 
-export const dynamic = "force-dynamic";
+// Spillerprofiler ændrer sig sjældent. Siden genopbygges højst hvert 300. sekund i stedet for ved
+// hver eneste anmodning; live-resultater ligger i kampcenteret, som stadig
+// er dynamisk.
+export const revalidate = 300;
 
 type Props = { params: Promise<{ id: string }> };
+
+/** Prerender the current squad; anyone else renders on first request. */
+export async function generateStaticParams() {
+  const { data } = await supabase.from("players").select("id").eq("status", "active");
+  return (data ?? []).map(({ id }: { id: string }) => ({ id }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;

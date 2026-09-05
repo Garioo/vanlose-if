@@ -3,10 +3,8 @@ import { requireAdminApi } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
- * Tag suggestions produced by scripts/face_tagger, awaiting admin review.
- *
- * They are only ever proposals: accepting one adds the tag to the draft in the
- * media library, and the existing save path is what writes it to Cloudinary.
+ * Tag suggestions from scripts/face_tagger, awaiting review. Accepting one adds
+ * the tag to the draft; the normal save path is what writes it to Cloudinary.
  */
 
 interface SuggestionRow {
@@ -30,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     if (error) throw new Error(error.message);
 
-    // Keyed by asset so the tag panel can look up the active item directly.
+    // Keyed by asset, for direct lookup from the tag panel.
     const byAsset: Record<string, { tag: string; confidence: number; source: string }[]> = {};
     for (const row of (data ?? []) as unknown as SuggestionRow[]) {
       (byAsset[row.public_id] ??= []).push({
@@ -42,8 +40,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(byAsset);
   } catch (error) {
-    // The table only exists once the face-tagging migration has been applied;
-    // until then the admin UI should simply show no suggestions.
+    // Before the face-tagging migration is applied, show no suggestions.
     console.warn("[media/suggestions] unavailable:", error);
     return NextResponse.json({});
   }

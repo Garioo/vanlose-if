@@ -13,8 +13,35 @@ export default function BlivMedlemContent({ tiers, email, phone }: Props) {
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
           <h2 className="font-display text-4xl md:text-5xl leading-[0.9] mb-3">VÆLG MEDLEMSKAB</h2>
-          <p className="text-sm text-[#4a4540]">Alle priser er pr. sæson og gælder for 2026.</p>
+          {tiers.length > 0 && (
+            <p className="text-sm text-[#4a4540]">Alle priser er pr. sæson og gælder for 2026.</p>
+          )}
         </div>
+
+        {/* Uden medlemstyper i databasen viste siden et tomt gitter under en
+            overskrift om priser. Henvis til klubben i stedet. */}
+        {tiers.length === 0 && (
+          <div className="border border-[#e0dbd3] p-8 mb-16 max-w-xl">
+            <p className="text-sm text-[#4a4540] mb-4">
+              Kontingentsatserne for den kommende sæson er ikke offentliggjort endnu. Skriv eller
+              ring til klubben, så fortæller vi hvad et medlemskab koster for din aldersgruppe.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={mailtoUrl(email, "Medlemskab")}
+                className="inline-block bg-black text-white text-xs font-bold tracking-widest uppercase px-6 py-3 hover:bg-gray-900 transition-colors"
+              >
+                Skriv til os
+              </a>
+              <a
+                href={telUrl(phone)}
+                className="inline-block border border-[#e0dbd3] text-xs font-bold tracking-widest uppercase px-6 py-3 hover:border-black transition-colors"
+              >
+                Ring til klubben
+              </a>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {tiers.map((tier) => (

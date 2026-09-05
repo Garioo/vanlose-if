@@ -4,6 +4,10 @@ import { buildPageMetadata } from "@/lib/metadata";
 import { getSiteContact, mailtoUrl, telUrl } from "@/lib/site-contact";
 import { supabase } from "@/lib/supabase";
 import type { VolunteerRole } from "@/lib/supabase";
+import SiteImage from "@/components/SiteImage";
+
+// Frivilligroller ændrer sig sjældent.
+export const revalidate = 300;
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Frivillig — Vanløse IF",
@@ -16,29 +20,20 @@ const fallbackRoles: VolunteerRole[] = [
     id: "1",
     title: "Træner & Holdleder",
     description:
-      "Del din passion for fodbold med de næste generationer. Som træner eller holdleder er du den vigtigste person i et barns sportslige liv. Vi tilbyder DBU-uddannelse og et stærkt netværk af erfarne trænere.",
+      "Som træner eller holdleder står du for den daglige kontakt med spillere og forældre. Vi tilbyder DBU-uddannelse og hjælp fra klubbens øvrige trænere.",
     tasks: ["Ledelse af træninger", "Kampledelse og tilmelding", "Kontakt til forældre"],
     display_order: 0,
     created_at: "",
   },
   {
     id: "2",
-    title: "Event & Kiosk",
+    title: "Event & Boderne",
     description:
-      "Bag enhver god kampdag står frivillige kræfter. Vi har brug for hjælp i kiosken, ved opstilling og nedtagning af udstyr, og til at skabe den stemning, der gør Vanløse Idrætspark til noget særligt.",
+      "Bag enhver god kampdag står frivillige kræfter. Vi har brug for hjælp i Boderne, ved opstilling og nedtagning af udstyr, og til at skabe den stemning, der gør Vanløse Idrætspark til noget særligt.",
     tasks: ["Kioskdrift på kampdage", "Arrangementssupport", "Dekorering og opsætning"],
     display_order: 1,
     created_at: "",
-  },
-  {
-    id: "3",
-    title: "Bestyrelse & Administration",
-    description:
-      "Har du kompetencer inden for økonomi, kommunikation, jura eller ledelse? Klubbens daglige drift kræver engagerede mennesker, der vil gøre en forskel bag kulisserne.",
-    tasks: ["Strategisk klubudvikling", "Kommunikation og sociale medier", "Økonomi og sponsorater"],
-    display_order: 2,
-    created_at: "",
-  },
+  }
 ];
 
 export default async function FrivilligPage() {
@@ -56,8 +51,7 @@ export default async function FrivilligPage() {
       {/* Hero */}
       <section className="pt-14 min-h-screen flex items-end bg-black text-white overflow-hidden relative">
         {frivilligHeroImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={frivilligHeroImage} alt="" className="absolute inset-0 w-full h-full object-cover" aria-hidden />
+          <SiteImage src={frivilligHeroImage} alt="" aria-hidden width={1600} sizes="100vw" priority className="object-cover" />
         )}
         <div className="absolute inset-0 top-14 bg-linear-to-b from-gray-800 to-black" />
         <div

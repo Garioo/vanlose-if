@@ -4,10 +4,12 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireAdminApi } from "@/lib/api-auth";
 import { pick } from "@/lib/pick";
 
+// Only the search overlay reads this list, and it matches on title, excerpt
+// and category — so the article bodies stay on the server.
 export async function GET() {
   const { data, error } = await supabase
     .from("articles")
-    .select("*")
+    .select("id, slug, category, date, title, excerpt, image_url, latest")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import SiteImage from "@/components/SiteImage";
 
-export const dynamic = "force-dynamic";
+// Næsten statisk indhold. Siden genopbygges højst hvert 300. sekund i stedet for ved
+// hver eneste anmodning; live-resultater ligger i kampcenteret, som stadig
+// er dynamisk.
+export const revalidate = 300;
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Klubben — Vanløse IF",
@@ -15,43 +19,45 @@ const eras = [
   {
     period: "1921 — 1950",
     title: "DE FØRSTE ÅR",
-    description:
-      "Grundlæggelsen af en institution. Fra beskedne forhold på Vanløse Idrætspark til en klub med ambitioner.",
+    description:" Grundlæggelsen af Vanløse IF og de første årtiers udvikling.",
     imageKey: "klubben_era_1_image",
   },
   {
     period: "1951 — 1990",
     title: "GULDALDEREN",
     description:
-      "De store årtier. Oprykning, guldmedaljer og et fællesskab, der bandt generationer af vanløsitter sammen.",
+      "Oprykninger og guldmedaljer. Klubbens mest succesrige årtier.",
     imageKey: "klubben_era_2_image",
   },
   {
     period: "1991 — NU",
     title: "MODERNE TID",
     description:
-      "Ny infrastruktur, professionalisering og en ungdomsafdeling i verdensklasse. Fremtiden tilhører VIF.",
+      "Nye faciliteter, mere professionel drift og en voksende ungdomsafdeling.",
     imageKey: "klubben_era_3_image",
   },
 ];
 
 export default async function KlubbenPage() {
-  const { data: settingsData } = await supabase.from("site_settings").select("key, value");
-  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
+  // Fetch only the keys this page renders — the era keys are derived from the
+  // list above so a new era can't silently lose its image.
+  const { data: settingsData } = await supabase
+    .from("site_settings")
+    .select("key, value")
+    .in("key", ["klubben_hero_image", ...eras.map((era) => era.imageKey)]);
 
-  const heroImages = [
-    settingsMap["klubben_hero_image_1"],
-    settingsMap["klubben_hero_image_2"],
-    settingsMap["klubben_hero_image_3"],
-  ];
-  const heroBgs = ["bg-gray-700", "bg-gray-600", "bg-gray-500"];
+  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
+  const heroImage = settingsMap["klubben_hero_image"];
 
   return (
     <div className="bg-[#f7f4ef] text-[#0d0d0b] min-h-screen">
       {/* Hero */}
-      <section className="pt-14 min-h-screen flex items-end bg-black text-white overflow-hidden">
-        <div className="absolute inset-0 top-14 bg-gradient-to-b from-gray-900 to-black" />
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-12 md:pb-20 flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+      <section className="pt-14 min-h-screen flex items-end bg-black text-white overflow-hidden relative">
+        {heroImage && (
+          <SiteImage src={heroImage} alt="" aria-hidden width={1600} sizes="100vw" priority className="object-cover" />
+        )}
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 to-black" />
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pb-12 md:pb-20">
           <div className="max-w-lg">
             <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-4">
               Etableret 1921
@@ -60,18 +66,8 @@ export default async function KlubbenPage() {
               KLUBBEN<span className="text-gray-500">.</span>
             </h1>
             <p className="text-sm text-gray-300 max-w-md leading-relaxed">
-              En arv bygget på fællesskab, passion og sort/hvid stolthed. Siden 1921 har vi formet
-              generationer af fodboldspillere i hjertet af Vanløse.
+              Fodbold i Vanløse siden 1921 — fra de yngste årgange til førsteholdet.
             </p>
-          </div>
-
-          {/* Stacked images */}
-          <div className="flex flex-col gap-2 w-full md:w-64 flex-shrink-0">
-            {heroImages.map((url, i) => (
-              <div key={i} className={`h-24 w-full overflow-hidden ${!url ? heroBgs[i] : ""}`}>
-                {url && <img src={url} alt="" aria-hidden className="w-full h-full object-cover" />}
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -104,9 +100,15 @@ export default async function KlubbenPage() {
             const delayClass = i === 0 ? "reveal reveal-delay-1" : i === 1 ? "reveal reveal-delay-2" : "reveal reveal-delay-3";
             return (
               <div key={era.title} className={`group cursor-pointer ${delayClass}`}>
-                <div className="aspect-[4/3] bg-[#edeae3] mb-4 overflow-hidden">
+                <div className="relative aspect-[4/3] bg-[#edeae3] mb-4 overflow-hidden">
                   {imageUrl ? (
-                    <img src={imageUrl} alt={era.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <SiteImage
+                      src={imageUrl}
+                      alt={era.title}
+                      width={600}
+                      sizes={"(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"}
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-[#ddd8d0] to-[#ccc6bc] group-hover:from-[#ccc6bc] group-hover:to-[#bbb5ab] transition-colors duration-300" />
                   )}
@@ -134,8 +136,8 @@ export default async function KlubbenPage() {
                 FÆLLESSKAB FREM FOR ALT
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed md:w-1/3 md:pt-2">
-                Vanløse IF er mere end blot en klub; vi er en familie. Vi dyrker relationer på tværs
-                af årgange og sikrer, at alle føler sig hjemme i de sort/hvide farver.
+                Vi lægger vægt på, at spillere kender hinanden på tværs af årgange, og at der er
+                plads til både bredde og elite.
               </p>
             </div>
             <div className="py-10 md:py-14 flex flex-col md:flex-row md:items-start gap-6">

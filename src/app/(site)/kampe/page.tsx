@@ -5,6 +5,9 @@ import type { Match, Standing } from "@/lib/supabase";
 import { buildPageMetadata } from "@/lib/metadata";
 import { getCurrentSeason } from "@/lib/season";
 
+// Kampprogram og stilling ændrer sig omkring kampdage; live-resultater ligger i kampcenteret.
+export const revalidate = 60;
+
 export const metadata: Metadata = buildPageMetadata({
   title: "Kampprogram — Vanløse IF",
   description: "Se Vanløse IFs kampprogram, resultater og stilling i 3. Division.",

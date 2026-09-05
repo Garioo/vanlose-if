@@ -8,17 +8,17 @@ const fallbackItems = [
   {
     title: "Træner & Holdleder",
     description:
-      "Vær med til at forme næste generation på banen. Vi tilbyder uddannelse og et stærkt trænermiljø.",
+      "Træn et ungdomshold. Vi tilbyder DBU-uddannelse og hjælp fra erfarne trænere.",
   },
   {
     title: "Event & Kiosk",
     description:
-      "Hjælp med at drive vores kampdagsoplevelse. Fra kiosken til events, er der altid brug for hjælpende hænder.",
+      "Hjælp i kiosken eller til klubbens arrangementer. Også en enkelt kampdag tæller.",
   },
   {
     title: "Bestyrelse & Administration",
     description:
-      "Vær med til at forme klubbens fremtid. Vi søger altid engagerede mennesker til bestyrelsen og administrationen.",
+      "Vi mangler løbende folk til bestyrelse, økonomi og det administrative arbejde.",
   },
 ];
 
@@ -48,7 +48,7 @@ export default function Volunteer({ roles, imageUrl }: Props) {
             Vanløse
           </h2>
           <p className="text-sm text-[#4a4540] mb-8 max-w-sm">
-            Vanløse IF drives af passionerede frivillige. Uden jer, intet os.
+            Klubben drives af frivillige. Der er brug for flere.
           </p>
 
           {/* Accordion */}

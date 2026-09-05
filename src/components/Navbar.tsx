@@ -18,7 +18,7 @@ const navLinks = [
   { href: "/klubben", label: "Klubben" },
   { href: "/nyheder", label: "Nyheder" },
   { href: "/kampe", label: "Kampe" },
-  { href: "/bliv-medlem", label: "Bliv Medlem" },
+  { href: "/bliv-medlem", label: "Bliv medlem" },
   { href: "/kontakt", label: "Kontakt" },
 ];
 
@@ -71,7 +71,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
 
   return (
     <>
-      <nav className="h-full text-black">
+      <nav aria-label="Hovednavigation" className="club-header h-full text-black">
         {/* Tap-outside backdrop — negative z keeps it behind the bar and panel
             but above page content, since the shell wrapper owns the stacking context. */}
         {mobileOpen && (
@@ -96,7 +96,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
               className="h-[2.05rem] w-auto shrink-0"
               priority
             />
-            <span className="font-display text-sm leading-none tracking-tight">VANLØSE IF</span>
+            <span className="font-display text-sm leading-none tracking-tight">Vanløse IF</span>
           </Link>
 
           <div className="flex items-center gap-1">
@@ -194,6 +194,7 @@ export default function Navbar({ nextMatch }: NavbarProps = {}) {
                 <Link
                   key={href}
                   href={href}
+                  aria-current={active ? "page" : undefined}
                   className={`whitespace-nowrap border-b-2 px-3 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/80 ${
                     active
                       ? "border-accent text-[#111111]"

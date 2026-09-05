@@ -4,13 +4,13 @@ test.describe("Site hardening", () => {
   test("homepage shows a truthful primary season state", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.locator("body")).toContainText(/Næste Kamp|Sæsonen 2026/);
-
-    const bodyText = (await page.locator("body").textContent()) ?? "";
-    if (bodyText.includes("Næste Kamp")) {
-      await expect(page.getByRole("link", { name: "Se Match Center" })).toBeVisible();
-    } else {
-      await expect(page.getByRole("link", { name: "Se Kampprogram" })).toBeVisible();
+    const matches = page.getByRole("region", { name: "Kampe og resultater" });
+    await expect(matches).toBeVisible();
+    await expect(matches).toContainText(/Næste kamp|Live nu/);
+    await expect(matches.getByRole("link", { name: /Se kampprogram/ })).toBeVisible();
+    const info = matches.getByRole("link", { name: "Kampinfo", exact: true });
+    if (await info.count()) {
+      await expect(info).toHaveAttribute("href", /\/kampe\/.+/);
     }
   });
 

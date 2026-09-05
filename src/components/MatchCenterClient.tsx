@@ -312,10 +312,10 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
             </div>
 
             {/* Teams and score */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 md:gap-8">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:gap-8">
               {/* Home team */}
               <div>
-                <p className="font-display text-2xl md:text-4xl lg:text-5xl text-white leading-none tracking-tight">
+                <p className="font-display text-base sm:text-2xl md:text-4xl lg:text-5xl text-white leading-tight tracking-tight break-words">
                   {match.home}
                 </p>
                 <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">
@@ -325,7 +325,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
 
               {/* Score */}
               <div ref={scoreRef} className="text-center px-4 md:px-8">
-                <div className="font-display text-5xl md:text-7xl lg:text-8xl text-white leading-none tabular-nums">
+                <div className="font-display text-4xl md:text-7xl lg:text-8xl text-white leading-none tabular-nums">
                   {match.home_score ?? 0}
                   <span className="text-white/30 mx-1 md:mx-2">-</span>
                   {match.away_score ?? 0}
@@ -339,7 +339,7 @@ export default function MatchCenterClient({ initialMatch, initialEvents, initial
 
               {/* Away team */}
               <div className="text-right">
-                <p className="font-display text-2xl md:text-4xl lg:text-5xl text-white leading-none tracking-tight">
+                <p className="font-display text-base sm:text-2xl md:text-4xl lg:text-5xl text-white leading-tight tracking-tight break-words">
                   {match.away}
                 </p>
                 <p className="text-[9px] text-white/40 font-bold tracking-widest uppercase mt-2">

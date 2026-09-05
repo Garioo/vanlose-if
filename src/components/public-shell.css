@@ -1,0 +1,24 @@
+/* Public navigation: a single readable type scale on desktop and mobile. */
+.club-header .font-display { font-size:15px; font-weight:700; letter-spacing:-.055em; }
+.club-header [class*="bg-[#f7f4ef]"] { background:#fff; }
+.club-header [class*="uppercase"] { text-transform:none; letter-spacing:0; }
+.club-header [class*="lg:flex"] { border-top:0; border-bottom-color:#e0e5e0; gap:28px; }
+.club-header [class*="lg:flex"] a[class*="whitespace-nowrap"] { font-size:12px; padding-left:10px; padding-right:10px; }
+.club-header [class*="lg:flex"] button { border:0; font-size:12px; }
+.club-header a[aria-current="page"] { border-color:#234d38; }
+@media (min-width:1280px) { .club-header [class*="lg:flex"] { padding-left:48px; padding-right:48px; } }
+
+.club-footer { padding:48px max(20px, calc((100vw - 1344px) / 2)); background:#f1f4f0; color:#15251f; border-top:1px solid #dce1dc; }
+.footer-main { display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:40px; }
+.footer-brand { display:flex; gap:12px; align-items:center; font-weight:600; font-size:20px; letter-spacing:-.04em; }
+.footer-address { font-size:12px; line-height:1.8; color:#626a65; margin-top:20px; }
+.footer-links { display:flex; flex-direction:column; align-items:start; gap:13px; font-size:12px; }
+.footer-links a:hover,.footer-bottom a:hover { text-decoration:underline; text-underline-offset:4px; }
+.footer-bottom { display:flex; gap:20px; justify-content:space-between; margin-top:44px; padding-top:22px; border-top:1px solid #dce1dc; font-size:10px; color:#626a65; }
+.footer-bottom > div { display:flex; gap:20px; flex-wrap:wrap; }
+@media (max-width:767px) { .club-footer { padding:34px 20px; } .footer-main { grid-template-columns:1fr 1fr; gap:32px 20px; } .footer-main > :first-child { grid-column:span 2; } .footer-bottom { flex-direction:column; margin-top:32px; line-height:1.6; } }
+
+/* The wider font needs room on the existing inner-page templates. */
+#main-content h1.font-display { font-size:clamp(2.25rem,6vw,5rem); line-height:1.08; overflow-wrap:break-word; }
+#main-content h2.font-display { line-height:1.12; }
+@media (max-width:767px) { .footer-links { gap:3px; } .footer-links a { min-height:40px; display:flex; align-items:center; } }

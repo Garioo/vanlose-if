@@ -1,11 +1,14 @@
+import "@/components/public-shell.css";
 import Footer from "@/components/Footer";
 import SiteShell from "@/components/SiteShell";
 import { supabase, type Match } from "@/lib/supabase";
-import { sortMatchesByKickoff } from "@/lib/matchDate";
+import { getMatchSortTimestamp } from "@/lib/matchDate";
+import { selectHomeMatches } from "@/lib/home-matches";
 import { getCurrentSeason } from "@/lib/season";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const today = new Date().toISOString().split("T")[0];
+  const dayFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Copenhagen" });
+  const today = dayFormatter.format(new Date());
   const currentSeason = await getCurrentSeason();
 
   const { data: matchData } = await supabase
@@ -16,17 +19,13 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
 
   const matches = (matchData ?? []) as Match[];
 
-  const nextMatch = sortMatchesByKickoff(
-    matches.filter((m) => m.status === "scheduled"),
-    "asc"
-  )[0] ?? null;
+  const { next: nextMatch } = selectHomeMatches(matches);
 
-  const todayOrLive =
-    matches.find((m) => {
-      if (m.status === "live") return true;
-      if (m.kickoff_at) return m.kickoff_at.startsWith(today);
-      return false;
-    }) ?? null;
+  const nextKickoff = nextMatch ? getMatchSortTimestamp(nextMatch) : null;
+  const todayOrLive = nextMatch && (
+    nextMatch.status === "live" ||
+    (nextKickoff !== null && dayFormatter.format(new Date(nextKickoff)) === today)
+  ) ? nextMatch : null;
 
   const hasBanner = todayOrLive !== null;
 

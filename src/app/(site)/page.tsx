@@ -1,68 +1,38 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import Hero from "@/components/Hero";
-import NewsSkeleton from "@/components/NewsSkeleton";
-import News from "@/components/News";
-import FirstTeam from "@/components/FirstTeam";
-import YouthFootball from "@/components/YouthFootball";
-import Volunteer from "@/components/Volunteer";
+import ClubHome from "@/components/ClubHome";
 import { buildPageMetadata } from "@/lib/metadata";
-import { supabase, type Match, type Player, type VolunteerRole } from "@/lib/supabase";
-import { sortMatchesByKickoff } from "@/lib/matchDate";
+import { supabase, type Match, type Player, type Article, type Sponsor } from "@/lib/supabase";
 import { sortPlayersByNumber } from "@/lib/playerSort";
 import { getCurrentSeason } from "@/lib/season";
+import { selectHomeMatches } from "@/lib/home-matches";
 
-// Forsiden viser seneste nyheder og næste kamp. Siden genopbygges højst hvert 60. sekund i stedet for ved
-// hver eneste anmodning; live-resultater ligger i kampcenteret, som stadig
-// er dynamisk.
 export const revalidate = 60;
-
 export const metadata: Metadata = buildPageMetadata({
   title: "Vanløse Idrætsforening",
-  description:
-    "Vanløse Idrætsforening - Siden 1921.",
+  description: "Vanløse IF. Kampe, hold og klubnyt fra Vanløse Idrætspark.",
   path: "/",
 });
 
 export default async function Home() {
-  const currentSeason = await getCurrentSeason();
-  const [{ data: matchData }, { data: playerData }, { data: settingsData }, { data: rolesData }, { data: teamsData }] =
-    await Promise.all([
-      supabase.from("matches").select("*").eq("is_upcoming", true).or(`season.eq.${currentSeason},season.is.null`),
-      supabase.from("players").select("*").eq("status", "active"),
-      supabase.from("site_settings").select("key, value").in("key", ["hero_image_url", "volunteer_image", "youth_image"]),
-      supabase.from("volunteer_roles").select("*").order("display_order", { ascending: true }),
-      supabase.from("teams").select("id, logo_url, abbreviation"),
-    ]);
-
-  const settingsMap = Object.fromEntries((settingsData ?? []).map((s) => [s.key, s.value]));
-  const nextMatch = sortMatchesByKickoff((matchData ?? []) as Match[], "asc")[0] ?? null;
-  const featuredPlayers = sortPlayersByNumber((playerData ?? []) as Player[], "asc").slice(0, 3);
-  const heroImageUrl = settingsMap["hero_image_url"] || null;
-  const volunteerImageUrl = settingsMap["volunteer_image"] || null;
-  const youthImageUrl = settingsMap["youth_image"] || null;
-  const volunteerRoles = (rolesData ?? []) as VolunteerRole[];
-  const teamLogoMap = Object.fromEntries(
-    (teamsData ?? []).map((t) => [t.id, t.logo_url as string | null])
-  );
-  const teamAbbreviationMap = Object.fromEntries(
-    (teamsData ?? []).map((t) => [t.id, (t as { abbreviation?: string | null }).abbreviation ?? null])
-  );
-
-  return (
-    <main>
-      <Hero
-        nextMatch={nextMatch}
-        heroImageUrl={heroImageUrl}
-        teamLogoMap={teamLogoMap}
-        teamAbbreviationMap={teamAbbreviationMap}
-      />
-      <Suspense fallback={<NewsSkeleton />}>
-        <News />
-      </Suspense>
-      <FirstTeam players={featuredPlayers} />
-      <YouthFootball imageUrl={youthImageUrl} />
-      <Volunteer roles={volunteerRoles} imageUrl={volunteerImageUrl} />
-    </main>
-  );
+  const season = await getCurrentSeason();
+  const [matches, players, settings, teams, articles, sponsors] = await Promise.all([
+    supabase.from("matches").select("*").or(`season.eq.${season},season.is.null`),
+    supabase.from("players").select("*").eq("status", "active"),
+    supabase.from("site_settings").select("key, value").in("key", ["hero_image_url", "youth_image"]),
+    supabase.from("teams").select("id, logo_url"),
+    supabase.from("articles").select("id, slug, title, excerpt, image_url, category, date").order("created_at", { ascending: false }).limit(3),
+    supabase.from("sponsors").select("*").order("display_order", { ascending: true }).limit(8),
+  ]);
+  const images = Object.fromEntries((settings.data ?? []).map((s) => [s.key, s.value]));
+  const { next, latest } = selectHomeMatches((matches.data ?? []) as Match[]);
+  return <ClubHome
+    nextMatch={next}
+    latestMatch={latest}
+    heroImage={images.hero_image_url || null}
+    youthImage={images.youth_image || null}
+    logoMap={Object.fromEntries((teams.data ?? []).map((t) => [t.id, t.logo_url]))}
+    players={sortPlayersByNumber((players.data ?? []) as Player[], "asc").slice(0, 3)}
+    articles={(articles.data ?? []) as Pick<Article, "id" | "slug" | "title" | "excerpt" | "image_url" | "category" | "date">[]}
+    sponsors={(sponsors.data ?? []) as Sponsor[]}
+  />;
 }
